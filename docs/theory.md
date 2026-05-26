@@ -76,9 +76,9 @@ is used to balance these two views without manually forcing the angle between
 `L` and `Jab`.
 
 $$
-d\sigma \propto b\,db,
+d\sigma \propto b db,
 \qquad
-P(L)\,dL \propto (2L+1)\,dL,
+P(L) dL \propto (2L+1) dL,
 \qquad
 \vec{J} = \vec{L}+\vec{J}_{AB}.
 $$
@@ -100,16 +100,16 @@ logs, histogram file names, or input options.
 
 | Type | Sampled quantity | Distribution or weight |
 | --- | --- | --- |
-| Vibrational state | normal-mode quantum numbers `vstat` | Boltzmann harmonic-oscillator populations, $P(\mathbf{v})\propto \exp[-E_{\mathbf{v}}/(k_BT_{\mathrm{vib}})]$ |
+| Vibrational state | normal-mode quantum numbers `vstat` | Boltzmann harmonic-oscillator populations, $P(v)\propto \exp[-E_v/(k_B T_{\mathrm{vib}})]$ |
 | Vibrational phase space | normal-mode `Q, P` | Husimi-style harmonic-oscillator phase-space density for the sampled `vstat` |
 | Rigid-rotor total angular momentum | molecular `J` | Boltzmann rotor populations, with $(2J+1)$ degeneracy for isotropic tops and state-specific weights for anisotropic/asymmetric tops |
 | Symmetric-top projection | body-fixed `K` or projection-like coordinate | Boltzmann projection distribution at fixed `J` |
 | Asymmetric-top state | Wang-basis eigenstate at fixed `J` | Boltzmann distribution over asymmetric-rotor eigenenergies and symmetry labels |
 | Asymmetric vector model | projection spread and unresolved azimuth | rejection-sampled Gaussian-sine, azimuthal, or Bingham-like auxiliary distributions chosen from the Wang-state expectation values |
 | Molecular orientation | Euler angles | isotropic orientations by default, or user-supplied/fixed/read orientation distributions when requested |
-| Impact parameter | `b` | geometric incoming-flux measure, $P(b)\,db \propto b\,db$ on the requested interval |
-| Orbital angular momentum | `L` | semiclassical partial-wave measure, $P(L)\,dL \propto (2L+1)\,dL$ |
-| Total angular momentum | `J` | target partial-wave measure, $P(J)\,dJ \propto (2J+1)\,dJ$ |
+| Impact parameter | `b` | geometric incoming-flux measure, $P(b) db \propto b db$ on the requested interval |
+| Orbital angular momentum | `L` | semiclassical partial-wave measure, $P(L) dL \propto (2L+1) dL$ |
+| Total angular momentum | `J` | target partial-wave measure, $P(J) dJ \propto (2J+1) dJ$ |
 | Orbital azimuth | `phi` | uniform angle when `phisample = True` |
 | Relative speed | intermolecular velocity | Maxwell-Boltzmann or beam/Gaussian-like velocity distribution, depending on input mode |
 | Wang-Landau correction | accepted total `J` | rejection weight proportional to $(2J+1)/\Omega_{\mathrm{WL}}(J)$ |
@@ -375,8 +375,8 @@ J_full_space = sum_i m_i r_i x v_i
 or
 
 $$
-\vec{J}_{\mathrm{full}}^{\,\mathrm{space}}
-  = \sum_i m_i\,\vec{r}_i\times\vec{v}_i.
+\vec{J}_{\mathrm{full}}^{\mathrm{space}}
+  = \sum_i m_i \vec{r}_i\times\vec{v}_i.
 $$
 
 where `r_i` and `v_i` are measured after removing the molecular COM.
@@ -393,8 +393,8 @@ J_full_eckart = sum_i m_i r_i^E x v_i^E
 or
 
 $$
-\vec{J}_{\mathrm{full}}^{\,E}
-  = \sum_i m_i\,\vec{r}_i^{\,E}\times\vec{v}_i^{\,E}.
+\vec{J}_{\mathrm{full}}^{E}
+  = \sum_i m_i \vec{r}_i^{E}\times\vec{v}_i^{E}.
 $$
 
 The magnitude should match the space-frame value apart from numerical noise,
@@ -412,8 +412,8 @@ J_vector_eckart = sum_i m_i x_ref_i x v_i^E
 or
 
 $$
-\vec{J}_{\mathrm{vector}}^{\,E}
-  = \sum_i m_i\,\vec{x}_{\mathrm{ref},i}\times\vec{v}_i^{\,E}.
+\vec{J}_{\mathrm{vector}}^{E}
+  = \sum_i m_i \vec{x}_{\mathrm{ref},i}\times\vec{v}_i^{E}.
 $$
 
 The key difference is that the cross product uses the reference geometry
@@ -437,9 +437,9 @@ J_vib_eckart = J_full_eckart - J_vector_eckart
 or
 
 $$
-\vec{J}_{\mathrm{vib}}^{\,E}
-  = \vec{J}_{\mathrm{full}}^{\,E}
-  - \vec{J}_{\mathrm{vector}}^{\,E}.
+\vec{J}_{\mathrm{vib}}^{E}
+  = \vec{J}_{\mathrm{full}}^{E}
+  - \vec{J}_{\mathrm{vector}}^{E}.
 $$
 
 It measures how much instantaneous molecular angular momentum is carried by
@@ -623,7 +623,7 @@ or
 $$
 b = \frac{|\vec{L}|}{\mu |\vec{v}_{\mathrm{rel}}|},
 \qquad
-\phi = \operatorname{atan2}(L_x,-L_y).
+\phi = \mathrm{atan2}(L_x,-L_y).
 $$
 
 The lines labelled `Tot. Mol Ja/Jb/Jab` use the full molecular angular momenta

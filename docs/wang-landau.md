@@ -26,11 +26,11 @@ partial-wave state density:   weight ~ 2J + 1 -> roughly linear in J
 In the notation used in the theory page this is:
 
 $$
-d\sigma \propto b\,db,
+d\sigma \propto b db,
 \qquad
-P(L)\,dL \propto (2L+1)\,dL,
+P(L) dL \propto (2L+1) dL,
 \qquad
-P(J)\,dJ \propto (2J+1)\,dJ.
+P(J) dJ \propto (2J+1) dJ.
 $$
 
 For atom-atom scattering these are almost the same statement because `J = L`.
