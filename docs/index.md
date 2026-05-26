@@ -32,7 +32,7 @@ larger trajectory set.
 - [Dynamics and Analysis Pipeline](pipeline.md)
 - [Diagnostics and Audits](diagnostics.md)
 - [Troubleshooting](troubleshooting.md)
-- [School and Outreach Videos](videos.md)
+- [Outreach Collision Player](videos.md)
 
 ## What ICATS Does
 

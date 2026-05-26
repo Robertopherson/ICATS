@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ICATS Molecular Collision Player</title>
+<style>
+  :root { --bg:#0b0f14; --panel:#111826; --ink:#e8eef7; --muted:#9fb2cc; --accent:#5fb3ff; --ring:rgba(127,200,255,.6);
+          --radius:8px; --shadow:0 6px 30px rgba(0,0,0,.35); }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:24px; background:var(--bg);
+        color:var(--ink); font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial,"Noto Sans",sans-serif; }
+  .app{ max-width:1100px; margin:0 auto; display:grid; gap:20px; grid-template-columns:minmax(220px,300px) minmax(280px,1fr); align-items:start }
+  @media (max-width:680px){ body{ padding:16px } .app{ grid-template-columns: 1fr } }
+  .panel{ background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
+          border:1px solid rgba(255,255,255,.06); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow)}
+  h1{ font-size:22px; margin:0 0 10px } .sub{ color:var(--muted); margin-bottom:12px; font-size:14px }
+  .list{ display:grid; gap:12px; grid-template-columns:1fr } /* 5 rows */
+  .mol{ appearance:none; border:1px solid rgba(255,255,255,.10); background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0));
+        border-radius:8px; padding:12px; display:flex; align-items:center; gap:12px; cursor:pointer; text-align:left;
+        transition:transform .06s ease, border-color .2s ease, box-shadow .2s ease; outline:none; position:relative }
+  .mol:hover{ transform:translateY(-2px); border-color:rgba(127,200,255,.5) }
+  .mol:focus-visible{ box-shadow:0 0 0 3px var(--ring) }
+  .mol.selected{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(95,179,255,.35), inset 0 0 32px rgba(127,200,255,.06) }
+  .svgbox{ width:56px; height:56px; flex:0 0 56px }
+  .label{ font-weight:700; letter-spacing:.2px; font-size:16px }
+  .countBadge{ position:absolute; right:10px; top:10px; background:rgba(127,200,255,.15); color:#7cffcf;
+               font-weight:800; font-size:12px; padding:3px 8px; border-radius:999px; display:none }
+  .mol.x2 .countBadge{ display:inline-block }
+  .controls{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px }
+  .btn{ appearance:none; border:1px solid rgba(255,255,255,.1); padding:10px 14px; border-radius:8px; background:#121a28; color:var(--ink);
+        cursor:pointer; font-weight:600; transition:transform .06s ease, border-color .2s ease, box-shadow .2s ease }
+  .btn:hover{ transform:translateY(-1px); border-color:rgba(127,200,255,.5) }
+  .btn:focus-visible{ box-shadow:0 0 0 3px var(--ring) }
+  .badge{ display:inline-block; padding:3px 8px; border-radius:999px; background:rgba(127,200,255,.15); color:#7cffcf; font-size:12px; font-weight:700 }
+
+  .video-wrap{ aspect-ratio:16/9; width:100%; background:#0c1320; border-radius:var(--radius);
+               border:1px solid rgba(255,255,255,.06); overflow:hidden; position:relative }
+  .video-wrap video{ width:100%; height:100%; display:block; background:#000 }
+  .overlay{ position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; text-align:center; padding:20px }
+  .overlay .hint{ color:var(--muted); font-size:15px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+                  padding:10px 14px; border-radius:8px }
+  .error{ margin-top:10px; color:#ff8a8a; font-weight:600; display:none }
+
+  /* Info box under video */
+  .info{ margin-top:14px; display:grid; gap:10px }
+  .infoCard{
+    background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0));
+    border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:10px 12px;
+  }
+  .infoTitle{ font-weight:800; margin:0 0 4px; font-size:15px }
+  .infoText{ margin:0; color:var(--muted); font-size:14px; line-height:1.35 }
+</style>
+</head>
+<body>
+  <div class="app">
+    <section class="panel">
+      <h1>Collision Pair <span class="badge" id="selCount">0/2 selected</span></h1>
+      <p class="sub">Pick any two molecules — you can also pick the <strong>same molecule twice</strong>.</p>
+      <div class="list" id="list"></div>
+      <div class="controls">
+        <button class="btn" id="clearBtn" type="button" title="Clear selection">Clear selection</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h1>Trajectory Video</h1>
+      <p class="sub" id="pairLabel">No pair selected.</p>
+      <div class="video-wrap">
+        <video id="player" controls preload="none" playsinline loop muted></video>
+        <div class="overlay" id="overlay">
+          <div class="hint">Choose two molecules to load a video. Tip: click the same one twice for self-collisions.</div>
+        </div>
+      </div>
+      <div class="error" id="errorMsg">Couldn’t load that video. Check the file name and format.</div>
+
+      <!-- NEW: info box -->
+      <div class="info" id="infoBox"></div>
+    </section>
+  </div>
+
+<script>
+/** ---- CONFIG ----
+ * Filenames: vid_<id1>_<id2>.mp4 (ids sorted alphabetically). Self-pairs allowed.
+ * IDs: "ammonia", "co2", "h2o", "meth", "n2".
+ */
+const MOLECULES = [
+  { id:"ammonia", name:"Ammonia (NH₃)", svg: ammoniaSVG() },
+  { id:"co2",     name:"Carbon Dioxide (CO₂)", svg: co2SVG() },
+  { id:"h2o",     name:"Water (H₂O)", svg: h2oSVG() },
+  { id:"meth",    name:"Methane (CH₄)", svg: methaneSVG() },
+  { id:"n2",      name:"Nitrogen (N₂)", svg: n2SVG() },
+];
+
+const VIDEO_DIR = "videos";
+const VIDEO_EXT = ".mp4";
+
+/* Educational blurbs: two simple sentences each */
+const BLURBS = {
+  ammonia: {
+    title: "Ammonia (NH₃)",
+    text: "Ammonia is a key ingredient in fertilizers made by the Haber–Bosch process, helping crops grow. It is a basic, pungent gas that also appears naturally in the nitrogen cycle."
+  },
+  co2: {
+    title: "Carbon Dioxide (CO₂)",
+    text: "CO₂ is produced by respiration and combustion and is a major greenhouse gas. Plants use it in photosynthesis, and we find it in fizzy drinks and dry ice."
+  },
+  h2o: {
+    title: "Water (H₂O)",
+    text: "Water is essential for life and an excellent solvent, carrying nutrients and chemicals. Its unusual properties—like high heat capacity and ice floating—shape Earth’s climate."
+  },
+  meth: {
+    title: "Methane (CH₄)",
+    text: "Methane is the main component of natural gas and an important fuel. It’s also a potent greenhouse gas released from wetlands, energy production, and livestock."
+  },
+  n2: {
+    title: "Nitrogen (N₂)",
+    text: "Nitrogen makes up about 78% of Earth’s atmosphere and is quite unreactive under normal conditions. Through nitrogen fixation, it becomes part of fertilizers and living tissues; liquid nitrogen is used for rapid cooling."
+  }
+};
+
+/** Build filename using sorted ids (self-pair OK) */
+function filenameForPair(a, b){
+  const ids = [a, b].sort();
+  return `${VIDEO_DIR}/vid_${ids[0]}_${ids[1]}${VIDEO_EXT}`;
+}
+
+// ---- State: 0/1/2 selection counts per molecule ----
+const counts = Object.fromEntries(MOLECULES.map(m => [m.id, 0]));
+
+const list = document.getElementById("list");
+const player = document.getElementById("player");
+player.loop = true;
+const overlay = document.getElementById("overlay");
+const pairLabel = document.getElementById("pairLabel");
+const errorMsg = document.getElementById("errorMsg");
+const clearBtn = document.getElementById("clearBtn");
+const selCount = document.getElementById("selCount");
+const infoBox = document.getElementById("infoBox");
+
+function totalSelected(){ return Object.values(counts).reduce((a,b)=>a+b,0); }
+function selectionArray(){
+  const out = [];
+  for (const [id,c] of Object.entries(counts)) for (let k=0;k<c;k++) out.push(id);
+  return out.slice(0,2);
+}
+function nameFor(id){
+  const mol = MOLECULES.find(m => m.id === id);
+  return mol ? mol.name : id;
+}
+function updateBadge(){ selCount.textContent = `${totalSelected()}/2 selected`; }
+
+function makeMolButton(m){
+  const btn = document.createElement("button");
+  btn.className = "mol"; btn.type = "button"; btn.setAttribute("data-id", m.id);
+
+  const svgBox = document.createElement("div"); svgBox.className = "svgbox"; svgBox.innerHTML = m.svg;
+  const label = document.createElement("div"); label.className = "label"; label.textContent = m.name;
+  const badge = document.createElement("div"); badge.className = "countBadge"; badge.textContent = "×2";
+
+  btn.appendChild(svgBox); btn.appendChild(label); btn.appendChild(badge);
+
+  btn.addEventListener("click", () => cycleSelection(m.id));
+  btn.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); btn.click(); } });
+
+  return btn;
+}
+
+function renderList(){ MOLECULES.forEach(m => list.appendChild(makeMolButton(m))); }
+function refreshButtons(){
+  document.querySelectorAll(".mol").forEach(btn => {
+    const id = btn.getAttribute("data-id");
+    const c = counts[id];
+    btn.classList.toggle("selected", c >= 1);
+    btn.classList.toggle("x2", c === 2);
+    btn.setAttribute("aria-pressed", c >= 1 ? "true" : "false");
+  });
+}
+
+function clearSelection(){
+  for (const id in counts) counts[id] = 0;
+  refreshButtons(); updateBadge();
+  pairLabel.textContent = "No pair selected.";
+  errorMsg.style.display = "none";
+  overlay.style.display = ""; infoBox.innerHTML = "";
+}
+
+function cycleSelection(id){
+  errorMsg.style.display = "none";
+  const current = counts[id];
+  const next = (current + 1) % 3; // 0→1→2→0
+  const totalWithout = totalSelected() - current;
+
+  if (next === 0) {
+    counts[id] = 0;
+  } else {
+    if (totalWithout + next > 2) for (const k in counts) if (k !== id) counts[k] = 0;
+    counts[id] = next;
+  }
+
+  refreshButtons(); updateBadge();
+
+  if (totalSelected() === 2) {
+    const [a, b] = selectionArray();
+    pairLabel.textContent = `Pair: ${nameFor(a)} + ${nameFor(b)}`;
+    loadAndPlay(filenameForPair(a, b));
+    renderInfo(a, b);
+  } else {
+    infoBox.innerHTML = "";
+  }
+}
+
+function loadAndPlay(src){
+  overlay.style.display = "none"; errorMsg.style.display = "none";
+  player.pause(); player.removeAttribute("src");
+  while (player.firstChild) player.removeChild(player.firstChild);
+  const source = document.createElement("source"); source.src = src; source.type = "video/mp4";
+  player.appendChild(source);
+  player.onloadeddata = () => { player.play().catch(()=>{}); };
+  player.onerror = () => { errorMsg.style.display = "block"; };
+  player.load();
+}
+
+function renderInfo(a, b){
+  const cards = [a, b].map(id => {
+    const {title, text} = BLURBS[id];
+    return `<div class="infoCard"><p class="infoTitle">${title}</p><p class="infoText">${text}</p></div>`;
+  }).join("");
+  infoBox.innerHTML = cards;
+}
+
+clearBtn.addEventListener("click", clearSelection);
+renderList(); refreshButtons(); updateBadge();
+
+/* ---- Inline SVG icons (schematic) ---- */
+function baseSVG(content){
+  return `
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="molecule icon">
+    <defs><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-opacity=".35"/></filter></defs>
+    <rect x="0" y="0" width="100" height="100" rx="18" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.08)"/>
+    ${content}
+  </svg>`;
+}
+function atom(cx, cy, r, fill, stroke="#bcd3ff"){ 
+  return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2" filter="url(#shadow)"/>`;
+}
+function bond(x1,y1,x2,y2,w=4,op=1){ 
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#d7e6ff" stroke-opacity="${op}" stroke-width="${w}" stroke-linecap="round"/>`;
+}
+function doubleBond(x1,y1,x2,y2,sep=4){
+  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy), nx=-dy/len, ny=dx/len;
+  return `${bond(x1+nx*sep,y1+ny*sep,x2+nx*sep,y2+ny*sep,3)}${bond(x1-nx*sep,y1-ny*sep,x2-nx*sep,y2-ny*sep,3)}`;
+}
+function tripleBond(x1,y1,x2,y2,sep=6){ return `${bond(x1,y1,x2,y2,3)}${doubleBond(x1,y1,x2,y2,sep)}`; }
+function ammoniaSVG(){
+  const N = atom(50,50,12,"#7fc8ff"); const H1 = atom(25,30,8,"#ffffff"); const H2 = atom(75,30,8,"#ffffff"); const H3 = atom(50,78,8,"#ffffff");
+  return baseSVG(`${bond(50,50,25,30)}${bond(50,50,75,30)}${bond(50,50,50,78)}${N}${H1}${H2}${H3}`);
+}
+function co2SVG(){
+  const O1 = atom(22,50,11,"#ff9ea1"); const C=atom(50,50,10,"#8bd48a"); const O2=atom(78,50,11,"#ff9ea1");
+  return baseSVG(`${doubleBond(22,50,40,50)}${doubleBond(60,50,78,50)}${O1}${C}${O2}`);
+}
+function h2oSVG(){
+  const O=atom(50,55,12,"#ff9ea1"); const H1=atom(32,35,8,"#ffffff"); const H2=atom(68,35,8,"#ffffff");
+  return baseSVG(`${bond(50,55,32,35)}${bond(50,55,68,35)}${O}${H1}${H2}`);
+}
+function methaneSVG(){
+  const C=atom(50,50,10,"#8bd48a"); const Ht=atom(50,22,8,"#ffffff"); const Hb=atom(50,78,8,"#ffffff"); const Hl=atom(24,56,8,"#ffffff"); const Hr=atom(76,44,8,"#ffffff");
+  return baseSVG(`${bond(50,50,50,22)}${bond(50,50,50,78)}${bond(50,50,24,56)}${bond(50,50,76,44)}${C}${Ht}${Hb}${Hl}${Hr}`);
+}
+function n2SVG(){
+  const N1=atom(35,50,11,"#7fc8ff"); const N2=atom(65,50,11,"#7fc8ff"); return baseSVG(`${tripleBond(35,50,65,50)}${N1}${N2}`);
+}
+</script>
+</body>
+</html>

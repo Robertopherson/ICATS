@@ -1,37 +1,65 @@
 ---
 layout: default
-title: School and Outreach Videos
+title: Outreach Collision Player
 ---
 
-# School and Outreach Videos
+# Outreach Collision Player
 
-ICATS is intended to be useful both as a research tool and as a teaching aid.
-The outreach video demo will be maintained separately from the code repository
-so that the main ICATS clone stays small.
+ICATS also includes a small outreach player for introducing molecular
+collisions visually. Pick two molecules below and the page loads a short
+pre-rendered trajectory-style video for that pair.
 
-The planned demo will provide a simple web interface where a student can choose
-two molecules and play a short trajectory-style visualization of the collision.
-It is not meant to replace the scientific tutorials; it is a visual introduction
-to the idea of molecular scattering.
+<iframe
+  src="outreach/index.html"
+  title="ICATS molecular collision outreach player"
+  loading="lazy"
+  style="width:100%; min-height:790px; border:1px solid #d0d7de; border-radius:8px; background:#0b0f14;">
+</iframe>
 
-The video repository should contain only the files needed for the web demo:
+[Open the outreach player full screen](outreach/).
+
+## What It Shows
+
+The player is deliberately simple. It is a visual companion to the manual,
+rather than a scientific diagnostic. The molecule buttons select one of the
+available pair videos, including self-collisions such as water-water or
+nitrogen-nitrogen.
+
+The current manual bundle includes compressed MP4 files for all 15 combinations
+of ammonia, carbon dioxide, water, methane, and nitrogen. These are suitable for
+quick web viewing; the raw frame-generation material should stay outside the
+main ICATS repository.
+
+## File Layout
+
+The embedded player is stored under:
 
 ```text
-scatervid.html
-vid_*.mp4
-README.md
+docs/outreach/index.html
+docs/outreach/videos/vid_*.mp4
 ```
 
-The raw video set is roughly 100 MB. That is technically possible to store in a
-GitHub repository, but it will make the repository heavier for every clone.
+Video names follow the same convention as the player code:
 
-Recommended publishing plan:
+```text
+vid_<molecule1>_<molecule2>.mp4
+```
 
-1. Create a separate `ICATS-videos` repository.
-2. Keep only the HTML interface and compressed MP4 files.
-3. Publish that repository with GitHub Pages.
-4. Link to the video page from this manual.
+The molecule ids are sorted alphabetically in the filename. For example,
+selecting water and nitrogen loads `vid_h2o_n2.mp4`.
 
-Before uploading, compress one representative video and compare quality. If the
-whole set can be reduced substantially, direct GitHub Pages hosting becomes more
-reasonable.
+## Updating The Videos
+
+When replacing a video, keep the manual copy small enough for a normal GitHub
+clone. The current files were made with a 960-pixel-wide H.264 encode:
+
+```bash
+ffmpeg -i source.mp4 \
+  -vf scale=960:-2 \
+  -an -c:v libx264 -preset medium -crf 32 -movflags +faststart \
+  docs/outreach/videos/vid_h2o_n2.mp4
+```
+
+If the outreach material grows into raw videos, frame dumps, scripts, or
+multiple versions, it should move to a separate repository and this page can
+embed that published page instead.
