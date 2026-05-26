@@ -21,3 +21,16 @@
    - archive the input file, `wang.pkl` metadata, and plotting script,
    - use the screenshots currently in the manual only as diagnostic/manual
      figures unless replaced by regenerated publication panels.
+
+4. Revisit Wang-Landau automation:
+   - automatically estimate the sampled `Jab` distribution and useful `Jab`
+     range before building the WL umbrella,
+   - use that estimate to choose the WL range without asking the user to guess
+     it manually,
+   - extend the WL-corrected region somewhat beyond the important `Jab` mixing
+     range,
+   - for `J > 1.5 * max(Jab)` or a similar automatically chosen threshold,
+     consider switching to a flat/asymptotic correction because `J` mostly
+     follows `L`,
+   - document and test this carefully so the automatic choice is conservative
+     and visible in `wang.pkl` metadata/log output.
