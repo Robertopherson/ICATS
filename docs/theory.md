@@ -20,12 +20,24 @@ The generated Cartesian positions and velocities are then analysed back into
 the same components. This round trip is useful because it checks whether the
 sampled bookkeeping survives conversion to atom-resolved coordinates.
 
+The approximation is the usual entrance-channel one: before collision, the two
+molecules are far enough apart that their intramolecular potentials can be
+treated independently from the intermolecular interaction. ICATS therefore
+builds a sample in internal coordinates first, then embeds it into Cartesian
+coordinates for dynamics.
+
 ## Vibrations
 
 Vibrational coordinates are sampled in the harmonic-oscillator normal-mode
 basis. For polyatomic molecules, the vibrational energy includes zero-point
 energy, so total vibrational energies can be several eV even at moderate
 temperatures when high-frequency modes are present.
+
+The practical check is direct. At `t = 0`, the analysis should reconstruct the
+normal-mode coordinates and momenta and recover the sampled vibrational energy
+within the audit tolerance. If that fails, inspect the reference geometry,
+normal modes, frequencies, and mass conventions before trusting trajectory
+propagation.
 
 ## Rotations
 
@@ -46,6 +58,21 @@ Full Rotational Energy (ev)
 The vector-model rotational energy is the apples-to-apples comparison with the
 sampled rigid-rotor energy.
 
+Linear, symmetric, and asymmetric tops differ in how their body-fixed projection
+information is represented. For asymmetric tops, ICATS uses the Wang-state
+description internally when sampling rotational states. The operational point is
+that the sampled rotor state should be checked through the reconstructed
+`Vector Model Rotational (ev)` and angular-momentum diagnostics.
+
+## Orientations
+
+The molecular angular momentum vector and the molecular frame are separate
+pieces of information. ICATS samples the rotor state and then samples the
+orientation of the molecule in the space-fixed frame. Under isotropic
+conditions this corresponds to uniform sampling over the relevant Euler-angle
+measure. More specialised orientation or polarisation distributions should be
+checked with histograms when used.
+
 ## Intermolecular Motion
 
 The relative motion of the two molecules is sampled using a separation,
@@ -61,6 +88,18 @@ J = L + J_A + J_B
 
 where `L` is the orbital angular momentum and `J_A`, `J_B` are the molecular
 rotor angular momenta.
+
+For atom-atom scattering, `J` and `L` are effectively the same angular
+momentum. For molecular scattering, total angular momentum is the vector sum of
+orbital and molecular rotor contributions. This is why a calculation can have a
+sensible impact-parameter distribution but still require extra care to obtain
+the desired total-`J` distribution.
+
+The impact parameter is the geometrical variable connected to cross-sectional
+area: larger annuli contribute more trajectories through the familiar `b db`
+weighting. The angular-momentum view highlights the statistical `2J+1`
+degeneracy. ICATS provides tools to sample these consistently enough for
+practical quasi-classical trajectory ensembles.
 
 ## Why The Round Trip Matters
 

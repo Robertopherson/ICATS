@@ -105,6 +105,27 @@ directory. Choose a new `run-tag` when comparing different setups.
 | `wang` | Enable Wang-Landau weighting | Use for difficult `J` distributions |
 | `plothist` | Generate histogram scripts | Use for diagnostics |
 
+## Choosing `maxb`, `maxl`, and `J`
+
+The impact parameter `b` is the geometrical collision variable. A larger
+`maxb` includes more glancing trajectories, but those trajectories may not
+interact strongly if the molecules are already outside the useful range of the
+potential. A very small `maxb` can make a tutorial run quickly while hiding the
+large-`L` part of the collision ensemble.
+
+The orbital angular momentum `L` is connected to `b` through the relative
+momentum. For atom-atom scattering this is almost the whole angular-momentum
+story. For molecules, the total angular momentum `J` also includes the rotor
+sum:
+
+```text
+J = L + J_A + J_B
+```
+
+This means a sensible `maxb` or `maxl` does not by itself guarantee a sensible
+total-`J` distribution. When `wang = True`, always inspect the sampled `J` and
+`L` histograms after the run.
+
 ## Output Controls
 
 The common tutorial setting:

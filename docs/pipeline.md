@@ -29,6 +29,11 @@ problem.
 The initial-condition audit described in [Diagnostics](diagnostics.md) checks
 the sampling and analysis round trip before any dynamics are run.
 
+This separation is important. If the audit passes, the initial Cartesian sample
+is internally consistent with the model used to generate it. A later energy
+drift in MINDO dynamics is then a dynamics, integration, or potential-energy
+surface issue, not direct evidence that the initial-condition sampler is broken.
+
 For a quick regression check of the tutorial initial-condition pipeline:
 
 ```bash

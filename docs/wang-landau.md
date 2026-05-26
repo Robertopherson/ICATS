@@ -10,6 +10,12 @@ total angular momentum range well enough. This is common when molecular angular
 momenta and orbital angular momentum combine to produce a nontrivial density of
 states for `J`.
 
+In a molecular collision, `J = L + Jab` as a vector relation. Sampling `L` from
+the impact-parameter distribution does not automatically produce the desired
+triangular total-`J` distribution, especially at low `J` where the molecular
+rotor sum `Jab` is comparable to the orbital angular momentum. Wang-Landau is
+used to learn the density-of-states correction needed for this acceptance step.
+
 Enable Wang-Landau sampling with:
 
 ```text
@@ -40,6 +46,10 @@ wl-flatness = 0.85
 `wlmode` is the Wang-Landau parameter preset. `wl-angular-sampler` controls the
 numerical implementation used to sample angular momenta during umbrella
 generation.
+
+`wlmode = fast` changes the Wang-Landau convergence settings. It is not the same
+thing as `wl-angular-sampler = fast`, which controls the numerical shortcut used
+to draw angular momenta during the repeated Wang-Landau trial steps.
 
 ## Typical Workflow
 
@@ -111,3 +121,8 @@ A useful Wang-Landau run should show:
 If the run refuses to start because `wang.pkl` is too short or incompatible,
 that is a successful safety check rather than a crash. Regenerate the umbrella
 for the new requested range.
+
+For a tutorial-quality stored umbrella, the aim is not perfect production
+convergence. The aim is that the resulting sampled `J` and `L` histograms are
+smooth, cover the requested region, and do not show obvious boundary artefacts
+that would hide mistakes in the rest of the workflow.

@@ -45,6 +45,13 @@ need additional packages:
 python -m pip install -e ".[dynamics]"
 ```
 
+This extra currently installs:
+
+```text
+pyscf
+pyscf-semiempirical
+```
+
 If the dynamics dependencies are not available, users can still generate initial
 conditions, inspect histograms, and analyse compatible trajectory files produced
 elsewhere.

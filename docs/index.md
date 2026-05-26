@@ -15,11 +15,9 @@ whole pipeline: install the code, generate initial conditions, run the provided
 tutorials, inspect Wang-Landau sampling, run cheap MINDO dynamics, and interpret
 the analysis output.
 
-The intended reader is a new research student who wants to run the examples,
-understand what files are being produced, and learn enough of the theory to make
-sensible checks. ICATS does not replace judgement about the potential energy
-surface or dynamics method. Its job is to generate and analyse the initial
-conditions cleanly.
+The emphasis is practical: run a small example, understand the files it creates,
+and learn the checks that make an ensemble worth trusting before committing to a
+larger trajectory set.
 
 ## Contents
 
@@ -44,6 +42,12 @@ velocities, and writes files that can be passed to a trajectory code.
 The same code can analyse Cartesian trajectory output and reconstruct the
 internal components: vibrational mode energies, molecular angular momenta,
 intermolecular angular momentum, and energy decomposition.
+
+The program follows the same structure as the accompanying theory document:
+incoming molecules are assumed to be well separated, each molecule is described
+with harmonic-oscillator and rigid-rotor approximations, and the relative
+collision motion is represented with Jacobi coordinates, impact parameters, and
+orbital angular momentum.
 
 ## What To Read First
 
