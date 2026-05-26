@@ -1,32 +1,63 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="760" height="300" viewBox="0 0 760 300" role="img" aria-labelledby="title desc">
-  <title id="title">Angular momentum decomposition</title>
-  <desc id="desc">The full instantaneous angular momentum is decomposed into a vector-model component and a vibrational angular component.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="420" viewBox="0 0 980 420" role="img" aria-labelledby="title desc">
+  <title id="title">ICATS analysis map</title>
+  <desc id="desc">How ICATS reconstructs vibrational, rotational, and intermolecular quantities from Cartesian coordinates and velocities.</desc>
   <defs>
     <style>
-      .panel { fill: #fbfcfd; stroke: #d1dae3; stroke-width: 1.5; rx: 10; }
-      .axis { stroke: #8796a5; stroke-width: 1.5; }
-      .jfull { stroke: #1f5f8b; stroke-width: 5; marker-end: url(#arrowBlue); }
-      .jvec { stroke: #287a4d; stroke-width: 5; marker-end: url(#arrowGreen); }
-      .jvib { stroke: #b04d38; stroke-width: 5; marker-end: url(#arrowRed); }
-      .txt { fill: #1d2b36; font-family: Arial, sans-serif; font-size: 17px; font-weight: 700; }
-      .small { fill: #425466; font-family: Arial, sans-serif; font-size: 13px; }
+      .bg { fill: #f8fafc; }
+      .box { fill: #ffffff; stroke: #334155; stroke-width: 1.6; rx: 8; }
+      .blue { fill: #eaf3ff; stroke: #2f6fa3; stroke-width: 1.8; rx: 8; }
+      .green { fill: #eaf8f0; stroke: #2f855a; stroke-width: 1.8; rx: 8; }
+      .amber { fill: #fff7e6; stroke: #b7791f; stroke-width: 1.8; rx: 8; }
+      .rose { fill: #fff1f0; stroke: #c0564a; stroke-width: 1.8; rx: 8; }
+      .text { fill: #0f172a; font-family: Arial, sans-serif; font-size: 17px; font-weight: 700; }
+      .small { fill: #334155; font-family: Arial, sans-serif; font-size: 13px; }
+      .tiny { fill: #475569; font-family: Arial, sans-serif; font-size: 12px; }
+      .arrow { stroke: #475569; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
     </style>
-    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L8,3 z" fill="#1f5f8b"/></marker>
-    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L8,3 z" fill="#287a4d"/></marker>
-    <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L8,3 z" fill="#b04d38"/></marker>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L8,3 z" fill="#475569"/>
+    </marker>
   </defs>
-  <rect class="panel" x="15" y="15" width="730" height="270"/>
-  <line class="axis" x1="100" y1="225" x2="330" y2="225"/>
-  <line class="axis" x1="100" y1="225" x2="100" y2="55"/>
-  <line class="jvec" x1="100" y1="225" x2="265" y2="145"/>
-  <line class="jvib" x1="265" y1="145" x2="315" y2="80"/>
-  <line class="jfull" x1="100" y1="225" x2="315" y2="80"/>
-  <text class="txt" x="365" y="75">J_full = J_vector + J_vib</text>
-  <text class="small" x="365" y="110">J_vector: reference-geometry rotor model</text>
-  <text class="small" x="365" y="135">J_vib: instantaneous vibrational angular term</text>
-  <text class="small" x="365" y="160">Audit compares sampled rotor energy to vector-model energy</text>
-  <text class="small" x="365" y="185">Full instantaneous rotational energy is reported separately</text>
-  <text class="small" x="205" y="137" fill="#287a4d">J_vector</text>
-  <text class="small" x="305" y="119" fill="#b04d38">J_vib</text>
-  <text class="small" x="185" y="90" fill="#1f5f8b">J_full</text>
+  <rect class="bg" x="0" y="0" width="980" height="420" rx="14"/>
+  <rect class="box" x="35" y="165" width="155" height="90"/>
+  <text class="text" x="58" y="198">Cartesian sample</text>
+  <text class="small" x="58" y="225">atom x, atom v</text>
+  <text class="tiny" x="58" y="245">after generation or dynamics</text>
+
+  <line class="arrow" x1="190" y1="210" x2="260" y2="210"/>
+  <rect class="box" x="270" y="150" width="170" height="120"/>
+  <text class="text" x="292" y="184">COM removal</text>
+  <text class="small" x="292" y="210">molecular COMs</text>
+  <text class="small" x="292" y="230">system COM velocity</text>
+  <text class="tiny" x="292" y="250">prepares molecule and Jacobi views</text>
+
+  <line class="arrow" x1="440" y1="210" x2="510" y2="100"/>
+  <rect class="green" x="520" y="45" width="200" height="110"/>
+  <text class="text" x="545" y="78">Eckart projection</text>
+  <text class="small" x="545" y="104">align x to x_ref</text>
+  <text class="small" x="545" y="124">project translation/rotation</text>
+  <text class="tiny" x="545" y="144">normal-mode Q, P, EE</text>
+
+  <line class="arrow" x1="440" y1="210" x2="510" y2="210"/>
+  <rect class="blue" x="520" y="165" width="200" height="110"/>
+  <text class="text" x="545" y="198">Rotor analysis</text>
+  <text class="small" x="545" y="224">J_full from x and v</text>
+  <text class="small" x="545" y="244">J_vector from x_ref and v</text>
+  <text class="tiny" x="545" y="264">vector and full rotational energy</text>
+
+  <line class="arrow" x1="440" y1="210" x2="510" y2="320"/>
+  <rect class="amber" x="520" y="285" width="200" height="95"/>
+  <text class="text" x="545" y="318">Jacobi analysis</text>
+  <text class="small" x="545" y="344">R, P_R, L, b, phi</text>
+  <text class="tiny" x="545" y="364">J = L + J_a + J_b</text>
+
+  <line class="arrow" x1="720" y1="100" x2="790" y2="160"/>
+  <line class="arrow" x1="720" y1="220" x2="790" y2="210"/>
+  <line class="arrow" x1="720" y1="332" x2="790" y2="260"/>
+  <rect class="rose" x="800" y="145" width="145" height="135"/>
+  <text class="text" x="824" y="178">Analysis log</text>
+  <text class="small" x="824" y="204">vibrational table</text>
+  <text class="small" x="824" y="224">rotational table</text>
+  <text class="small" x="824" y="244">intermolecular table</text>
+  <text class="tiny" x="824" y="264">energy summaries and audit</text>
 </svg>

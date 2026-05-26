@@ -65,7 +65,8 @@ different decomposition that includes the realised instantaneous geometry.
 
 ## Reading Rotational Analysis
 
-A typical polyatomic rotational block contains:
+A typical polyatomic rotational block contains several related angular momenta.
+They are all useful, but they are not interchangeable:
 
 ```text
 Full Ang. Mom. (Eckart)
@@ -75,9 +76,35 @@ Vector Model Rotational (ev)
 Full Rotational Energy (ev)
 ```
 
-For checking the sampled rigid rotor, use `Vector Model Rotational (ev)`.
-`Vibr. Ang. Mom. (Eckart)` tells you how much instantaneous angular momentum is
-carried by the vibrational motion in that snapshot.
+`Full Ang. Mom. (space)` is the total instantaneous angular momentum of the
+molecule after removing its centre-of-mass motion, expressed in the external
+Cartesian frame.
+
+`Full Ang. Mom. (Eckart)` is the same instantaneous angular momentum after the
+molecule has been rotated into the Eckart frame. The magnitude should be the
+same as the space-frame value, but the components are now molecular-frame
+components.
+
+`Vector Model. Ang. (Eckart)` is reconstructed with the reference geometry
+rather than the distorted instantaneous geometry. This is the component that
+corresponds most directly to the rigid-rotor vector sampled by ICATS.
+
+`Vibr. Ang. Mom. (Eckart)` is the residual:
+
+```text
+Full Ang. Mom. (Eckart) - Vector Model. Ang. (Eckart)
+```
+
+It is an instantaneous diagnostic of vibrational angular momentum and
+higher-order geometry effects. It is not a separately sampled rotor state.
+
+`Vector Model Rotational (ev)` uses the reference moments of inertia and the
+vector-model angular momentum. Use this line when checking the sampled rigid
+rotor.
+
+`Full Rotational Energy (ev)` uses the realised instantaneous geometry and its
+instantaneous inertia tensor. This can differ from the vector-model energy in
+vibrating polyatomics.
 
 ## Reading Vibrational Analysis
 
@@ -91,6 +118,17 @@ mode  freq  ~vstat  Q  P  QE  PE  EE
 the corresponding harmonic oscillator energy. In a good initial-condition round
 trip, these values should agree with the generated sample within the audit
 tolerance.
+
+The columns mean:
+
+- `freq`: harmonic normal-mode frequency.
+- `~vstat`: reconstructed classical oscillator energy expressed as
+  `E / omega - 0.5`.
+- `Q`: mass/frequency-scaled normal coordinate.
+- `P`: mass/frequency-scaled normal momentum.
+- `QE`: coordinate part of the harmonic energy.
+- `PE`: momentum part of the harmonic energy.
+- `EE`: `QE + PE`.
 
 ## Reading Intermolecular Analysis
 
@@ -108,6 +146,52 @@ Jacobi R
 These quantities describe the collision geometry and relative motion. They are
 especially useful when checking whether `maxl`, `maxb`, and the velocity
 settings are physically plausible.
+
+`Init. Angular Energy` is the centrifugal/orbital part of the two-body Jacobi
+motion, computed as `L^2 / (2 mu R^2)`.
+
+`Init. Radial Energy` is the radial relative-motion part, computed as
+`P_R^2 / (2 mu)`.
+
+`Init. Ang. Momentum` is the reconstructed orbital angular momentum `L`.
+
+`Tot Ang. Momentum` is formed from the orbital angular momentum plus the
+molecular vector-model angular momenta:
+
+```text
+J = L + J_a + J_b
+```
+
+The `Tot. Mol Ja/Jb/Jab` lines use the full molecular angular momenta from the
+Cartesian analysis. The `Vec Model Ja/Jb/Jab` lines use the reference-geometry
+vector-model molecular angular momenta and are usually the better comparison
+for the sampled total-`J` distribution.
+
+## Reading Energy Decomposition
+
+During initial-condition generation, `out_full.info` can contain both:
+
+```text
+Energy Decomposition (From Generation)
+Energy Decomposition (From Sample)
+```
+
+`From Generation` is the bookkeeping of the model variables ICATS sampled:
+harmonic vibrational energy, vector-model rotor energy, and sampled
+intermolecular velocity energy.
+
+`From Sample` is reconstructed from the Cartesian coordinates and velocities.
+Its rotational row follows the full instantaneous rotational-energy analysis.
+For vibrating polyatomics this row can differ from the sampled rotor energy
+because the realised geometry can carry vibrational angular momentum.
+
+The `Velocity` row is the intermolecular centre-of-mass kinetic contribution.
+It is not the momentum part of the normal-mode vibrational energy; that is the
+`PE` column in the vibrational table.
+
+For the cleanest t=0 sampler check, use the initial-sample audit. It compares
+generated rotor energy to `Vector Model Rotational (ev)`, not to the full
+instantaneous rotational-energy row.
 
 ## Histogram Checks
 
