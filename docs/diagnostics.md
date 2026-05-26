@@ -22,6 +22,9 @@ audit-initial-angular-tol = 0.0
 This compares generated sample bookkeeping against the immediate coordinate and
 velocity analysis at `t = 0`, before any dynamics are run.
 
+For a guided explanation of the first generation and analysis blocks, see
+[Annotated First Output](annotated-output.md).
+
 The audit compares:
 
 - vibrational energy,

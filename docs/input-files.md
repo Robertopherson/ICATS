@@ -164,6 +164,12 @@ internal rotor or vibrational degrees of freedom.
 
 For normal use, prefer `run-mode` over the older `continue` flag.
 
+When `wang = True`, the first run may spend most of its time building
+`rd_<run-tag>/wang.pkl`. This Wang-Landau umbrella build can take many minutes,
+and for larger polyatomic/high-`maxj` cases it can take an hour or more.
+Increasing `workers` can help, but use `workers = 1` while debugging input
+files and increase to a few cores only after the setup is known to be correct.
+
 ### Temperatures and Velocity
 
 | Key | Form | Meaning |

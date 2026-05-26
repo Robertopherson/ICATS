@@ -80,6 +80,10 @@ audit-initial-angular-tol = 0.0
 The audit verifies that sampled model energies are recovered from the immediate
 Cartesian-coordinate analysis at `t = 0`.
 
+To understand the first generated log, read
+[Annotated First Output](annotated-output.md) with `out_full.info` or
+`dynamics*.analinfo` open.
+
 ## 5. Run The Cheap Dynamics Demonstration
 
 The tutorial can now pass the generated samples to the simple demonstration

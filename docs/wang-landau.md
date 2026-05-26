@@ -107,6 +107,30 @@ generation.
 thing as `wl-angular-sampler = fast`, which controls the numerical shortcut used
 to draw angular momenta during the repeated Wang-Landau trial steps.
 
+## Runtime Expectations
+
+Wang-Landau is computationally more expensive than ordinary direct sampling. If
+`wang = True` and the run directory does not already contain a compatible
+`wang.pkl`, ICATS first builds the umbrella before generating the requested
+accepted samples.
+
+For small atom-diatom systems this may be quick. For polyatomic systems, large
+`maxj`, strict `wlmode` settings, or many WL bins, the first umbrella build can
+take many minutes and can plausibly take an hour or more. Parallel workers help
+but do not make the cost disappear:
+
+```text
+workers = 4
+```
+
+is a reasonable laptop/desktop starting point once the input is known to be
+valid. Use `workers = 1` while debugging a new setup because the log is easier
+to read and failed input checks return faster.
+
+Subsequent compatible runs reuse `rd_<run-tag>/wang.pkl`, so they skip most of
+this cost. If you change the angular-momentum range or WL settings enough to
+make the stored umbrella incompatible, ICATS refuses to reuse it.
+
 ## Typical Workflow
 
 1. Start from a tutorial that already has Wang-Landau enabled.

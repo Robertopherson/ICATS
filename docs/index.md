@@ -27,6 +27,7 @@ larger trajectory set.
 - [Input Files](input-files.md)
 - [Wang-Landau Sampling](wang-landau.md)
 - [Initial-Condition Theory](theory.md)
+- [Annotated First Output](annotated-output.md)
 - [Dynamics and Analysis Pipeline](pipeline.md)
 - [Diagnostics and Audits](diagnostics.md)
 - [Troubleshooting](troubleshooting.md)
@@ -53,7 +54,9 @@ orbital angular momentum.
 
 1. Install ICATS using [Installation](installation.md).
 2. Run the [Quick Start](quick-start.md).
-3. Use [Diagnostics and Audits](diagnostics.md) to check that the generated
+3. Read [Annotated First Output](annotated-output.md) while looking at the first
+   generated log.
+4. Use [Diagnostics and Audits](diagnostics.md) to check that the generated
    initial conditions make sense.
-4. Read [Initial-Condition Theory](theory.md) when the output terms need
+5. Read [Initial-Condition Theory](theory.md) when the output terms need
    interpretation.
