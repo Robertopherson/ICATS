@@ -1,3 +1,8 @@
+---
+layout: default
+title: Quick Start
+---
+
 # Quick Start
 
 Generate the default tutorial:

@@ -1,3 +1,8 @@
+---
+layout: default
+title: Input Files
+---
+
 # Input Files
 
 ICATS input files are plain text key-value files. Show the recognized options:

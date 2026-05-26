@@ -1,3 +1,8 @@
+---
+layout: default
+title: Initial-Condition Theory
+---
+
 # Initial-Condition Theory
 
 ICATS samples molecular-scattering initial conditions using separable model

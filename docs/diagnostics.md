@@ -1,3 +1,8 @@
+---
+layout: default
+title: Diagnostics and Audits
+---
+
 # Diagnostics and Audits
 
 ## Initial-Sample Audit

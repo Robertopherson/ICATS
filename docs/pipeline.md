@@ -1,3 +1,8 @@
+---
+layout: default
+title: Dynamics and Analysis Pipeline
+---
+
 # Dynamics and Analysis Pipeline
 
 The ICATS workflow has three stages:

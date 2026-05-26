@@ -1,3 +1,8 @@
+---
+layout: default
+title: Wang-Landau Sampling
+---
+
 # Wang-Landau Sampling
 
 Enable Wang-Landau sampling with:

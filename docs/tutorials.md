@@ -1,3 +1,8 @@
+---
+layout: default
+title: Tutorials
+---
+
 # Tutorials
 
 List available tutorials:

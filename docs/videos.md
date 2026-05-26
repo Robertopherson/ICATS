@@ -1,3 +1,8 @@
+---
+layout: default
+title: School and Outreach Videos
+---
+
 # School and Outreach Videos
 
 The outreach videos are best kept separate from the main code repository. The

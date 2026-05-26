@@ -1,3 +1,8 @@
+---
+layout: default
+title: ICATS Manual
+---
+
 # ICATS Manual
 
 ICATS generates molecular-scattering initial conditions and analysis diagnostics
