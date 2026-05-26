@@ -1,0 +1,6 @@
+#reference geometry of the molecule
+xyz  = h2o_geom.xyz  
+#mass scaled hessian of the molecule at ref geometry (for some method), if not present vibrations are neglected
+hess = h2o_hessian.txt  
+w    = h2o_freq.txt     
+vel  = 1000 100 3 

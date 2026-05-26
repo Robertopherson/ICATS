@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "icats"
+version = "0.1.0"
+description = "Initial-condition and trajectory analysis tools for quasi-classical molecular scattering."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Christopher Robertson" }
+]
+dependencies = [
+  "numpy",
+  "scipy",
+  "joblib",
+  "tqdm",
+  "matplotlib",
+  "spherical",
+  "quaternionic",
+]
+
+[project.optional-dependencies]
+dynamics = [
+  "pyscf",
+  "pyscf-semiempirical",
+]
+
+[project.scripts]
+icats = "icats.cli:main"
+"icats.init" = "icats.cli_init:main"
+"icats.analyse" = "icats.cli_analyse:main"
+
+[tool.setuptools]
+packages = ["icats"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+icats = [
+  "examples/*",
+  "tutorials/**/*",
+]

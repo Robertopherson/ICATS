@@ -1,0 +1,2395 @@
+#!/usr/bin/env python3
+from .constants import *
+from .functions import *
+from .dist import *
+from .mc import ICDFsample, InitICDF
+from .molecules import imolecule
+from . import wang
+import pickle
+from scipy.interpolate import CubicSpline
+from joblib import Parallel, delayed
+from tqdm import tqdm
+import time
+
+class icats:
+    """A class for simulating molecular scattering events."""
+    class sample:   
+      def __init__(self,id,scat,**dic): 
+        sp = scat.sp  
+        mol1 = scat.mol  
+        self.slog = [] 
+        if 'seed' in dic.keys():
+          self.seed = dic['seed']
+        else:
+          self.seed = int((1+id)*np.random.random()*223)
+        self.id = id
+        self.mol = [mol1[0].InitializeWorker(id,seed=self.seed*17*(1+id)),mol1[1].InitializeWorker(id,seed=self.seed*11*(1+id))] 
+        self.sxx = zeros(sp.shape) 
+        self.svv = zeros(self.sxx.shape) 
+        # Needed by pre-sampling histogram paths that call velocity sampling
+        # before InitializeSample() populates per-sample state.
+        self.SampInfo = {}
+        self.slog = [] 
+        return 
+
+    def __init__(self, **dic):
+        """Initialize the scattering simulation.
+
+        Args:
+            dic (dict): Additional parameters for initialization.
+        """
+        self.mol = [imolecule(), imolecule()]
+        self.initsyspar() 
+        self.initinppar()
+        self.mol[0].ip.mi = 0
+        self.mol[1].ip.mi = 1
+        self.log = []
+        self.slog = []
+        self.sampls = {'cv': [], 'info': []}
+        self.sii = 0
+        self._logged_maxb_equiv = False
+        return
+
+    def initsyspar(self):
+        """Initialize a system parameters.
+
+        This method initializes a new scattering sample, setting up necessary variables and data structures.
+        """
+        class ssyspar: 
+            def __init__(self):
+             self.slog = []
+             self.na = 0  
+             self.nd = 0  
+             self.mass = []  
+             self.w0, self.w1 = 0.0, 0.0  
+             self.mass2 = []
+             self.mol = [] 
+             self.beamang = pi/2.0
+             self.chi = 0.0
+             return
+        self.sp = ssyspar() 
+
+    def initinppar(self):
+        """Initialize the system simulation parameters.
+
+        Args:
+            dic (dict): parameters for initialization.
+        """
+        class sinppar: 
+            def __init__(self):
+              self.nwork = 1
+              self.MaxB = 0
+              self.MaxJ = 0
+              self.MaxL = 0
+              self.continues = False
+              self.KeepInfo = False
+              self.isotropic = True
+              self.usewang = False
+              self.wlmode = "default"
+              self.wl_ff = np.exp(0.10)
+              self.wl_nstep_mult = 500
+              self.wl_flatness = 0.90
+              self.wl_wn_factor = 4.0
+              self.wl_wn = None
+              self.wl_ff_user = None
+              self.wl_nstep_user = None
+              self.wl_flatness_user = None
+              self.wl_wn_factor_user = None
+              self.wl_wn_user = None
+              self.wl_tol = 1.000001
+              self.wl_tol_user = None
+              self.wl_max_iter = 0
+              self.wl_log_every = 1
+              self.seed_mode = "fixed"
+              self.run_mode = "fresh"
+              self.run_tag = None
+              self.progress = "normal"
+              self.dry_run = False
+              self.check_input = False
+              self.save_frequency = 0
+              self.output_format = "xyzvel"
+              self.units_out = "ang-fs"
+              self.ostandard = True
+              self.plothist =False
+              self.hist_initial = False
+              self.hist_sampled = False
+              self.hist_initial_user = False
+              self.hist_sampled_user = False
+              self.printout = [True,True,False,False] 
+              self.pnsamp = 0
+              return 
+        self.ip = sinppar()
+    def InitWang(self):
+        ip = self.ip 
+        class iWang: 
+            def __init__(self): 
+                if ip.wl_wn is not None:
+                  self.wn = int(max(10, ip.wl_wn))
+                else:
+                  self.wn = int(max(10, np.round(ip.PeakJab*ip.wl_wn_factor)))
+                #self.wn = int(np.round(ip.MaxJp/3))
+                self.uu = np.zeros(self.wn) 
+                self.hh = np.zeros(self.wn) 
+                self.ff = float(ip.wl_ff)
+                if self.ff <= 1.0:
+                  self.ff = 1.000001
+                #self.flatness = 0.85 
+                self.flatness = float(ip.wl_flatness)
+                self.nburn = 2
+                self.nstep = int(self.wn*ip.wl_nstep_mult)
+                #self.nstep = self.wn*400
+        wg = iWang()
+        return wg
+
+    def InitializeWorker(self,id,**dic):  
+        """  
+        Initialize the sample by setting initial coordinates.  
+  
+        This method sets the initial coordinates for the simulation.  
+        """  
+
+
+        sa = self.sample(id,self)
+        self.InitialDist(sa,seed=sa.seed)
+        sa.sdat = self.PrepareSdat()
+        return sa 
+
+
+    def ReadInput(self, fnam):
+        """Read input data from a file.
+
+        Args:
+            fnam (str): Input file name.
+        """
+        self.log.append("Reading scattering input file : " + fnam + "\n")
+        ip = self.ip
+        ip.inpd = File2InputList(fnam)
+        ip.filename = fnam
+        ip.prefix = fnam.split(".")[0]
+        input_stem = os.path.splitext(os.path.basename(fnam))[0]
+        run_tag = ""
+        for ky, val in ip.inpd:
+            if ky == "run-tag" and len(val) > 0:
+                run_tag = val[0].strip()
+        ip.rundir = "rd_" + (run_tag or input_stem)
+        os.makedirs(ip.rundir, exist_ok=True)
+        set_hist_base_dir(self._runpath("histograms"))
+        self.GenerateInputData()
+        if ip.hist_initial or ip.hist_sampled or ip.plothist or ip.pnsamp > 0:
+            self._write_histogram_helpers_runtime()
+        self.seed = 661
+
+    def _runpath(self, name):
+        ip = self.ip
+        return os.path.join(ip.rundir, name)
+
+    def _write_costheta_convergence(self):
+        """Write costheta convergence diagnostics to rd_<input>/convergence."""
+        vals = self.sdat.get('orb', {}).get('cosLJab_thet', [])
+        if vals is None or len(vals) == 0:
+            return
+        arr = np.asarray(vals, dtype=float)
+        conv_dir = self._runpath("convergence")
+        os.makedirs(conv_dir, exist_ok=True)
+
+        # Final summary statistics.
+        n = int(arr.size)
+        mean = float(np.mean(arr))
+        std = float(np.std(arr, ddof=1)) if n > 1 else 0.0
+        sem = float(std / np.sqrt(n)) if n > 0 else 0.0
+        mean_abs = float(np.mean(np.abs(arr)))
+        summ = [
+            "# cos(theta_{L,Jab}) convergence summary\n",
+            f"n = {n}\n",
+            f"mean = {mean:.8e}\n",
+            f"std = {std:.8e}\n",
+            f"sem = {sem:.8e}\n",
+            f"mean_abs = {mean_abs:.8e}\n",
+        ]
+        with open(os.path.join(conv_dir, "costheta_summary.txt"), "w") as f:
+            f.writelines(summ)
+
+        # Cumulative trend for quick convergence inspection.
+        csum = np.cumsum(arr)
+        csum2 = np.cumsum(arr * arr)
+        lines = ["sample_count\tmean\tstd\tsem\tmean_abs\n"]
+        abs_csum = np.cumsum(np.abs(arr))
+        for i in range(1, n + 1):
+            mu = csum[i - 1] / i
+            if i > 1:
+                var = max((csum2[i - 1] - i * mu * mu) / (i - 1), 0.0)
+                si = np.sqrt(var)
+            else:
+                si = 0.0
+            sei = si / np.sqrt(i)
+            mai = abs_csum[i - 1] / i
+            lines.append(f"{i}\t{mu:.8e}\t{si:.8e}\t{sei:.8e}\t{mai:.8e}\n")
+        with open(os.path.join(conv_dir, "costheta_cumulative.tsv"), "w") as f:
+            f.writelines(lines)
+
+    def _write_histogram_helpers_runtime(self):
+        """Emit histogram helper scripts in rd_<tag>/histograms for non-tutorial runs."""
+        hroot = self._runpath("histograms")
+        os.makedirs(hroot, exist_ok=True)
+
+        def _w(path, text, exe=False):
+            with open(path, "w") as f:
+                f.write(text)
+            if exe:
+                os.chmod(path, 0o755)
+
+        _w(
+            os.path.join(hroot, "plot_initial.sh"),
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n"
+            "HROOT=\"${HIST_ROOT:-$SCRIPT_DIR}\"\n"
+            "mkdir -p \"$HROOT/plots/initial\"\n"
+            "find \"$HROOT/initial\" -type f -name 'hist_*.py' 2>/dev/null | sort | while read -r f; do\n"
+            "  stem=\"$(basename \"${f%.py}\")\"\n"
+            "  python \"$f\" --no-show --outfile \"$HROOT/plots/initial/${stem}\"\n"
+            "done\n"
+            "echo \"Initial histogram plots written to $HROOT/plots/initial/\"\n",
+            exe=True,
+        )
+
+        _w(
+            os.path.join(hroot, "plot_sampled.sh"),
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n"
+            "HROOT=\"${HIST_ROOT:-$SCRIPT_DIR}\"\n"
+            "mkdir -p \"$HROOT/plots/sampled\"\n"
+            "find \"$HROOT/sampled\" -type f -name 'hist_*.py' 2>/dev/null | sort | while read -r f; do\n"
+            "  stem=\"$(basename \"${f%.py}\")\"\n"
+            "  python \"$f\" --no-show --outfile \"$HROOT/plots/sampled/${stem}\"\n"
+            "done\n"
+            "echo \"Sampled histogram plots written to $HROOT/plots/sampled/\"\n",
+            exe=True,
+        )
+
+        _w(
+            os.path.join(hroot, "plot_all.sh"),
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n"
+            "\"$SCRIPT_DIR/plot_initial.sh\"\n"
+            "\"$SCRIPT_DIR/plot_sampled.sh\"\n",
+            exe=True,
+        )
+
+        _w(
+            os.path.join(hroot, "plot_compare_pairs.py"),
+            "#!/usr/bin/env python3\n"
+            "from __future__ import annotations\n"
+            "import argparse, ast, os, re, subprocess\n"
+            "from pathlib import Path\n"
+            "import matplotlib.image as mpimg\n"
+            "import matplotlib.pyplot as plt\n"
+            "import numpy as np\n"
+            "SCRIPT_DIR = Path(__file__).resolve().parent\n"
+            "ROOT = Path(os.environ.get('HIST_ROOT', str(SCRIPT_DIR))).resolve()\n"
+            "INI_DIR = ROOT / 'initial'\n"
+            "SAM_DIR = ROOT / 'sampled'\n"
+            "OUT = ROOT / 'plots' / 'compare'\n"
+            "OUT_INI = OUT / 'init_single'\n"
+            "OUT_SAM = OUT / 'sam_single'\n"
+            "OUT_PAIR = OUT / 'pairs'\n"
+            "OUT_UNM_INI = OUT / 'unmatched_init'\n"
+            "OUT_UNM_SAM = OUT / 'unmatched_sam'\n"
+            "for d in (OUT, OUT_INI, OUT_SAM, OUT_PAIR, OUT_UNM_INI, OUT_UNM_SAM):\n"
+            "    d.mkdir(parents=True, exist_ok=True)\n"
+            "ap = argparse.ArgumentParser()\n"
+            "ap.add_argument('--include-unmatched', action='store_true')\n"
+            "ap.add_argument('--include-rot', action='store_true')\n"
+            "ap.add_argument('--include-vib', action='store_true')\n"
+            "args = ap.parse_args()\n"
+            "rx = re.compile(r'^hist_(ini|sam)_([^_]+)_(.+)\\.py$')\n"
+            "def parse_scripts(base: Path):\n"
+            "    out = {}\n"
+            "    for p in sorted(base.rglob('hist_*.py')):\n"
+            "        m = rx.match(p.name)\n"
+            "        if not m:\n"
+            "            continue\n"
+            "        _st, scp, met = m.groups()\n"
+            "        out[(scp, met)] = p\n"
+            "    return out\n"
+            "def render_hist(script_path: Path, out_base: Path):\n"
+            "    subprocess.run(['python', str(script_path), '--no-show', '--outfile', str(out_base)], check=True, cwd=str(ROOT))\n"
+            "    return out_base.with_suffix('.png')\n"
+            "def side_by_side(lp: Path, rp: Path, title: str, out_png: Path):\n"
+            "    li = mpimg.imread(lp)\n"
+            "    ri = mpimg.imread(rp)\n"
+            "    fig, axs = plt.subplots(1, 2, figsize=(12, 5))\n"
+            "    axs[0].imshow(li); axs[0].axis('off'); axs[0].set_title('Initial')\n"
+            "    axs[1].imshow(ri); axs[1].axis('off'); axs[1].set_title('Sampled')\n"
+            "    fig.suptitle(title); fig.tight_layout(); fig.savefig(out_png, dpi=150); plt.close(fig)\n"
+            "def extract_data(script_path: Path):\n"
+            "    txt = script_path.read_text()\n"
+            "    m = re.search(r'data\\s*=\\s*np\\.array\\((\\[[\\s\\S]*?\\])\\)', txt)\n"
+            "    if not m: return None\n"
+            "    return np.asarray(ast.literal_eval(m.group(1)), dtype=float).ravel()\n"
+            "def dist_stats(a, b):\n"
+            "    a = np.asarray(a, dtype=float).ravel(); b = np.asarray(b, dtype=float).ravel()\n"
+            "    if len(a) < 2 or len(b) < 2: return {'bins':0, 'jsd':float('nan'), 'emd':float('nan')}\n"
+            "    mix = np.concatenate([a,b])\n"
+            "    edges = np.histogram_bin_edges(mix, bins='fd')\n"
+            "    if len(edges) < 3: edges = np.histogram_bin_edges(mix, bins=20)\n"
+            "    ha,_ = np.histogram(a, bins=edges, density=False); hb,_ = np.histogram(b, bins=edges, density=False)\n"
+            "    eps = 1e-12\n"
+            "    pa = (ha+eps)/np.sum(ha+eps); pb = (hb+eps)/np.sum(hb+eps); mm = 0.5*(pa+pb)\n"
+            "    jsd = np.sqrt(0.5*(np.sum(pa*np.log(pa/mm))+np.sum(pb*np.log(pb/mm))))\n"
+            "    cdfa = np.cumsum(pa); cdfb = np.cumsum(pb)\n"
+            "    emd = np.sum(np.abs(cdfa-cdfb)*np.diff(edges))\n"
+            "    return {'bins':int(len(edges)-1),'jsd':float(jsd),'emd':float(emd)}\n"
+            "ini = parse_scripts(INI_DIR); sam = parse_scripts(SAM_DIR)\n"
+            "if len(ini) == 0 and len(sam) == 0:\n"
+            "    print(f'No histogram scripts found under {ROOT}.')\n"
+            "    print('Run icats.init first (with histogram mode enabled), then re-run this script.')\n"
+            "    raise SystemExit(0)\n"
+            "sys_map = {'j':'orb_ij','l':'orb_il','b':'orb_sb','phi':'orb_sphi','vel':'vel_ivel'}\n"
+            "sys_fallback = {'j':'orb_sj','l':'orb_sl'}\n"
+            "sys_default = {'j','l','vel','b','phi'}\n"
+            "pairs=[]; used_ini=set(); used_sam=set()\n"
+            "for (scp,met), ip in ini.items():\n"
+            "    if scp=='sys':\n"
+            "        if met not in sys_default: continue\n"
+            "        skey=(scp, sys_map.get(met, met))\n"
+            "        if skey not in sam and met in sys_fallback:\n"
+            "            skey=(scp, sys_fallback[met])\n"
+            "    elif scp in ('m0','m1'):\n"
+            "        if met.startswith('vi_mode') and not args.include_vib: continue\n"
+            "        if met=='j' and not args.include_rot: continue\n"
+            "        if not (met.startswith('vi_mode') or met=='j'): continue\n"
+            "        skey=(scp,met)\n"
+            "    else:\n"
+            "        continue\n"
+            "    if skey in sam:\n"
+            "        pairs.append(((scp,met), skey, ip, sam[skey])); used_ini.add((scp,met)); used_sam.add(skey)\n"
+            "manifest=[]\n"
+            "for (iscp,imet),(_ssc,smet), ipath, spath in pairs:\n"
+            "    key=f'{iscp}_{imet}'\n"
+            "    ipng=render_hist(ipath, OUT_INI / f'{key}_ini')\n"
+            "    spng=render_hist(spath, OUT_SAM / f'{key}_sam')\n"
+            "    cpng=OUT_PAIR / f'{key}__ini_vs_sam.png'\n"
+            "    desc=f'Compare {iscp}:{imet} (init) vs {iscp}:{smet} (sampled)'\n"
+            "    side_by_side(ipng, spng, desc, cpng)\n"
+            "    ida=extract_data(ipath); sda=extract_data(spath)\n"
+            "    st=dist_stats(ida,sda) if ida is not None and sda is not None else {'bins':0,'jsd':float('nan'),'emd':float('nan')}\n"
+            "    manifest.append((key, desc, str(st['bins']), f\"{st['jsd']:.6g}\", f\"{st['emd']:.6g}\", str(cpng)))\n"
+            "if args.include_unmatched:\n"
+            "    for (scp,met), p in ini.items():\n"
+            "        if (scp,met) in used_ini: continue\n"
+            "        render_hist(p, OUT_UNM_INI / f'{scp}_{met}_ini')\n"
+            "    for (scp,met), p in sam.items():\n"
+            "        if (scp,met) in used_sam: continue\n"
+            "        render_hist(p, OUT_UNM_SAM / f'{scp}_{met}_sam')\n"
+            "mf = OUT / 'pair_manifest.tsv'\n"
+            "hdr = 'key\\tdescription\\tbins\\tjsd\\temd\\tcomparison_png\\n'\n"
+            "mf.write_text(hdr + '\\n'.join('\\t'.join(x) for x in manifest) + '\\n')\n"
+            "print(f'Paired comparisons: {len(manifest)}')\n"
+            "print(f'Manifest: {mf}')\n"
+            "print(f'Pair plots: {OUT_PAIR}')\n"
+            "print('Unmatched rendered.' if args.include_unmatched else 'Unmatched skipped (use --include-unmatched).')\n",
+            exe=True,
+        )
+
+        _w(
+            os.path.join(hroot, "plot_compare_pairs.sh"),
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n"
+            "export HIST_ROOT=\"${HIST_ROOT:-$SCRIPT_DIR}\"\n"
+            "python \"$SCRIPT_DIR/plot_compare_pairs.py\" \"$@\"\n",
+            exe=True,
+        )
+
+    def GenerateInputData(self):
+        """Generate input data from the provided parameters.
+
+        Reads and processes input data from the input file, setting up simulation parameters and molecular properties.
+        """
+        mol = self.mol
+        ip = self.ip
+        sp = self.sp
+        for ky, val in ip.inpd:
+            if ky == "mol":
+                self.log.append( "########################################################\n")
+                self.log.append( "Reading molecular input : " + val[0] + " " + val[1] + " " + "\n")
+                mi = int(val[0])
+                mol[mi].ReadInput(val[1])
+                self.log += mol[mi].log
+                mol[mi].log = []
+                if self.mol[mi].ip.ordist == 'read':
+                  ip.isotropic = False
+            if ky == "tvel":
+                if float(val[0]) > 0.0:
+                    self.log += ["Temperature for Intermolecular Velocity: "+ val[0]+ " \n"]
+                    ip.Tvel = float(val[0])
+                else:
+                    self.log +=['Intermolecular Velocity (m/s) centre: '
+                        + val[0]+ ' FWHM: ' + val[1] + '\n']
+                    if len(val) > 1:
+                        self.log +=['Full Width Half-Maximum (FWHM): '+ val[1] + '\n']
+                        ip.velfwhm = float(val[1])*mps2au
+                    ip.Tvel = float(val[0])*mps2au
+            if ky == "fileout":
+                self.log += ["Prefix output Prefix Name: " + val[0] + "\n"]
+                ip.fileout = val[0]
+            if ky == "dirout":
+                raw_dir = val[0]
+                if os.path.isabs(raw_dir) or raw_dir.startswith("rd_") or raw_dir.startswith("rd/"):
+                    ip.dirout = raw_dir
+                else:
+                    ip.dirout = os.path.join(ip.rundir, raw_dir)
+                self.log += ["Directory Output Name: " + ip.dirout + "\n"]
+            if ky == "seed":
+                self.log += ["RNG Seed: " + val[0] + "\n"]
+                ip.seed = int(val[0])
+                np.random.seed(ip.seed)
+            if ky == "trot":
+                self.log += ["Temperature for Rotational States: " + val[0] + " \n"]
+                ip.Trot = float(val[0])
+            if ky == "tvib":
+                self.log += ["Temperature for Vibrational States: " + val[0] + " \n"]
+                ip.Tvib = float(val[0])
+            if ky == "maxb":
+                self.log += ["Maximum impact parameter: " + val[0] + "\n"]
+                ip.MaxB = float(val[0])*ang2au
+            if ky == "maxj":
+                self.log += ["Maximum total angular momentum J: " + val[0] + "\n"]
+                ip.MaxJ = int(val[0])
+            if ky == "maxl":
+                self.log += ["Maximum orbital ang. momentum  L: " + val[0] + "\n"]
+                ip.MaxL = int(val[0])
+            if ky == "chi":
+                self.log += ["Azimuthal scattering angule : " + val[0] + "\n"]
+                sp.chi = float(val[0])
+            if ky == "maxv":
+                self.log += ["Maximum vibrational State: " + val[0] + "\n"]
+                ip.MaxV = int(val[0])
+            if ky == "nsamp":
+                self.log += ["Number of generated samples: " + val[0] + "\n"]
+                ip.Nsamp = int(val[0])
+            if ky == "workers":
+                self.log += ["Number of parallel workers : " + val[0] + "\n"]
+                ip.nwork = int(val[0])
+            if ky == "rz":
+                self.log += ["Intermolecular Z-Distance: " + val[0] + "\n"]
+                sp.Rz = float(val[0])*ang2au
+            if ky == "beam-angle":
+                self.log += ["Cross-Beam Angule        : " + val[0] + "\n"]
+                sp.beamang = float(val[0])*pi/180.0
+            if ky == "ordist":
+                self.log += ["Orientation Distribuition Function: " + val[0] + "\n"]
+                ip.ordist = val[0]
+                ip.orpars = [float(v) for v in val[1:]]
+            if ky == "printout":
+                po  = self.ip.printout
+                for i in range(4):
+                  if len(val) > i:
+                    po[i] = bool(int(val[i]))
+                self.ip.printout = po
+                if po[0]: 
+                  self.log += ["Printout single xyz samples : " + str(po[0]) + "\n"]
+                if po[1]: 
+                  self.log += ["Printout sample info File   : " + str(po[1]) + "\n"]
+                if po[2]: 
+                  self.log += ["Printout directory of xyz   : " + str(po[2]) + "\n"]
+                if po[3]: 
+                  self.log += ["Printout info directory     : " + str(po[3]) + "\n"]
+            if ky == "rot-param":
+                self.log += ["Rotation angle Parametrization : " + val[0] + "\n"]
+                self.log += [" (overrides molecular option)    \n"]
+                ip.rotpar = val[0]
+                for i in range(2):
+                    self.mol[i].ip.rotpar = ip.rotpar
+                    if self.mol[i].ip.rotpar == 'xyz' and self.mol[i].ip.ordist == 1:
+                        self.log += ["for polarized distribuitions, switching to euler rotation parametrization (molecule " +str(i)+')' +'\n']
+                        self.mol[i].ip.rotpar = 'euler'
+            if ky == "phisample":
+                self.log += ["Sample orbital azimuthal coordinate phi:" + val[0] + "\n"]
+                ip.ostandard = bool(val[0]=='True')
+            if ky == "plothist":
+                self.log += ["Plotting Sample Histograms:" + val[0] + "\n"]
+                ip.plothist = bool(val[0]=='True')
+                if not ip.hist_sampled_user:
+                    ip.hist_sampled = ip.plothist
+            if ky == "hist_sampled":
+                self.log += ["Sampled Histograms:" + val[0] + "\n"]
+                ip.hist_sampled = bool(val[0]=='True')
+                ip.hist_sampled_user = True
+                ip.plothist = ip.hist_sampled
+            if ky == "hist_initial":
+                self.log += ["Initial Histograms:" + val[0] + "\n"]
+                ip.hist_initial = bool(val[0]=='True')
+                ip.hist_initial_user = True
+            if ky == "wang":
+                self.log += ["Generate WL Rejection Func:" + val[0] + "\n"]
+                ip.usewang = val[0]=='True'
+            if ky == "seed-mode":
+                ip.seed_mode = val[0].lower()
+                self.log += ["Seed mode: " + ip.seed_mode + "\n"]
+            if ky == "run-mode":
+                ip.run_mode = val[0].lower()
+                self.log += ["Run mode: " + ip.run_mode + "\n"]
+            if ky == "run-tag":
+                ip.run_tag = val[0].strip()
+                self.log += ["Run tag: " + ip.run_tag + "\n"]
+            if ky == "wl-tol":
+                ip.wl_tol_user = float(val[0])
+                ip.wl_tol = ip.wl_tol_user
+                self.log += ["Wang-Landau tolerance: " + val[0] + "\n"]
+            if ky == "wl-max-iter":
+                ip.wl_max_iter = int(val[0])
+                self.log += ["Wang-Landau max iterations: " + val[0] + "\n"]
+            if ky == "wl-log-every":
+                ip.wl_log_every = max(1, int(val[0]))
+                self.log += ["Wang-Landau log every: " + val[0] + "\n"]
+            if ky == "wlmode":
+                ip.wlmode = val[0].lower()
+                self.log += ["Wang-Landau mode: " + ip.wlmode + "\n"]
+            if ky == "wl-ff":
+                ip.wl_ff_user = float(val[0])
+                self.log += ["Wang-Landau initial f: " + val[0] + "\n"]
+            if ky == "wl-nstep":
+                ip.wl_nstep_user = int(val[0])
+                self.log += ["Wang-Landau nstep multiplier: " + val[0] + "\n"]
+            if ky == "wl-flatness":
+                ip.wl_flatness_user = float(val[0])
+                self.log += ["Wang-Landau flatness: " + val[0] + "\n"]
+            if ky == "wl-wn-factor":
+                ip.wl_wn_factor_user = float(val[0])
+                self.log += ["Wang-Landau wn factor: " + val[0] + "\n"]
+            if ky == "wl-wn":
+                ip.wl_wn_user = int(val[0])
+                self.log += ["Wang-Landau wn bins: " + val[0] + "\n"]
+            if ky == "keepinfo":
+                self.log += ["Keeping Sample Info:" + val[0] + "\n"]
+                ip.KeepInfo = bool(val[0]=='True') 
+            if ky == "plotinit":
+                self.log += ["Plotting Sample Histograms:" + val[0] + "\n"]
+                ip.pnsamp = int(val[0])
+                if not ip.hist_initial_user:
+                    ip.hist_initial = ip.pnsamp > 0
+            if ky == "continue":
+                self.log += ["Continuation of Sampling  :" + val[0] + "\n"]
+                ip.continues = bool(val[0]=='True')
+            if ky == "progress":
+                ip.progress = val[0].lower()
+                self.log += ["Progress mode: " + ip.progress + "\n"]
+            if ky == "dry-run":
+                ip.dry_run = bool(val[0]=='True')
+                self.log += ["Dry run: " + val[0] + "\n"]
+            if ky == "check-input":
+                ip.check_input = bool(val[0]=='True')
+                self.log += ["Check input only: " + val[0] + "\n"]
+            if ky == "save-frequency":
+                ip.save_frequency = max(0, int(val[0]))
+                self.log += ["Save frequency: " + val[0] + "\n"]
+            if ky == "output-format":
+                ip.output_format = val[0].lower()
+                self.log += ["Output format: " + ip.output_format + "\n"]
+            if ky == "units-out":
+                ip.units_out = val[0].lower()
+                self.log += ["Output units: " + ip.units_out + "\n"]
+
+        # Keep legacy/input ergonomics: allow maxj as the primary orbital cap
+        # when maxl is not explicitly provided.
+        if ip.MaxL <= 0 and ip.MaxJ > 0:
+          ip.MaxL = int(ip.MaxJ)
+          self.log += ["Using maxj as orbital cap maxl: " + str(ip.MaxL) + "\n"]
+
+        # Wang-Landau profile defaults (KIS):
+        # default = current behavior, fast = cheaper, accurate = heavier.
+        if ip.wlmode == "fast":
+          ip.wl_ff = np.exp(0.20)
+          ip.wl_nstep_mult = 300
+          ip.wl_flatness = 0.85
+          ip.wl_wn_factor = 3.0
+          ip.wl_wn = None
+        elif ip.wlmode == "accurate":
+          # User requested ff near 1 and larger nstep.
+          ip.wl_ff = 1.000001
+          ip.wl_nstep_mult = 750
+          ip.wl_flatness = 0.92
+          ip.wl_tol = 1.000001
+          ip.wl_wn_factor = 4.0
+          ip.wl_wn = None
+        else:
+          ip.wl_ff = np.exp(0.10)
+          ip.wl_nstep_mult = 500
+          ip.wl_flatness = 0.88
+          ip.wl_tol = 1.000005
+          ip.wl_wn_factor = 4.0
+          ip.wl_wn = None
+
+        # Explicit per-parameter overrides:
+        if ip.wl_ff_user is not None:
+          ip.wl_ff = ip.wl_ff_user
+        if ip.wl_nstep_user is not None:
+          ip.wl_nstep_mult = ip.wl_nstep_user
+        if ip.wl_flatness_user is not None:
+          ip.wl_flatness = ip.wl_flatness_user
+        if ip.wl_wn_factor_user is not None:
+          ip.wl_wn_factor = ip.wl_wn_factor_user
+        if ip.wl_wn_user is not None:
+          ip.wl_wn = ip.wl_wn_user
+        if ip.wl_tol_user is not None:
+          ip.wl_tol = ip.wl_tol_user
+
+        if ip.run_mode == "continue":
+          ip.continues = True
+        elif ip.run_mode == "fresh" or ip.run_mode == "rebuild-wang":
+          ip.continues = False
+
+        if ip.seed_mode == "time":
+          ip.seed = int(time.time())
+          np.random.seed(ip.seed)
+          self.log += ["Seed mode time -> RNG Seed: " + str(ip.seed) + "\n"]
+        elif ip.seed_mode == "fixed" and hasattr(ip, "seed"):
+          np.random.seed(ip.seed)
+        # per-worker is handled by InitializeWorker/sample seeds derived from worker ids
+
+        self.log += ["WL resolved settings: mode=" + str(ip.wlmode)
+                     + " ff=" + str(ip.wl_ff)
+                     + " nstep_mult=" + str(ip.wl_nstep_mult)
+                     + " flatness=" + str(ip.wl_flatness)
+                     + " wn_factor=" + str(ip.wl_wn_factor)
+                     + " wn=" + str(ip.wl_wn) + "\n"]
+ 
+        sp.na = mol[0].sp.na + mol[1].sp.na
+        sp.el = mol[0].sp.el + mol[1].sp.el
+        sp.mass = array(mol[0].sp.mass.tolist() + mol[1].sp.mass.tolist())
+        sp.mass2 = np.repeat(sp.mass, 3)
+        sp.rmass = (sum(mol[0].sp.mass) * sum(mol[1].sp.mass) /
+                   (sum(mol[0].sp.mass) + sum(mol[1].sp.mass)) )
+        sp.shape = (sp.na,3)
+        self.log += ["Reduced Mass           : " + "{0:10.3e}".format(sp.rmass) + "\n"]
+        sp.nd = sp.na * 3
+        w0, w1 = sum(mol[0].sp.mass), sum(mol[1].sp.mass)
+        sp.w0, sp.w1 = w0 / (w1 + w0), w1 / (w1 + w0)
+        self.consistentT()
+        if all(m.sp.na == 1 for m in mol):
+            ip.Trot = 0.0
+            ip.Tvib = 0.0
+            self.log += ["Atom-only system detected: forcing system Trot/Tvib to 0.0\n"]
+        diag_root = self._runpath("diagnostics")
+        nmodes_dir = os.path.join(diag_root, "nmodes")
+        ref_dir = os.path.join(diag_root, "reference")
+        asym_dir = os.path.join(diag_root, "asym_rotor")
+        os.makedirs(nmodes_dir, exist_ok=True)
+        os.makedirs(ref_dir, exist_ok=True)
+        os.makedirs(asym_dir, exist_ok=True)
+        for i in range(2):
+          mol[i].ip.diagdir = diag_root
+          mol[i].StandardOrientat()
+          if mol[i].sp.nm > 0:
+            mol[i].NModesOut(os.path.join(nmodes_dir, mol[i].ip.name + "_nm.xyz"))
+        self.AsymRigidRotorProjEnergies()
+        sa = self.InitializeWorker(0)
+        if hasattr(sp,'Rz'):
+          self.SetInterZDist(sa,sp.Rz*2)
+        else:
+          self.SetInterZDist(sa,10.0)
+        self.Mol2Image(sa)
+        xyz = XYZlist(sp.el, sa.sxx * au2ang,mess="Reference Geometry, double Rz (Ang)")
+        ref_path = os.path.join(ref_dir, ip.fileout.split('.')[0] + '_reference.xyz')
+        open(ref_path,'w').writelines(xyz)
+
+    # overwrite temperatures if necessary:
+    def consistentT(self):
+        """Ensure temperature consistency within the system.
+
+        This method enforces consistency in temperatures by overwriting molecular temperatures with system temperatures if provided.
+        """
+        mol = self.mol
+        for i in range(2):
+            if mol[i].sp.na == 1:
+                mol[i].ip.Trot = 0.0
+                mol[i].ip.Tvib = 0.0
+                self.log.append("Molecule " + str(i) + " is an atom: forcing molecular Trot/Tvib to 0.0\n")
+                continue
+            if hasattr(self.ip, "Trot"):
+                self.log.append("Overwriting molecular Trot to system Trot.." + str(self.ip.Trot)+ "\n")
+                mol[i].ip.Trot = self.ip.Trot
+            if hasattr(self.ip, "Tvib"):
+                self.log.append("Overwriting molecular Tvib to system Tvib.." + str(self.ip.Tvib)+ "\n")
+                mol[i].ip.Tvib = self.ip.Tvib
+    def AsymRigidRotorProjEnergies(self):
+        """Calculate rigid rotor energies for molecules.
+
+        This method calculates the rigid rotor energies for both molecules based on their estimated maximum rotational radii.
+        """
+        mol = self.mol
+        for i in range(2):
+            if mol[i].sp.na > 1:
+                mol[i].ip.MaxR = mol[i].EstimateMaxR(self.ip.Trot)
+                mol[i].AsymRigidRotorProjEnergies(mol[i].ip.MaxR)
+
+    def saveworkers(self,wks):
+        """Save distribution data to files.
+
+        This method saves various distribution data to files, including vibrational, rotational, and orientation distributions.
+        """
+        ip = self.ip
+        with open(self._runpath('work_sys_'+os.path.basename(ip.filename)+'.pkl'),'wb') as f:
+           pickle.dump(wks,f)
+
+    def savedata(self):
+        ip = self.ip
+        with open(self._runpath('dat_'+os.path.basename(ip.filename)+'.pkl'),'wb') as f:
+           pickle.dump(self.sdat ,f)
+
+    def loaddata(self):           
+        ip = self.ip
+        pnam = self._runpath('dat_'+os.path.basename(ip.filename)+'.pkl')
+        if os.path.exists(pnam):
+           with open(pnam,'rb') as f:
+             self.sdat=  pickle.load(f)
+           print('Read ... '+ str(len( self.sdat['vel']['ivel'])) + ' samples')
+
+    def saveinfo(self):
+        ip = self.ip
+        with open(self._runpath('info_'+os.path.basename(ip.filename)+'.pkl'),'wb') as f:
+           pickle.dump([self.sampls['cv'],self.sampls['info']] ,f)
+
+    def loadinfo(self):           
+        ip = self.ip
+        pnam = self._runpath('info_'+os.path.basename(ip.filename)+'.pkl')
+        if os.path.exists(pnam):
+           with open(pnam,'rb') as f:
+             self.sampls['cv'], self.sampls['info'] =   pickle.load(f)
+
+    def loadworkers(self):
+        """Load distribution data from files.
+
+        This method loads distribution data from previously saved files, allowing for resuming simulations.
+        """
+        idd = str(id)
+        ip = self.ip
+        pnam = self._runpath('work_sys_'+os.path.basename(ip.filename)+'.pkl')
+        if os.path.exists(pnam):
+           with open(pnam,'rb') as f:
+              wks = pickle.load(f)
+        else: 
+           return False
+        return wks
+
+    def _log_maxb_equivalence(self):
+        """Log how maxb maps to rough L/J scales for current velocity settings."""
+        ip = self.ip
+        sp = self.sp
+        if ip.MaxB <= 0:
+            return
+
+        def _emit(msg):
+            self.log += [msg + "\n"]
+
+        bmax_au = float(ip.MaxB)
+        bmax_ang = bmax_au * au2ang
+        _emit(f"maxb estimate basis: b_max = {bmax_ang:.6f} Ang ({bmax_au:.6e} a.u.)")
+        _emit("Assuming JAB = 0: J ~= L ~= mu * v_rel * b_max")
+
+        v_cases = []
+        if hasattr(ip, "Tvel"):
+            if ip.Tvel > 0.0:
+                # Most probable relative speed for MB-like profile used in sampler.
+                v_mp = np.sqrt(2.0 * kboltz * ip.Tvel / sp.rmass)
+                v_cases.append(("Tvel>0 (MB most-probable v)", v_mp))
+            elif ip.Tvel < 0.0:
+                v0 = abs(ip.Tvel)
+                if ip.velfwhm > 0.0:
+                    sig = ip.velfwhm / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+                    v_cases.append(("Tvel<0 gaussian center v", v0))
+                    v_cases.append(("Tvel<0 gaussian center+sigma v", v0 + sig))
+                else:
+                    v_cases.append(("Tvel<0 fixed v", v0))
+
+        if len(v_cases) == 0:
+            # Fallback: derive an estimate from per-molecule beam velocity settings.
+            # Molecule inputs usually provide `vel = center(m/s) fwhm(m/s) n`.
+            try:
+                vp0 = getattr(self.mol[0].ip, "VelPar", None)
+                vp1 = getattr(self.mol[1].ip, "VelPar", None)
+                if vp0 is not None and vp1 is not None and len(vp0) >= 2 and len(vp1) >= 2:
+                    v10 = float(vp0[0])
+                    v20 = float(vp1[0])
+                    f10 = abs(float(vp0[1]))
+                    f20 = abs(float(vp1[1]))
+                    s10 = f10 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+                    s20 = f20 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+
+                    def _vrel_from_mol(v1, v2):
+                        # Same geometry used by GetInterMolZVelocFromMolV.
+                        vv2 = -v2 * z
+                        vv1 = matmul(Rabout(sp.beamang, 0), -z) * v1
+                        return norm(vv2 - vv1)
+
+                    v_cases.append(("molecular-beam center v", _vrel_from_mol(v10, v20)))
+                    if s10 > 0.0 or s20 > 0.0:
+                        v_cases.append(("molecular-beam center+sigma v", _vrel_from_mol(v10 + s10, v20 + s20)))
+            except Exception:
+                v_cases = v_cases
+
+        if len(v_cases) == 0:
+            _emit(
+                "maxb -> L/J note: could not infer a representative relative speed; "
+                "equivalent L/J from maxb is trajectory-dependent."
+            )
+            return
+
+        for label, vrel in v_cases:
+            nL = sp.rmass * vrel * bmax_au
+            qL = 0.5 * (-1.0 + np.sqrt(1.0 + 4.0 * nL * nL))
+            qJ_max = int(np.floor(qL + 0.5))
+            _emit(
+                f"  [{label}] v_rel={vrel*au2mps:.3f} m/s -> "
+                f"approximate maxJ~{qJ_max} (J~=L~{qL:.3f})"
+            )
+         
+
+    # Generates all the necessary Nsamp distribuition samples for orientational, rotational, vibrational, velocity,
+    def InitialDist(self,sa,**dic):
+        """Generate initial distribution samples for different states.
+
+        This method generates initial distribution samples for various states, including vibrational, rotational, and velocity distributions.
+        """
+        ip = self.ip
+        sp = self.sp 
+        mol = self.mol 
+        # initialize sample counter and log:
+        sa.slog += ["Generating " + str(ip.Nsamp) + " Samples from distribuition \n"]
+        if 'nsamp' in dic.keys():
+          nsamp = dic['nsamp']
+        elif ip.pnsamp != 0:
+          nsamp = ip.pnsamp
+        else:
+          nsamp = 0 
+        if not ip.hist_initial:
+          nsamp = 0
+        if 'seed' in dic.keys():
+          seed = dic['seed']
+        else: 
+          seed = abs((sa.id+1)*1151)
+        ip.MaxJab = 0
+        ip.PeakJab = 0
+        # generates molecular vibrational and rotational distribuitions.
+        for i in range(2):
+            # overwrites molecular temperatures if system is provided:
+            mol[i].ip.Tvib, mol[i].ip.Trot = ip.Tvib, ip.Trot
+            mol[i].InitialDist(sa.mol[i],seed=seed*(1+i)*10000,nsamp=nsamp)
+            ip.MaxJab += int(getattr(mol[i].ip, 'MaxR', 0))
+            # approximate peak J only for multi-atom molecules with rotational space
+            if mol[i].sp.na > 1 and hasattr(mol[i].sp, 'J2c') and mol[i].sp.J2c > 0:
+                mol[i].ip.PeakJab = int(np.ceil(np.sqrt((kboltz * ip.Trot) / (2 * mol[i].sp.J2c)) - 0.5))
+            else:
+                mol[i].ip.PeakJab = 0
+            ip.PeakJab += mol[i].ip.PeakJab
+            sa.slog += mol[i].log
+            mol[i].log = []
+            #print("Molecule " + str(i) + " done ...")
+        if sa.id == 0 and not self._logged_maxb_equiv:
+            self._log_maxb_equivalence()
+            self._logged_maxb_equiv = True
+        sa.dist = {}
+        # impact parameter sampling:
+        if ip.MaxL == 0:
+          sa.dist['b'] = {} 
+          sa.dist['b']['MaxB'] = ip.MaxB
+          sa.slog += ["Generated impact parater with maximum b= " + str(ip.MaxB) + "\n"]
+          sa.dist['b']['cont'] = InitICDF(1,IPICDF,[ip.MaxB],seed=seed*887)
+          if nsamp != 0:
+            vv = [ICDFsample(sa.dist['b']['cont']) for _ in range(nsamp)]
+            sa.dist['b']['samp'] = vv
+            hist_emit(vv, "b", stage="initial", scope="system")
+            hist, edg = np.histogram(vv, bins=11)
+            sa.slog += ['IP Histogram  = \n']
+            sa.slog += [str(edg) + '\n']
+            sa.slog += [str(hist) +'\n']
+          sa.dist['phi'] = {}
+          sa.dist['phi']['cont'] = InitICDF(1,uniform,[0,tpi])
+        elif ip.MaxL > 0:
+          ip.MaxLp = int(ip.MaxL*1.2)
+          ip.MaxJ = ip.MaxL + int(ip.PeakJab)
+          ip.MaxJp = int(ip.MaxJ*1.2)
+          sa.dist['J'] = {} 
+          sa.dist['J']['MaxJ'] = ip.MaxJ
+          sa.slog += ["Generated total angular momentum MaxJ = " + str(ip.MaxJ) + "\n"]
+          #self.dist['J']['cont'] = InitICDF(1,JcrossICDF,[self.isotropic,self.MaxJ])
+          sa.dist['J']['cont'] = InitICDF(1,JcrossICDFc,[ip.isotropic,ip.MaxJp],seed=seed*31)
+          sa.dist['L'] = {}
+          sa.dist['L']['MaxL'] = ip.MaxL
+          sa.slog += ["Generated orbital angular moment MaxL = " + str(ip.MaxL) + "\n"]
+          sa.dist['L']['cont'] = InitICDF(1,JcrossICDFc,[ip.isotropic,ip.MaxLp],seed=seed*757)
+          #self.dist['L']['cont'] = InitICDF(1,JcrossICDF,[self.isotropic,self.MaxL])
+          if nsamp != 0:
+            vv = [ICDFsample(sa.dist['J']['cont']) for _ in range(nsamp)]
+            sa.dist['J']['samp'] = vv
+            hist_emit(vv, "J", stage="initial", scope="system")
+            hist, edg = np.histogram(vv, bins=ip.MaxJ+1)
+            sa.slog += ['IP Histogram  = \n']
+            sa.slog += [str(edg) + '\n']
+            sa.slog += [str(hist) +'\n']
+            vv = [ICDFsample(sa.dist['L']['cont']) for _ in range(nsamp)]
+            sa.dist['L']['samp'] = vv
+            hist_emit(vv, "L", stage="initial", scope="system")
+            hist, edg = np.histogram(vv, bins=ip.MaxL+1)
+            sa.slog += ['L Histogram  = \n']
+            sa.slog += [str(edg) + '\n']
+            sa.slog += [str(hist) + '\n']
+          sa.dist['perchi'] = {} 
+          if ip.isotropic:
+              sa.dist['perchi']['cont'] = InitICDF(1,uniform,[0,tpi],seed=seed*23) 
+              j, jab = 10.0, 6.0
+              par = [j,jab]
+              #self.dist['perchi']['cont'] = InitICDF(1,AniChiPerpICDFX,[]) 
+              #self.dist['perchi']['cont'] = InitICDF(1,AniChiPerpICDF2,[],par0=par) 
+              #self.dist['perchi']['cont'] = InitICDF(1,AniChiPerpICDF4,[],par0=par) 
+          else:  
+              # this distribuiton is conditional on  j,jab  : is taken as a variable :
+              #example j, jab 
+              j, jab = 10.0, 6.0
+              par = [j,jab]
+              sa.dist['perchi']['cont'] = InitICDF(1,AniChiPerpICDF,[],par0=par,seed=seed*353) 
+              if nsamp != 0: 
+                vv = [ICDFsample(sa.dist['perchi']['cont'],*par) for _ in range(nsamp)]
+                hist_emit(vv, "chi", stage="initial", scope="system")
+                sa.dist['perchi']['samp'] = vv
+                hist, edg = np.histogram(vv, bins=11)
+                sa.slog += ['Anisotropic orientation Histogram  = \n']
+                sa.slog += [str(edg) + '\n']
+                sa.slog += [str(hist) +'\n']
+        else:
+         quit('MaxB or MaxJ needs to be set')
+        # generate Intermolecular velocity dist:
+        if hasattr(ip, "Tvel"):
+            T = ip.Tvel
+        else:
+            T = 0
+        if abs(T) > 0:
+            sa.slog += ["Generated intermolecular velocity temperature " + str(T) + "\n"]
+            sa.dist['vel'] = {}
+            if T > 0.0: 
+               A = sp.rmass / (2 * kboltz * T)
+               sa.dist['vel']['cont'] = InitICDF(1,MBiCDF, [A],seed=seed*997)
+               if nsamp != 0: 
+                 vv = [ICDFsample(sa.dist['vel']['cont'])/mps2au for _ in range(nsamp)]
+                 hist_emit(vv, "vel", stage="initial", scope="system")
+                 sa.dist['vel']['cont'] = vv
+                 hist, edg = np.histogram(vv, bins=11)
+                 sa.slog += ['Intermolecular Velocity Histogram  = \n']
+                 sa.slog += [str(edg) + '\n']
+                 sa.slog += [str(hist) +'\n']
+                 sa.dist['vel']['cont'] = InitICDF(1, MBiCDF, [A], seed=seed*419)
+            elif T < 0.0:
+               if ip.velfwhm > 0.0: 
+                  sigma = ip.velfwhm/(2*sqrt(2.0*np.log(2.0)))              
+                  sa.dist['vel']['cont'] = InitICDF(1, GaussianF2, [0,sigma],seed=seed*383) 
+                  if nsamp != 0:                                                     
+                    vv = [ICDFsample(sa.dist['vel']['cont'])/mps2au for _ in range(nsamp)]     
+                    hist_emit(vv, "vel", stage="initial", scope="system")
+                    hist, edg = np.histogram(vv, bins=11)                            
+                    sa.slog += ['Molecular Velocity  Histogram  = \n']                   
+                    sa.slog += [str(edg) + '\n']                                         
+                    sa.slog += [str(hist) +'\n']                                         
+                    sa.dist['vel']['cont'] = InitICDF(1, GaussianF2, [0,sigma],seed=seed*151) 
+               else:
+                  sa.dist['vel']['v'] = abs(T)
+        elif nsamp != 0:
+           vv = []
+           for _ in range(nsamp):
+             self.SampleInterMolZVeloc(sa) 
+             vv.append(sa.sV/mps2au) 
+           hist_emit(vv, "vel", stage="initial", scope="system")
+           hist, edg = np.histogram(vv, bins=11)
+           sa.slog += ['Inter-Molecular Velocity Histogram  = \n']
+           sa.slog += [str(edg) + '\n']
+           sa.slog += [str(hist) +'\n']   
+        # finally some generic RNG for arbitrary purposes...  
+        sa.dist['gen'] = {}
+        sa.dist['gen']['cont'] = InitICDF(1,uniform,[0,1.0],seed=seed*73) 
+        if 'phi' in sa.dist and nsamp != 0:
+          vv = [ICDFsample(sa.dist['phi']['cont']) for _ in range(nsamp)]
+          sa.dist['phi']['samp'] = vv
+          hist_emit(vv, "phi", stage="initial", scope="system")
+        if 'printlog' in dic.keys(): 
+         open(ip.fileout.split(".")[0] +"_dist.log", "w").writelines(log)
+
+    def CalcInterMolMomentum(self,sa):
+        """Calculate intermolecular momentum and energy.
+
+        This method calculates the intermolecular momentum and energy, including rotational and radial components.
+        """
+        
+        ip = self.ip
+        sp = self.sp
+        mol = self.mol 
+        msa = sa.mol
+        msp = [mol[0].sp,mol[1].sp]
+        sa.slog.append(".........................................\n")
+        sa.slog.append(" InterMolecular Analysis : \n")
+        sa.slog.append("  :" + mol[0].ip.name + " x " + mol[1].ip.name + "\n")
+        #self.Mol2Image()
+        com, vcom = COM(sa.sxx, sp.mass), COM(sa.svv, sp.mass)
+        xx, vv = zeros((2, 3)), zeros((2, 3))
+        ms = array([sum(msp[0].mass), sum(msp[1].mass)])
+        for i in range(2):
+            xx[i, :] = (mol[i].MolecularPosition(msa[i]) - com).T
+            vv[i, :] = (mol[i].MolecularVeloc(msa[i]) - vcom).T 
+        KE = np.sum(0.5*(vv.T**2*ms),axis=0).tolist()
+        # difference jacobi:
+        rr = xx[0, :] - xx[1, :]
+        vv_rel = vv[0, :] - vv[1, :]
+        # projection onto radial and angular parts
+        Pr = np.outer(rr, rr) / norm(rr) ** 2
+        vr = matmul(Pr, vv.T).T
+        vp = vv - vr
+        # angular and radial momentums:
+        LL = np.sum(np.cross(xx, vv).T * ms, axis=1)
+        np.set_printoptions(precision=6)
+        #LL = np.sum(np.cross(xx, vp).T * ms, axis=1)
+        debug = True 
+        debug = False 
+        if debug: 
+         pp1 = (ms*vv.T).T
+         vv2 = vv[0,:]-vv[1,:]
+         pp2 = sp.rmass * vv2
+         LL2 = np.cross(rr,pp1)[0]
+         LL3 = np.cross(rr,pp2)
+         if not np.allclose(LL,LL2) or not np.allclose(LL,LL3):
+          print('WARNING, inconsistent COM angular momentum:')
+          print('another J way1 = ', np.allclose(LL,LL2))
+          print('another J way2 = ', np.allclose(LL,LL3))
+        PP = vr * sp.rmass
+        PP = PP[1, :] - PP[0, :]
+        # angular and radial energy:
+        II = sp.rmass * norm(rr) ** 2
+        RotE = np.dot(LL, LL) / (2 * II)
+        RadE = 0.5 * norm(PP) ** 2 / sp.rmass
+        # imact parameter
+        b = (norm(LL)) / (sp.rmass*norm(vv_rel))
+        b0 = sum(0.5 * norm(LL) / (norm(vv, axis=1) * ms))
+        phi = np.arctan2(LL[0],-LL[1])
+        iJa = msa[0].SampInfo['rot']["svecJs"] 
+        iJb = msa[1].SampInfo['rot']["svecJs"] 
+        iJab = iJa+iJb 
+        Ja = msa[0].SampInfo['rot']["svecJ0s"] 
+        Jb = msa[1].SampInfo['rot']["svecJ0s"] 
+        Jab = Ja+Jb 
+        cJ = Jab + LL
+        nJab = norm(Jab)
+        qJab = 0.5 * (-1 + sqrt(1 + 4.0 * norm(Jab) ** 2))
+        qJa  = 0.5 * (-1 + sqrt(1 + 4.0 * norm(Ja) ** 2) )
+        qJb  = 0.5 * (-1 + sqrt(1 + 4.0 * norm(Jb) ** 2) )
+        qL   = 0.5 * (-1 + sqrt(1 + 4.0 * norm(LL) ** 2) )
+        qR   = 0.5 * (-1 + sqrt(1 + 4.0 * norm(PP) ** 2) )
+        qJ   = 0.5 * (-1 + sqrt(1 + 4.0 * norm(cJ) ** 2) )
+        niJab, niJa, niJb = norm(iJab), norm(iJa), norm(iJb)
+        qiJab = 0.5 * (-1 + sqrt(1 + 4.0 * norm(iJab) ** 2))
+        qiJa  = 0.5 * (-1 + sqrt(1 + 4.0 * norm(iJa) ** 2) ) 
+        qiJb  = 0.5 * (-1 + sqrt(1 + 4.0 * norm(iJb) ** 2) ) 
+        #print('##############')
+        #print('sQL = ', qL)
+        #print('oQL = ', sa.SampInfo['orb']['iL'] )
+        #print('sQJ = ', qJ)
+        #print('oQJ = ', sa.SampInfo['orb']['iJ'] )
+        if 'orb' not in sa.SampInfo.keys():
+            sa.SampInfo['orb'] = {}
+        sa.SampInfo['orb']['sJab'] = Jab 
+        sa.SampInfo['orb']["scL"] = LL
+        sa.SampInfo['orb']["scJ"] = cJ
+        sa.SampInfo['orb']['snJab'] = norm(Jab)
+        sa.SampInfo['orb']["sncL"] = norm(LL)
+        sa.SampInfo['orb']["sncJ"] = norm(cJ)
+        sa.SampInfo['orb']['sJab'] = qJab 
+        sa.SampInfo['orb']["sL"] = qL
+        sa.SampInfo['orb']["sJ"] = qJ
+        sa.SampInfo['orb']["sII"] = II
+        sa.SampInfo['orb']["RoE"] = RotE
+        sa.SampInfo['orb']["RaE"] = RadE
+        sa.SampInfo['orb']["senergy"] = KE
+        sa.SampInfo['orb']["sb"] = b
+        sa.SampInfo['orb']["sphi"] = phi
+ 
+        sa.slog += ["Init. Angular Energy   : " + "{0:10.5e}".format(RotE * au2ev) + "\n"]
+        sa.slog += ["Init. Radial  Energy   : " + "{0:10.5e}".format(RadE * au2ev) + "\n"]
+        sa.slog += ["Total           (eV)   : " + "{0:10.5f}".format((RotE + RadE) * au2ev) + "\n"]
+        sa.slog += ["Tot. Mol Ja  =         : " + ''.join(["{0:10.5f}".format(iJa[i]) for i in range(3)]) + ', |Ja|  = ' + "{0:10.5f}".format(niJa)+' (QM: '+"{0:4.2f}".format(qiJa)+')\n']
+        sa.slog += ["Tot. Mol Jb  =         : " + ''.join(["{0:10.5f}".format(iJb[i]) for i in range(3)]) + ', |Jb|  = ' + "{0:10.5f}".format(niJb)+' (QM: '+"{0:4.2f}".format(qiJb )+')\n']
+        sa.slog += ["Tot. Mol Jab = Ja + Jb : " + ''.join(["{0:10.5f}".format(iJab[i]) for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(niJab)+' (QM: '+"{0:4.2f}".format(qiJab )+')\n']
+        sa.slog += ["Vec Model Ja  =        : " + ''.join(["{0:10.5f}".format(Ja[i]) for i in range(3)]) + ', |Ja|  = ' + "{0:10.5f}".format(norm(Ja))+' (QM: '+"{0:4.2f}".format(qJa)+')\n']
+        sa.slog += ["Vec Model Jb  =        : " + ''.join(["{0:10.5f}".format(Jb[i]) for i in range(3)]) + ', |Jb|  = ' + "{0:10.5f}".format(norm(Jb))+' (QM: '+"{0:4.2f}".format(qJb )+')\n']
+        sa.slog += ["Vec Model Jab = Ja + Jb: " + ''.join(["{0:10.5f}".format(Jab[i]) for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(nJab)+' (QM: '+"{0:4.2f}".format(qJab )+')\n']
+        sa.slog += ["Init. Ang. Momentum au : " + "".join(["{0:10.5f}".format(p) + " " for p in LL]) + ', |L|   = '+ "{0:10.5f}".format(norm(LL)) +' (QM: '+"{0:4.2f}".format(qL  )+')\n' ]
+        sa.slog += ["Init. Rad. Momentum au : " + "".join(["{0:10.5f}".format(p) + " " for p in PP]) + ", |P_R| = "+ "{0:10.5f}".format(norm(PP))+' (QM: '+"{0:4.2f}".format(qR )+')\n'  ]
+        sa.slog += ["Tot Ang.   Momentum au : " + "".join(["{0:10.5f}".format(p) + " " for p in cJ]) + ", |J|   = "+ "{0:10.5f}".format(norm(cJ))+' (QM: '+"{0:4.2f}".format(qJ )+')\n'  ]
+        sa.slog += ["Moment Of Inertia   au : " + "{0:10.3e}".format(II) + "\n"]
+        sa.slog += ["Cylindrical Coords     : " + "{0:10.5f}".format(float(b)*au2ang) + ' Ang ' + "{0:10.5f}".format(float(phi/pi)) + " pi rad \n"]
+        sa.slog += ["Molecule 1 COM   (Ang) : " + ''.join(["{0:10.5f}".format(i*au2ang)+' ' for i in mol[0].MolecularPosition(msa[0]).flatten().tolist()]) + " \n"]
+        sa.slog += ["Molecule 2 COM   (Ang) : " + ''.join(["{0:10.5f}".format(i*au2ang)+' ' for i in mol[1].MolecularPosition(msa[1]).flatten().tolist()]) + " \n"]
+        return 
+   
+         
+ 
+    def CalcJacobiCoordinates(self,sa,**dic):
+        """This takes the principal axis (the symmetry axis if its a symmetric top or near top) of each molecule and 
+        treats it like a Jacobi distance (R) vector. 
+        We then calculate R Jacobi (COM to COM) distance and 3 Jacobi Angles: the theta angles of the principal axis 
+        of the molecule with the intermolecular R, and the dihedral angle phi between such vectors. 
+        returns information into the log file
+
+        Parameters
+        ----------
+        phi, chi, theta : floats   (radians)
+        """
+        #copy to sxx 
+        mol = self.mol
+        ip = self.ip
+        sp = self.sp
+        self.Mol2Image(sa)
+        sa.sxx -= COM(sa.sxx, sp.mass).T
+        sa.svv -= COM(sa.svv, sp.mass).T
+        sxx = sa.sxx.copy()
+        svv = sa.svv.copy()
+        mol = self.mol
+        msa = sa.mol
+        msp = [mol[0].sp,mol[1].sp] 
+        # difference jacobi:
+        r = mol[0].MolecularPosition(msa[0]).flatten() - mol[1].MolecularPosition(msa[1]).flatten()
+        nr = norm(r)
+        vv_rel = mol[0].MolecularVeloc(msa[0]).flatten() - mol[1].MolecularVeloc(msa[1]).flatten()
+        rx, ry, rz = r
+        phi   = np.arctan2(ry, rx)              # (-pi, pi]
+        theta = np.arccos(rz / nr)              #   [0, pi]
+        R1Z = Rabout(-phi,2)                    # rotate phi about Z 
+        R2N = Rabout(-theta,1)                  # rotate theta about line of nodes 
+        R12 = matmul(R2N, R1Z)                  # takes r -> [0,0,|r|]
+        sxx = matmul(sxx,R12.T)
+        sx1, sx2 = sxx[:msp[0].na,:], sxx[msp[0].na:,:] 
+        c1, c2 = COM(sx1,msp[0].mass).flatten(), COM(sx2,msp[1].mass).flatten()
+        sx1, sx2 = sx1 - c1.T, sx2 - c2.T
+        # Get Principal Eckart vector of molecule 0:
+        vv = EckartFrameTrans(msp[0].xxe, sx1, msp[0].mass)[2,:]
+        vv2 = EckartFrameTrans(msp[1].xxe, sx2, msp[1].mass)[2,:]
+        vx,vy,_ = vv
+        chi = np.arctan2(vy, vx)                # (-pi, pi]
+        R1z = Rabout(-chi,2)                    # rotate phi about z  
+        sxx = matmul(sxx,R1z.T)
+        sx1 = matmul(sx1,R1z.T)
+        vtest = EckartFrameTrans(msp[0].xxe, sx1, msp[0].mass)[2,:]
+        vtest2 = EckartFrameTrans(msp[0].xxe, sxx[:msp[0].na,:], msp[0].mass)[2,:]
+        # matrix in ZYZ which makes system to standard isotropic frame:
+        RJ = matmul(Rabout(-chi,2),matmul(Rabout(-theta,1),Rabout(-phi,2)))
+        Rr = matmul(Rabout(theta,1),RJ)
+        rii = matmul(Rr,vv_rel)
+        rii = matmul(Rr,z)
+        c1, c2 = COM(sxx[:msp[0].na,:],msp[0].mass).flatten(), COM(sxx[msp[0].na:,:],msp[1].mass).flatten()
+        sxx[:msp[0].na,:] = sxx[:msp[0].na,:]-c1
+        sxx[msp[0].na:,:] = sxx[msp[0].na:,:]-c2
+        Ra1, Ra2 = EckartFrameTrans(msp[0].xxe, sxx[:msp[0].na,:], msp[0].mass), EckartFrameTrans(msp[1].xxe, sxx[msp[0].na:,:], msp[1].mass) 
+        sBFa1 = iR2q(Ra1.T)
+        sBFa2 = iR2q(Ra2.T)
+        sxx[:msp[0].na,:] = matmul(sxx[:msp[0].na,:],Ra1.T)+c1
+        sxx[msp[0].na:,:] = matmul(sxx[msp[0].na:,:],Ra2.T)+c2
+        if abs(sBFa1[1]) > 1e-6 and abs(sBFa2[1]) > 1e-6: 
+          u1,u2, u3 = vv, r, vv2
+          uc12, uc23 = np.cross(u1,u2), np.cross(u2,u3)
+          ucc12c23, udc12c23 = np.cross(uc12,uc23), np.dot(uc12,uc23)
+          dphi = np.arctan2(np.dot(u2,ucc12c23),norm(u2)*udc12c23)
+        else:
+          dphi = 0.0
+        sa.slog += [" -Body-Fixed Angles           :   Alpha    Beta   Gamma \n"]
+        sa.slog += ['   Euler Intermolecular Angles: ' + ''.join(["{0:6.4f}".format(a/pi).rjust(8) for a in [phi,theta,chi] ]).rjust(24)  +' pi rad\n']
+        sa.slog += ['   Euler Molecule (1)   Angles: ' + ''.join(["{0:6.4f}".format(a/pi).rjust(8) for a in sBFa1]).rjust(24)  +' pi rad\n']
+        sa.slog += ['   Euler Molecule (2)   Angles: ' + ''.join(["{0:6.4f}".format(a/pi).rjust(8) for a in sBFa2]).rjust(24)  +' pi rad\n']
+        sa.slog += ['   v1 v2 dihedral       Angles: ' + "{0:6.4f}".format(dphi/pi).rjust(8) + ' pi rad\n']
+        sa.slog += ["   Jacobi R (Ang)             : " +"{0:10.5f}".format(float(norm(r))*au2ang) + " \n"]
+        sa.slog += ["   Body-Fixed Frame for J     : " +''.join([''.join(["{0:6.4f}".format(a).rjust(8) for a in RJ[:,i].tolist()]).rjust(24) + ' ,' for i in range(3)])[:-2] + " \n"]
+        sa.slog += ["   Body-Fixed Frame for Mol 1 : " +''.join([''.join(["{0:6.4f}".format(a).rjust(8) for a in Ra1[:,i].tolist()]).rjust(24) + ' ,' for i in range(3)])[:-2] + " \n"]
+        sa.slog += ["   Body-Fixed Frame for Mol 2 : " +''.join([''.join(["{0:6.4f}".format(a).rjust(8) for a in Ra2[:,i].tolist()]).rjust(24) + ' ,' for i in range(3)])[:-2] + " \n"]
+        sa.SampInfo['2bJac'] = {} 
+        sa.SampInfo["2bJac"]['R'] = r
+        sa.SampInfo['2bJac']['dphi'] = dphi 
+        sa.SampInfo['2bJac']['phi'] = phi 
+        sa.SampInfo['2bJac']['theta'] = theta
+        sa.SampInfo['2bJac']['chi'] = chi
+        sa.SampInfo['2bJac']['Rr'] = Rr 
+        sa.SampInfo['2bJac']['alpha1'],sa.SampInfo['2bJac']['beta1'], sa.SampInfo['2bJac']['gamma1'] = sBFa1
+        sa.SampInfo['2bJac']['alpha2'],sa.SampInfo['2bJac']['beta2'], sa.SampInfo['2bJac']['gamma2'] = sBFa2
+        return  
+
+    
+
+    def InitializeSample(self,sa,ii):
+        """Initialize a scattering sample.
+
+        This method initializes a new scattering sample, setting up necessary variables and data structures.
+        """
+        sp = self.sp
+        sa.sii = ii 
+        sa.slog  = ["###################################################\n"]
+        sa.slog += ["############## Sample Number " + str(ii) + "\n"]
+        sa.slog += ["###################################################\n"]
+        sa.SampInfo = {}
+        sa.svv = zeros(sp.shape)  
+        sa.sxx = zeros(sp.shape)
+        mol = self.mol
+        msa = sa.mol
+        sa.smkin = [0.0,0.0]
+        for i in range(2):
+            mol[i].InitializeSample(msa[i])
+
+    def GenerateSample(self,sa,rang):
+        """Generate a scattering sample.
+
+        This method generates a complete scattering sample, including vibrational, rotational, and orientational states, as well as intermolecular parameters.
+        """
+        sp = self.sp
+        ip = self.ip
+        wn = len(sp.td) 
+        debug = False
+        #if sa.id ==0:
+         #debug = True
+        xyz = []
+        slog = []
+        sa.ixyz = []
+        if ip.progress == "quiet":
+          hidebar = True
+        elif sa.id == 0:
+          hidebar = False
+        else:
+          hidebar = True
+        ff = 1.0
+        for ii in tqdm(range(rang[0],rang[1]),disable=hidebar):
+          log = []
+          log.append("Generating Sample number " + str(ii + 1) + "\n")
+          # Initialize sample
+          debug and print('Initialize...',ii)  
+          while True:
+            self.InitializeSample(sa,ii)
+            log  = self.SampleOrbitalL(sa,cap=ip.MaxL*ff)
+            log += self.SampleRigidRotorState0(sa)
+            log += self.SampleOrientat0(sa) 
+            log += self.SampleJ(sa)
+            # Old-style gate: cap very large J before WL acceptance.
+            if ip.MaxL > 0 and sa.sJ >= ip.MaxL*ff:
+              continue
+            if len(sp.td) == 0:
+              break
+            iiL = int(np.floor(wn*abs(sa.sJ)/ip.MaxJ))
+            if iiL < len(sp.td):
+              if np.random.rand() <= sp.td[iiL]:
+                break
+            else:
+              continue
+          sa.slog += log
+          if ip.isotropic and ip.ostandard: 
+           self.SetStandardOrientation(sa)
+          debug and print('Sample HOVib... ')  
+          self.SampleHOVibrState(sa)
+          # sample intermolecular DOF
+          debug and print('Sample InterMolZ...')  
+          self.SetInterZDist(sa,sp.Rz) # set z distance ...
+          self.SampleInterMolZVeloc(sa) # need to get the magnitude of intermol v before getting impact parameter 
+          self.StoreOrbitalInfoLog(sa)
+          debug and print('Sample Impact Param...')  
+          self.SetImpactParam(sa,sa.sb, sa.sphi)
+          debug and print('Calc Jacobi ...')  
+          self.CalcJacobiCoordinates(sa)
+          self.SetInterMolZVeloc(sa)
+          self.Mol2Image(sa)
+          # summarize energy from generated sample
+          self.SummarizeLogEnergy(sa,False)
+          # summarize energy from calculated/analysed sample:
+          self.AnalyseSample(sa)
+
+          ixyz, ivxyz = self.ListXYZOut(sa,mess="Sample " + str(sa.sii))
+          if ip.printout[0]:
+            sa.ixyz += ixyz
+          if ip.printout[1]:
+            slog += sa.slog
+          if ip.printout[2]:
+            self.ImageXYZOut(ixyz,ivxyz,sa.sii,sa=sa)
+          if ip.printout[3]:
+            open(ip.dirout + "/" + ip.fileout +"_" + str(sa.sii) + ".info", "w").writelines(sa.slog)
+          if sa.id == 0:
+            self.AddInfoToSamples(sa.sdat,sa.SampInfo)
+          else:
+            self.AddInfoToSamples(sa.sdat,sa.SampInfo)
+          if (ii+1)%1000 == 0 and sa.id == 0 and ip.progress == "verbose":
+            print('AVERAGE COSTHETA = ', np.mean(sa.sdat['orb']['cosLJab_thet']))
+          if ip.save_frequency > 0 and ((ii+1) % ip.save_frequency == 0):
+            if not os.path.isdir(ip.dirout):
+              os.system("mkdir " + ip.dirout)
+            cnam = ip.dirout + "/" + ip.fileout + "_checkpoint_w" + str(sa.id) + "_n" + str(ii+1) + ".pkl"
+            with open(cnam, "wb") as cf:
+              pickle.dump(sa.sdat, cf)
+        sa.slog = slog 
+        return sa
+
+    def SampleJ(self,sa):
+        msa = sa.mol
+        Jab = msa[0].srpar[-1] + msa[1].srpar[-1]
+        cJ = sa.scL + Jab 
+        sa.scJ =  cJ
+        nJ = norm(cJ) 
+        sa.snJ =  nJ
+        sa.sJ = 0.5 * (-1 + sqrt(1 + 4.0 * norm(nJ) ** 2) )
+        log = [" -Total angular momentum Q.N. J = : " + "{0:3.2f}".format(sa.sJ)+"\n"]
+        sa.SampInfo['orb']['iJ'] = sa.sJ
+        sa.SampInfo['orb']['inJ'] = sa.snJ
+        sa.SampInfo['orb']['icJ'] = sa.scJ
+        return log 
+
+    def GenerateWang(self,wks):
+        def GetiL(self,sa,rnge,cap):
+          cost = []
+          iiLL = np.empty(rnge[1] - rnge[0], dtype=np.int32)
+          for k, s in enumerate(range(rnge[0],rnge[1])):
+            self.InitializeSample(sa,s)
+            log  = self.SampleOrbitalL(sa,cap=cap)
+            log += self.SampleRigidRotorState0(sa)
+            log += self.SampleOrientat0(sa) 
+            log += self.SampleJ(sa)
+            if sa.snL*sa.snjab > 0.0: 
+              costhet = np.dot(sa.scL,sa.sjab)/(sa.snL*sa.snjab)
+            else:
+              costhet = -2
+            sa.costhet = costhet
+            if abs(sa.costhet) < 1.0:
+             cost.append(sa.costhet)
+            iiL = int(np.floor(wg.wn*abs(sa.sJ)/wg.maxr))
+            iiLL[k] = iiL
+          return iiLL
+        def flatten(xss):
+          return [x for xs in xss for x in xs] 
+        wg = self.InitWang()
+        n = 0
+        iL = 4
+        ip = self.ip 
+        sp = self.sp 
+        ff_init = float(wg.ff)
+        ff_tol = float(ip.wl_tol)
+        log_denom = np.log(max(ff_init, ff_tol + 1e-15)) - np.log(max(ff_tol, 1e-15))
+        if abs(log_denom) < 1.0e-15:
+          log_denom = 1.0
+        wg.maxr = ip.PeakJab*4
+        cap = ip.PeakJab*5
+        while wg.ff > ip.wl_tol: 
+          if ip.wl_max_iter > 0 and n >= ip.wl_max_iter:
+            break
+          ac = 0
+          wg.hh = np.zeros(wg.wn)
+          nstps = int(wg.nstep/ip.nwork)
+          iiLL_parts = Parallel(n_jobs=ip.nwork)(delayed(GetiL)(self, wks[i], [i*nstps, (i+1)*nstps], cap) for i in range(ip.nwork))
+          iiLL = np.concatenate(iiLL_parts)
+          for iiL in iiLL: 
+            if iiL <= wg.wn-1:
+              accept_prob = min(1,np.exp(wg.uu[iL] - wg.uu[iiL]))         
+              if np.random.rand() < accept_prob:
+                  iL = iiL
+                  ac += 1
+            else:
+              continue
+            wg.uu[iL] += np.log(wg.ff)
+            wg.hh[iL] += 1
+          hmin = float(wg.hh.min())
+          hcrit = float(wg.flatness * wg.hh.mean())
+          acc_rate = float(ac) / float(wg.nstep)
+          flat_ratio = hmin / (hcrit + 1.0e-15)
+          log_gap = np.log(max(wg.ff, ff_tol + 1e-15)) - np.log(max(ff_tol, 1e-15))
+          log_rem = log_gap / log_denom
+          log_rem = float(np.clip(log_rem, 0.0, 1.0))
+          prog = 1.0 - log_rem
+          prog = float(np.clip(prog, 0.0, 1.0))
+          if ip.progress != "quiet" and (n % ip.wl_log_every == 0):
+            if ip.progress == "verbose":
+              print(n, 'Hmin = ', hmin, ' Criterion: ', hcrit, 'ac = ', acc_rate)
+              print(f'   WL status: flat={flat_ratio:.4f} (>=1.0 target), ff={wg.ff:.8f}, progress={100.0*prog:.2f}%, log_gap={log_gap:.3e}, rem_log={100.0*log_rem:.2f}%')
+            else:
+              print(f'WL iter {n}: flat={flat_ratio:.4f} ff={wg.ff:.8f} acc={acc_rate:.3f} progress={100.0*prog:.2f}% log_gap={log_gap:.3e}')
+          if hmin > hcrit and n > wg.nburn: 
+            wg.ff = np.sqrt(wg.ff) 
+            if ip.progress != "quiet":
+              log_gap2 = np.log(max(wg.ff, ff_tol + 1e-15)) - np.log(max(ff_tol, 1e-15))
+              log_rem2 = log_gap2 / log_denom
+              log_rem2 = float(np.clip(log_rem2, 0.0, 1.0))
+              prog2 = 1.0 - log_rem2
+              prog2 = float(np.clip(prog2, 0.0, 1.0))
+              print(f'   WL update: flatness reached, reducing ff -> {wg.ff:.8f} ({100.0*prog2:.2f}% to tol, rem_log={100.0*log_rem2:.2f}%)')
+            if ip.progress == "verbose":
+              print('UU = ') 
+              print(wg.uu - wg.uu.min()) 
+          elif n <= wg.nburn and n%2 == 0:
+            wg.hh[:] = 0. 
+          if n%10 == 0: 
+            wg.hh[:] = 0. 
+          wg.uu -= wg.uu.min()
+          n += 1 
+        if ip.progress != "quiet":
+          log_gapf = np.log(max(wg.ff, ff_tol + 1e-15)) - np.log(max(ff_tol, 1e-15))
+          log_remf = log_gapf / log_denom
+          log_remf = float(np.clip(log_remf, 0.0, 1.0))
+          progf = 1.0 - log_remf
+          progf = float(np.clip(progf, 0.0, 1.0))
+          print(f'WL complete: iter={n}, ff={wg.ff:.8f}, tol={ip.wl_tol:.8f}, progress={100.0*progf:.2f}%, log_gap={log_gapf:.3e}, rem_log={100.0*log_remf:.2f}%')
+        if ip.progress == "verbose":
+          print('U = ', wg.uu)
+        dlj = float(wg.maxr)/float(wg.wn)
+        if ip.progress != "quiet":
+          print(f'Convergence reached: WL profile built (wn={wg.wn}, dlj={dlj:.4f}, maxr={wg.maxr})')
+        jj = dlj*0.5+ np.linspace(0,wg.maxr-dlj*1,wg.wn)
+        uu_lin = np.exp(wg.uu - wg.uu.min()) 
+        uu_lin = uu_lin / 0.5
+        if ip.progress == "verbose":
+          print('MaxJP = ', ip.MaxJp) 
+        if False:
+         mxj  = wg.uu.tolist().index(wg.uu.max())
+         print('MXJ = ', mxj+1) 
+         self.ip.MaxJ = int(jj[mxj+1])
+         print('Updated MaxJ = ', self.ip.MaxJ) 
+        x0, y0 = jj[0], uu_lin[0]  
+        x1, y1 = jj[1], uu_lin[1] 
+        if ip.progress == "verbose":
+          print('x0 = ', x0, ' y0 =', y0)
+          print('x1 = ', x1, ' y1 =', y1)
+        # some suitable positive value 
+        u0 =  (y1 * x0**2 - y0 * x1**2) / ( x0**2 - x1**2 ) 
+        u0 = u0*0.9 + y0*0.1
+        jj = np.array([-jj[1],-jj[0],0.0] + jj.tolist())
+        uu = uu_lin.tolist() 
+        uu = np.array([uu[1],uu[0], u0] + uu  )
+
+        if ip.progress == "verbose":
+          print('jlens = ', len(jj))
+          print('ulens = ', len(uu))
+          print('jj = ', jj)
+          print('uu = ', uu) 
+        wg.iwl = CubicSpline(jj, uu, bc_type="natural", extrapolate=True)
+        if ip.progress == "verbose":
+          print('iwl= ', [wg.iwl(j) for j in range(ip.PeakJab*4)])
+        #print('iwl= ', [wg.iwl(j) for j in range(ip.MaxJp)])
+        nn = min([wg.iwl(float(j)) for j in range(0,3)])
+        if ip.progress == "verbose":
+          print('nn = ', nn)
+        wg.iwl = CubicSpline(jj, uu/nn, bc_type="natural", extrapolate=True)
+        if False:
+          sp.iwld = np.array([wg.iwl(j) for j in range(ip.MaxJ)])
+          if ip.progress == "verbose":
+            print('IWLD = ', sp.iwld)
+          sp.td = np.array([1+2*J for J in range(ip.MaxJ)])/sp.iwld 
+          sp.td = sp.td/sp.td.max()
+        else:
+          sp.iwld = np.array([wg.iwl(j) for j in range(ip.PeakJab*4)])
+          if ip.progress == "verbose":
+            print('IWLD = ', sp.iwld)
+          sp.td = np.array([1+2*J for J in range(ip.PeakJab*4)])/sp.iwld 
+          mntd = np.mean(sp.td[int(wg.wn*0.75):])
+          td2 = [mntd for _ in range(ip.PeakJab*4,ip.MaxJ)]
+          sp.td = np.array(sp.td.tolist() +td2)
+          sp.td = sp.td/sp.td.max()
+
+        if ip.progress == "verbose":
+          print('TD = ', sp.td)
+        uu_lin = np.exp(wg.uu - wg.uu.min()) 
+        sp.uu = uu_lin 
+        wang.save(self._runpath('wang.pkl'), sp.uu, sp.iwld, sp.td, wang.metadata_from_input(ip))
+        wl_dir = self._runpath("histograms/wl")
+        os.makedirs(wl_dir, exist_ok=True)
+        write_wl_plot_script(
+            sp.td,
+            J_range=(0, ip.MaxJ),
+            script_path=os.path.join(wl_dir, "wl_td_plot.py"),
+            title="Wang–Landau weights vs. J",
+        )
+        write_wl_plot_script(
+            sp.iwld,
+            J_range=(0, ip.MaxJ),
+            script_path=os.path.join(wl_dir, "wl_wl_plot.py"),
+            title="Wang–Landau weights vs. J",
+        )
+
+
+
+
+
+    def SummarizeLogEnergy(self,sa,FromSample):
+        """Summarize energy-related information.
+
+        This method summarizes energy-related information, including vibrational, rotational, and velocity contributions.
+        """
+        ven1, ven2, ren1, ren2, ken1, ken2 = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        msa = sa.mol
+        if FromSample:
+            if 'senergy' in msa[0].SampInfo.get('vib', {}).keys():
+                ven1 = sum(msa[0].SampInfo['vib']['senergy']) * au2ev 
+            if 'senergy' in msa[1].SampInfo.get('vib', {}).keys():
+                ven2 = sum(msa[1].SampInfo['vib']['senergy']) * au2ev 
+            if 'senergy' in msa[0].SampInfo.get('rot', {}).keys():
+                ren1 = sum(msa[0].SampInfo['rot']['senergy']) * au2ev 
+            if 'senergy' in msa[1].SampInfo.get('rot', {}).keys():
+                ren2 = sum(msa[1].SampInfo['rot']['senergy']) * au2ev 
+            if 'senergy' in sa.SampInfo['orb'].keys():
+                ken1 = sa.SampInfo['orb']['senergy'][0] * au2ev
+                ken2 = sa.SampInfo['orb']['senergy'][1] * au2ev
+            sa.slog.append("########## Energy Decomposition (From Sample) ################ \n")
+        else:
+            if hasattr(msa[0], "sven"):
+                ven1 = sum(msa[0].sven) * au2ev
+            if hasattr(msa[1], "sven"):
+                ven2 = sum(msa[1].sven) * au2ev
+            if hasattr(msa[0], "sren"):
+                ren1 = msa[0].scren * au2ev
+            if hasattr(msa[1], "sren"):
+                ren2 = msa[1].scren * au2ev
+            if hasattr(sa, "smkin"):
+                ken1 = sa.smkin[0] * au2ev
+                ken2 = sa.smkin[1] * au2ev
+            sa.slog.append("########## Energy Decomposition (From Generation) ############## \n")
+        sa.slog.append("              "
+            + self.mol[0].ip.name.rjust(20) + "  "
+            + self.mol[1].ip.name.rjust(20) + "               Total (eV) \n")
+        sa.slog.append("Vibrational  :"
+            + "{0:8.4f}".format(ven1).rjust(20) + " "
+            + "{0:8.4f}".format(ven2).rjust(20) + " "
+            + "{0:8.4f}".format(ven1 + ven2).rjust(20)+ "\n")
+        sa.slog.append("Rotational   :"
+            + "{0:8.4f}".format(ren1).rjust(20) + " "
+            + "{0:8.4f}".format(ren2).rjust(20) + " "
+            + "{0:8.4f}".format(ren1 + ren2).rjust(20) + "\n")
+        sa.slog.append("Velocity     :"
+            + "{0:8.4f}".format(ken1).rjust(20) + " "
+            + "{0:8.4f}".format(ken2).rjust(20) + " "
+            + "{0:8.4f}".format(ken1 + ken2).rjust(20) + "\n")
+        sa.slog.append("Total Energy :"
+            + "{0:8.4f}".format(ken1 + ven1 + ren1).rjust(20)+ " "
+            + "{0:8.4f}".format(ken2 + ven2 + ren2).rjust(20)+ " "
+            + "{0:8.4f}".format(ken1 + ken2 + ven1 +
+                                ven2 + ren1 + ren2).rjust(20)+ "\n")
+
+    def Mol2Image(self,sa):
+        """Convert molecular coordinates and velocities to the image frame.
+
+        This method transforms molecular coordinates and velocities to the image frame for calculations.
+        """
+        sa.sxx = np.concatenate([sa.mol[0].sxx, sa.mol[1].sxx])
+        sa.svv = np.concatenate([sa.mol[0].svv, sa.mol[1].svv])
+
+    def Image2Mol(self,sa):
+        mol = sa.mol
+        mol[0].sxx = sa.sxx[:mol[0].na,:]
+        mol[1].sxx = sa.sxx[mol[0].na:,:]
+        mol[0].svv = sa.svv[:mol[0].na,:]
+        mol[1].svv = sa.svv[mol[0].na:,:]
+
+    def ListXYZOut(self,sa, **dic): 
+        """Generate output files for image coordinates and velocities.
+
+        This method generates output files for image coordinates and velocities, storing them in the specified directory.
+        """
+        ip = self.ip
+        sp = self.sp
+        if "mess" in dic.keys():
+            message = dic["mess"]
+        else:
+            message = " "
+        if ip.units_out == "au":
+          xscale = 1.0
+          vscale = 1.0
+          xunit = "au"
+          vunit = "au"
+        else:
+          xscale = au2ang
+          vscale = au2ang / au2fmt
+          xunit = "Ang"
+          vunit = "Ang/fmts"
+        if 'logout' in dic.keys():
+          sa.slog += [" Sample " + str(sa.id) + " Coordinates (" + xunit + ") : \n"]
+        xyz = XYZlist(sp.el, sa.sxx * xscale,mess=message + " Coordinate (" + xunit + ")")
+        debug = True
+        debug = False
+        if debug:
+          vvo = dic['vvo'] 
+          xyz.append('F ' + ''.join(["{0:14.7f}".format(f*0.5+sa.sxx[0,i]*au2ang) for i,f in enumerate(vvo.tolist()) ])+'\n')  
+          print('XYZ = ')
+          print(xyz)
+          xyz[0] = '8\n'
+        vxyz = XYZlist(sp.el, sa.svv * vscale,mess=message + " Velocities (" + vunit + ")")
+        if not os.path.isdir(ip.dirout):
+            os.system("mkdir " + ip.dirout)
+        if 'logout' in dic.keys():
+          sa.slog += xyz
+          sa.slog += [" Sample " +str(sa.id) + " Velocities (" + vunit + ") : \n"]
+          sa.slog += vxyz[2:]
+        return xyz, vxyz
+
+    def ImageXYZOut(self, xyz,vxyz,sii,sa=None):
+        ip = self.ip
+        fmt = ip.output_format
+        if fmt in ("xyzvel", "both"):
+          open(ip.dirout + "/" + ip.fileout +"_" + str(sii) + ".xyz", "w").writelines(xyz)
+          open(ip.dirout + "/" + ip.fileout +"_" + str(sii) + ".vel", "w").writelines(vxyz)
+        if fmt in ("npz", "both") and sa is not None:
+          np.savez(
+              ip.dirout + "/" + ip.fileout + "_" + str(sii) + ".npz",
+              x=sa.sxx.copy(),
+              v=sa.svv.copy(),
+              units=ip.units_out,
+          )
+        return 
+
+    def SetInterMolZVeloc(self,sa):
+        sa.mol[0].svv -= sa.svel[0] 
+        sa.mol[1].svv -= sa.svel[1]
+        
+    def SampleInterMolZVeloc(self,sa):
+        """Sample intermolecular z-velocity for the scattering event.
+
+        This method samples the intermolecular z-velocity based on molecular velocities or direct input parameters.
+        """
+        ip = self.ip
+        sp = self.sp
+        mol = self.mol
+        msa = sa.mol 
+        msp = [mol[0].sp,mol[1].sp]
+        # if the user chose intermolecular energy/velocity directly
+        if 'vel' in sa.dist.keys():
+            V = abs(ICDFsample(sa.dist['vel']['cont']))
+            sa.sV  = V 
+            vv = self.GetInterMolZVeloc(V)
+            sa.svel = vv
+        else:
+            # if user chose molecular temperatures/velocities
+            v1, log1 = mol[0].SampleZVeloc(msa[0])
+            v2, log2 = mol[1].SampleZVeloc(msa[1])
+            sa.slog += log1 + log2
+            vv = self.GetInterMolZVelocFromMolV(v1, v2,sp.beamang)
+            sa.sV = norm(vv[0,:]-vv[1,:])
+            sa.svel = vv
+        mm = array([sum(msp[0].mass), sum(msp[1].mass)])
+        sa.smkin = np.sum(0.5 * vv.T**2 * mm, axis=0).tolist()
+        vn = norm(vv)
+        if 'vel' not in sa.SampInfo.keys():
+            sa.SampInfo['vel'] = {}
+        sa.SampInfo['vel']['ivel'] = sa.sV*au2mps 
+        sa.SampInfo['vel']['velen'] = [k*au2ev for k in sa.smkin]
+        sa.slog += ["                                     " + mol[0].ip.name.rjust(15) + mol[1].ip.name.rjust(15) +'\n']
+        sa.slog += [" -Z Inter-mol Velocity Sample (m/s): "
+            + "{0:14.7f}".format(vv[0, 2]*au2mps) + " "  + "{0:14.7f}".format(vv[1, 2]*au2mps) + " = "
+            + "{0:14.7f}".format(sa.sV * au2mps)  + "\n" ]
+        sa.slog += [" -                           Energy: "
+            + "{0:14.7f}".format(sa.smkin[0] * au2ev) + " "
+            + "{0:14.7f}".format(sa.smkin[1] * au2ev) + " = "
+            + "{0:14.7f}".format(sum(sa.smkin) * au2ev) + " eV \n" ]
+        return
+
+
+    def SampleOrbitalL(self,sa,**dic):
+        L = ICDFsample(sa.dist['L']['cont'])
+        if 'cap' in dic.keys():
+          mxL = dic['cap']
+          while L > mxL:
+            L = ICDFsample(sa.dist['L']['cont'])
+        sa.sL = L
+        nL = np.sqrt(L*(L+1))
+        sa.snL = nL
+        cL = matmul(Rabout(float(ICDFsample(sa.dist['gen']['cont']))*tpi,2),y)
+        cL = nL*cL/norm(cL)
+        sa.scL = cL
+        log = [" - Orbital Angular Q.N. L = : " + "{0:3.2f}".format(L)+"\n"]
+        if 'orb' not in sa.SampInfo.keys():
+            sa.SampInfo['orb'] = {}
+        sa.SampInfo['orb']['iL'] = sa.sL 
+        sa.SampInfo['orb']['inL'] = sa.snL 
+        sa.SampInfo['orb']['icL'] = sa.scL 
+        return log
+
+    def SetStandardOrientation(self,sa):
+         msa = sa.mol
+         sa.slog += ['   *** Setting to Standard Azimuthal Orientation (Chi=0) *** \n']
+         L = sa.scL
+         if norm(L) >= 1e-8:
+          uL = L/norm(L)
+          chii = np.arctan2(uL[0], uL[1])
+          Rs = Rabout(chii,2)
+          Jab = msa[0].srpar[-1] + msa[1].srpar[-1]
+          Jab = matmul(Rs,Jab) 
+          L = matmul(Rs,L) 
+          cJ = L + Jab
+          if abs(norm(cJ)-sa.snJ) > 0.01: # this is dumb, but I cant be asked.... 
+            quit('WORRY!')
+          sa.scL = matmul(Rs,sa.scL)
+          sa.scJ = matmul(Rs,sa.scJ)
+          for mi in range(2):
+            msa[mi].siJ = matmul(Rs,msa[mi].siJ)
+            msa[mi].srpar[-1] = matmul(Rs,msa[mi].srpar[-1])
+            msa[mi].sxx = matmul(msa[mi].sxx,Rs.T)
+            msa[mi].svv = matmul(msa[mi].svv,Rs.T)
+          sa.slog += ['       delChi = '+"{0:10.5f}".format(chii/pi)+' pi rad  \n']
+         else:
+          sa.slog += ['       delChi = '+"{0:10.5f}".format(0.0/pi)+' pi rad  \n']
+        
+
+    def StoreOrbitalInfoLog(self,sa):
+        mol = self.mol
+        sp = self.sp
+        msa = sa.mol
+        cL = sa.scL 
+        cJ = sa.scJ
+        nJ = sa.snJ
+        nL = sa.snL
+        ncL = norm(cL)
+        ncJ = norm(cJ)
+        #print('oooooooooooooooooo')
+        #print('NL = ', ncL,nL)
+        #print('NJ = ', ncJ,nJ)
+        Ja, Jb = msa[0].srpar[-1], msa[1].srpar[-1] 
+        Jab = Ja + Jb
+        #print('jab = ', sa.snjab, ' = ', norm(Jab))
+        iJa, iJb = msa[0].siJ, msa[1].siJ 
+        iJab = iJa+iJb 
+
+        nJa = norm(Ja)
+        nJb = norm(Jb)
+        nJab = norm(Jab)
+        niJab = norm(iJab)
+        niJa, niJb = norm(iJa), norm(iJb) 
+        qJ    = 0.5 * (-1 + sqrt(1 + 4.0 * nJ ** 2)   ) 
+        qL    = 0.5 * (-1 + sqrt(1 + 4.0 * nL ** 2)   ) 
+        qJab  = 0.5 * (-1 + sqrt(1 + 4.0 * nJab ** 2) ) 
+        qJa   = 0.5 * (-1 + sqrt(1 + 4.0 * nJa ** 2)  ) 
+        qJb   = 0.5 * (-1 + sqrt(1 + 4.0 * nJb ** 2)  ) 
+        qiJab = 0.5 * (-1 + sqrt(1 + 4.0 * niJab ** 2)) 
+        qiJa  = 0.5 * (-1 + sqrt(1 + 4.0 * niJa ** 2) ) 
+        qiJb  = 0.5 * (-1 + sqrt(1 + 4.0 * niJb ** 2) ) 
+        if nL > 1e-5 and nJab > 1e-5:
+          #L and Jab should be uncorrelated 
+          cosLJab_thet = np.dot(cL,Jab)/(nL*nJab)
+          # gen spherica polar coordinate angles between L and Jab (should be isotropic)
+          _, R = rot_match_vec(reshape(cL,(1,3)),reshape(z,(1,3))) 
+          _,LJab_be,LJab_al =  xyz2polar(matmul(R,Jab))
+        sa.slog += [" -Total Mol  Ja            : " + ''.join(["{0:10.5f}".format(iJa[i])  for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(niJa)  +' (QM: '+"{0:4.2f}".format(qiJa ) +')\n']
+        sa.slog += [" -Total Mol  Jb            : " + ''.join(["{0:10.5f}".format(iJb[i])  for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(niJb)  +' (QM: '+"{0:4.2f}".format(qiJb ) +')\n']
+        sa.slog += [" -Total Mol  Jab = Ja + Jb : " + ''.join(["{0:10.5f}".format(iJab[i]) for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(niJab) +' (QM: '+"{0:4.2f}".format(qiJab )+')\n']
+        sa.slog += [" -Vector Model  Ja         : " + ''.join(["{0:10.5f}".format(Ja[i])   for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(nJa)   +' (QM: '+"{0:4.2f}".format(qJa )  +')\n']
+        sa.slog += [" -Vector Model  Jb         : " + ''.join(["{0:10.5f}".format(Jb[i])   for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(nJb)   +' (QM: '+"{0:4.2f}".format(qJb )  +')\n']
+        sa.slog += [" -Vector Model  Jab        : " + ''.join(["{0:10.5f}".format(Jab[i])  for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(nJab)  +' (QM: '+"{0:4.2f}".format(qJab ) +')\n']
+        sa.slog += [" -Orbital Angular mometnum : " + ''.join(["{0:10.5f}".format(cL[i])   for i in range(3)]) + ', |L|   = ' + "{0:10.5f}".format(ncL)   +' (QM: '+"{0:4.2f}".format(qL )   +')\n']
+        sa.slog += [" -Total   Angular mometnum : " + ''.join(["{0:10.5f}".format(cJ[i])   for i in range(3)]) + ', |J|   = ' + "{0:10.5f}".format(ncJ)   +' (QM: '+"{0:4.2f}".format(qJ )   +')\n']
+        # semiclassical mapping
+        b = nL/(sp.rmass*sa.sV)
+        phi = np.arctan2(cL[0],-cL[1])
+        if 'orb' not in sa.SampInfo.keys():
+            sa.SampInfo['orb'] = {}
+        sa.SampInfo['orb']['cL'] = cL 
+        sa.SampInfo['orb']['cJ'] = cJ
+        sa.SampInfo['orb']['Jab'] = Jab
+        sa.SampInfo['orb']["ncL"] = nL
+        sa.SampInfo['orb']["ncJ"] = nJ
+        sa.SampInfo['orb']["nJab"] = nJab
+        if nL > 1e-5 and nJab > 1e-5:
+          sa.SampInfo['orb']["LJab_al"] = LJab_al
+          sa.SampInfo['orb']["LJab_be"] = LJab_be
+          sa.SampInfo['orb']["cosLJab_thet"] = cosLJab_thet
+        sa.SampInfo['orb']['b'] = b
+        sa.SampInfo['orb']['phi'] = phi
+        sa.sb = b 
+        sa.sphi = phi
+        sa.slog += [" -InterM. Cylindrical Coor : " + "{0:10.5f}".format(float(b)*au2ang) + " Ang, " + "{0:10.5f}".format(phi/pi) + " pi rad \n"]
+        return   
+
+    # in comes lab fixed z-velocity magnitude, out goes z-velocity
+    # in centre of mass
+    def GetInterMolZVelocFromMolV(self, V1, V2,ang):
+        """Get intermolecular z-velocity from molecular velocities.
+
+        This method calculates the intermolecular z-velocity from the molecular velocities of two molecules.
+
+        Args:
+            V1 (float): Z-velocity of the first molecule.
+            V2 (float): Z-velocity of the second molecule.
+
+        Returns:
+            numpy.ndarray: Inter-molecular z-velocity.
+        """
+        v2 = -V2*z  
+        v1 = matmul(Rabout(ang,0),-z)*V1
+        VV = norm(v2-v1)
+        return self.GetInterMolZVeloc(VV) 
+
+    def GetInterMolZVeloc(self, V):
+        """Calculate intermolecular z-velocity from given velocity magnitude.
+
+        This method calculates the intermolecular z-velocity from a given velocity magnitude.
+
+        Args:
+            V (float): Inter-molecular velocity magnitude.
+
+        Returns:
+            numpy.ndarray: Inter-molecular z-velocity for both molecules.
+        """
+        sp = self.sp 
+        vv = zeros((2, 3))
+        vv[0, :] = (z * V)  * sp.w1
+        vv[1, :] = -(z * V) * sp.w0
+        return vv
+
+    def SetInterZDist(self,sa, Rz):
+        """Set the intermolecular z-coordinate distance.
+
+        This method sets the intermolecular z-coordinate distance for both molecules.
+
+        Args:
+            Rz (float): Inter-molecular distance along the z-axis.
+        """
+        mol = sa.mol
+        sp = self.sp 
+        mol[0].sxx += (z * Rz) * sp.w1
+        mol[1].sxx -= (z * Rz) * sp.w0
+        sa.slog += [" -Z coordinate distance (Ang)      : " +
+                      "{0:10.5f}".format(Rz*au2ang) + "\n"]
+
+    def SetImpactParam(self,sa, b, phi):
+        """Set the impact parameter for scattering.
+
+        This method sets the impact parameter and azimuthal angle (phi) for the scattering process.
+
+        Args:
+            b (float): Impact parameter.
+            phi (float): Azimuthal angle.
+        """
+        mol = sa.mol
+        sp = self.sp 
+        d = b * ( y * sin(phi) + x * cos(phi) )
+        mol[0].sxx += d * sp.w1
+        mol[1].sxx -= d * sp.w0
+
+    def SampleRigidRotorState0(self,sa,**dic):
+        """Sample the rigid rotor state for each molecule.
+
+        This method samples the rigid rotor state for each molecule, considering their respective temperatures.
+        """
+        debug = False
+        log = [" -Rigid Rotor State Sample: \n"]
+        mol = self.mol
+        msa = sa.mol 
+        for i in range(2):
+            if mol[i].sp.na > 1 and 'rotJ' in msa[i].dist:
+                mol[i].SampleTotMolAngMom(msa[i])
+                log += mol[i].SampleRigidRotorState(msa[i])
+            else:
+                log += [f"    {mol[i].ip.name}: no rotational state\n"]
+        return log
+
+    # sets angular velocity from angular momentum once :
+    def SetAngularVelocity(self,sa,**dic):
+        slog = [" -Setting Angular velocities \n"]
+        mol = self.mol
+        msa = sa.mol
+        for i in range(2):
+            if mol[i].sp.na > 1:
+                slog += mol[i].SetAngularVeloc(msa[i],msa[i].srpar[-1])
+        if 'printlog' in dic.keys():
+          return slog
+
+    def SampleOrientat0(self,sa):
+        """Sample molecular orientation.
+
+        This method samples molecular orientation in three-dimensional space for each molecule.
+        """
+        debug = True
+        debug = False
+        mol = self.mol
+        msa = sa.mol 
+        log = [" -Orientational Sample: \n"]
+        for i in range(2):
+            if mol[i].sp.na > 1 and 'ori' in msa[i].dist:
+                mol[i].SampleRotation(msa[i])
+            else:
+                msa[i].soR = np.eye(3)
+                log += [f"    {mol[i].ip.name}: no orientational state\n"]
+        j0, j1 = matmul(msa[0].soR,msa[0].srpar[-1]), matmul(msa[1].soR,msa[1].srpar[-1])
+        jab = j0+j1 
+        log += self.SetAngularVelocity(sa,printlog=True)
+        for i in range(2):
+            if mol[i].sp.na > 1:
+                log += mol[i].SetOrientat(msa[i],printlog=True)
+            else:
+                log += [f"    {mol[i].ip.name}: orientation unchanged for atom\n"]
+        sa.sjab = jab
+        sa.snjab = norm(jab)
+        return log
+
+    def SampleHOVibrState(self,sa):
+        """Sample harmonic oscillator vibrational states.
+
+        This method samples the harmonic oscillator vibrational states for each molecule.
+        """
+        sa.slog += [" -HO Vibrational State Sample: \n"]
+        mol = self.mol
+        msa = sa.mol 
+        sa.slog += mol[0].SampleHOVibrState(msa[0])
+        sa.slog += mol[1].SampleHOVibrState(msa[1])
+
+    def CalcRotEner(self,sa):
+        """Calculate rotational energies.
+
+        This method calculates rotational energies for each molecule and the overall system.
+        """
+        debug = False
+        sa.slog.append(".........................................\n")
+        sa.slog.append(" Rotational Analysis : \n")
+        mol = self.mol
+        msa = sa.mol 
+        sa.slog += mol[0].CalcRotEner(msa[0])
+        sa.slog += mol[1].CalcRotEner(msa[1])
+        if 'rot' not in sa.SampInfo.keys(): 
+           sa.SampInfo['rot'] = {}
+        sa.SampInfo['rot']['m0'] = msa[0].SampInfo.get('rot', {}).copy()
+        sa.SampInfo['rot']['m1'] = msa[1].SampInfo.get('rot', {}).copy()
+
+        if debug:
+          sa.slog += [" -Ja         = "+''.join(["{0:10.5f}".format(j)+' ' for j in  msa[0].SampInfo['rot']['svecJs']])+" \n"]
+          sa.slog += [" -J b        = "+''.join(["{0:10.5f}".format(j)+' ' for j in  msa[1].SampInfo['rot']['svecJs']])+" \n"]
+          sa.slog += ["             = "+''.join(["{0:10.5f}".format(j)+' ' for j in  msa[0].SampInfo['rot']['svecJs']+msa[1].SampInfo['rot']['svecJs']])+" \n"]
+
+    def CalcInterEner(self,sa):
+        """Calculate vibrational energies.
+
+        This method calculates vibrational energies for each molecule and the overall system.
+        """
+        sa.slog.append(".........................................\n")
+        sa.slog.append(" Vibrational Analysis : \n")
+        mol = self.mol
+        msa = sa.mol 
+        sa.slog += mol[0].CalcInterEner(msa[0])
+        sa.slog += mol[1].CalcInterEner(msa[1])
+        if 'vib' not in sa.SampInfo.keys(): 
+           sa.SampInfo['vib'] = {}
+        sa.SampInfo['vib']['m0'] = msa[0].SampInfo.get('vib', {}).copy()
+        sa.SampInfo['vib']['m1'] = msa[1].SampInfo.get('vib', {}).copy()
+
+    def CalcOrient(self,sa):
+        """Calculate molecular orientation.
+
+        This method calculates the molecular orientation and Euler angles for each molecule.
+        """
+        sa.slog.append(".........................................\n")
+        sa.slog.append(" Orientation Analysis (Space-to-Eckart) : \n")
+        mol = self.mol
+        msa = sa.mol 
+        sa.slog += mol[0].CalcOrient(msa[0])
+        sa.slog += mol[1].CalcOrient(msa[1])
+        if 'ori' not in sa.SampInfo.keys(): 
+           sa.SampInfo['ori'] = {}
+        sa.SampInfo['ori']['m0'] = msa[0].SampInfo.get('ori', {}).copy()
+        sa.SampInfo['ori']['m1'] = msa[1].SampInfo.get('ori', {}).copy()
+
+    def GenSamples(self, **dic):
+        """Generate multiple scattering samples.
+
+        This method generates multiple scattering samples, allowing for the customization of the number of samples and other parameters.
+
+        Args:
+            dic (dict): Additional parameters for sample generation.
+        """
+        ip = self.ip
+        sp = self.sp
+        if "N" in dic.keys():
+            N = dic["N"]
+        else:
+            N = ip.Nsamp
+        if ip.progress != "quiet":
+          print("Generating " + str(N) + " Samples")
+        if ip.check_input or ip.dry_run:
+          self.log += ["Input check/dry-run requested; skipping sample generation.\n"]
+          return
+        start_offset = 0
+        if ip.continues:
+          wks =self.loadworkers()
+        else:
+          wks = False 
+        if wks != False: 
+          self.loaddata() 
+          if ip.KeepInfo: 
+            self.loadinfo()
+          try:
+            start_offset = int(sum(len(sa.sdat['vel']['ivel']) for sa in wks))
+          except Exception:
+            start_offset = 0
+        else:
+          ip.continues = False
+          wks = [ self.InitializeWorker(i) for i in range(ip.nwork)  ] 
+        if ip.progress == "verbose":
+          print('WKS = ', wks)
+        if not ip.usewang:
+         sp.td = []
+        else:
+          wang_path = self._runpath('wang.pkl')
+          if ip.run_mode == "rebuild-wang" and os.path.exists(wang_path):
+            raise ValueError(
+                "run-mode = rebuild-wang was requested, but "
+                + wang_path
+                + " already exists.\nMove or rename the existing wang.pkl first; "
+                + "icats will not overwrite it automatically."
+            )
+          if os.path.exists(wang_path):
+            sp.uu, sp.iwld, sp.td, warning = wang.load_validated(
+                wang_path, wang.metadata_from_input(ip)
+            )
+            if warning:
+              self.log += [warning]
+          else:
+             self.GenerateWang(wks)
+        self.sdat = self.PrepareSdat()
+        base = int(N // ip.nwork) if ip.nwork > 0 else 0
+        rem = int(N % ip.nwork) if ip.nwork > 0 else 0
+        ranges = []
+        cursor = int(start_offset)
+        for i in range(ip.nwork):
+          size = base + (1 if i < rem else 0)
+          ranges.append([cursor, cursor + size])
+          cursor += size
+        wks = Parallel(n_jobs=ip.nwork)(
+            delayed(self.GenerateSample)(wks[i], ranges[i]) for i in range(ip.nwork)
+        )
+        #for i,sa in enumerate(wks): 
+        #  print(i, 'sa = ', sa.sdat)
+        if ip.printout[1]:
+         slog = [] 
+         for sa in wks: 
+          slog += sa.slog
+         open(ip.fileout +"_full.info", "w").writelines(slog)
+        if ip.printout[0]:
+         slog = [] 
+         for sa in wks: 
+          slog += sa.ixyz
+         open(ip.fileout +"_full.xyz", "w").writelines(slog)
+        self.sdat = self.MergeSdats(wks)
+        self._write_costheta_convergence()
+        self.saveworkers(wks)
+        self.savedata()
+        if ip.KeepInfo: 
+           self.saveinfo()
+        if ip.hist_sampled:
+            self.PlotSamples()
+#        _ = plot_wl_weights(self.ww)
+ 
+
+    def MergeSdats(self,wks): 
+      fsdat = wks[0].sdat.copy()
+      debug = True
+      debug = False
+      for sa in wks[1:]:
+        sdat =sa.sdat 
+        for kys in sdat.keys():
+          debug and print('kys = ', kys)
+          for ky in sdat[kys].keys(): 
+            debug and print('ky = ', ky)
+            if 'm0' == ky or 'm1' == ky:
+              if 'rot' == kys:
+                fsdat[kys][ky]['J'] += sdat[kys][ky]['J']
+                for J in set(sdat[kys][ky]['J']):
+                  if J not in fsdat[kys][ky].keys():
+                    fsdat[kys][ky][J] = {}
+                  for k1 in sdat[kys][ky][J].keys():
+                    if 'jz' == k1 or 'sjz' == k1 or 'qjz' == k1:
+                      if k1 not in fsdat[kys][ky][J].keys():
+                        fsdat[kys][ky][J][k1] = []
+                      fsdat[kys][ky][J][k1] += sdat[kys][ky][J][k1] 
+                    else: 
+                      if k1 not in fsdat[kys][ky][J].keys():
+                        fsdat[kys][ky][J][k1] = {}
+                      for k2 in sdat[kys][ky][J][k1].keys():
+                        if k2 not in fsdat[kys][ky][J][k1].keys():
+                          fsdat[kys][ky][J][k1][k2] = []
+                        fsdat[kys][ky][J][k1][k2] += sdat[kys][ky][J][k1][k2] 
+              elif 'vib' == kys:
+                fsdat[kys][ky]['vi'] += sdat[kys][ky]['vi']
+                for vi in range(self.mol[int(ky[-1])].ip.MaxV+1):
+                 for k in ['Q','sQ','P','sP']:
+                   fsdat[kys][ky][k][vi] += sdat[kys][ky][k][vi]
+              else:
+                for k in sdat[kys][ky].keys():
+                  fsdat[kys][ky][k] += sdat[kys][ky][k]
+            else:
+              fsdat[kys][ky] += sdat[kys][ky]
+      return fsdat
+
+    def PrepareSdat(self): 
+      debug = True
+      debug = False
+      sdat = {}
+      ky = 'vel'
+      sdat[ky] = {}
+      #plot intermolecular velocities and energies: 
+      sdat[ky]['ivel'], sdat[ky]['velen'] = [], []
+      ky = 'orb'
+      sdat[ky] = {}
+      # plot lengths of total angular momentum, orbital angular momentum, Jab 
+      #sdat[ky]['sncJ'], sdat[ky]['sncL'], sdat[ky]['snJab'] = [], [], [] 
+      sdat[ky]['iJ'], sdat[ky]['iL'] = [], []
+      sdat[ky]['sJ'], sdat[ky]['sL'], sdat[ky]['sJab'] = [], [], [] 
+      sdat[ky]['LJab_be'], sdat[ky]['LJab_al'], sdat[ky]["cosLJab_thet"] = [], [], []
+      # plot orbital cylibdrical coordinates 
+      sdat[ky]['sb'], sdat[ky]['sphi'] = [], [] 
+      # plot rotational energy 
+      sdat[ky]['senergy'] = [] 
+      #plot rotational body-fixed coordinates: 
+      ky = '2bJac'
+      sdat[ky] = {}
+      sdat[ky]['phi'], sdat[ky]['theta'], sdat[ky]['chi'] = [], [], []
+      sdat[ky]['alpha1'], sdat[ky]['beta1'], sdat[ky]['gamma1'] = [], [], []
+      sdat[ky]['alpha2'], sdat[ky]['beta2'], sdat[ky]['gamma2'] = [], [], []
+      #plot molecular orientations 
+      ky = 'ori'
+      sdat[ky] = {}
+      sdat[ky]['m0'], sdat[ky]['m1'] = {}, {}
+      for m in sdat[ky].keys():
+        sdat[ky][m]['sphi'], sdat[ky][m]['stheta'], sdat[ky][m]['schi'] = [], [] , []
+        sdat[ky][m]['phi'], sdat[ky][m]['theta'], sdat[ky][m]['chi'] = [], [] , []
+      #molecular angular momentum 
+      ky = 'rot'
+      sdat[ky] = {}
+      sdat[ky]['m0'], sdat[ky]['m1'] = {}, {}
+      # each projection depends on J
+      # each vector model distribuition depends on J and its projection pz and axis ax
+      for m in sdat[ky].keys():
+        #molecular angular momentum J, projection and classical vector model 
+        sdat[ky][m]['J'] = []
+      #molecular vibrational coordinates 
+      ky = 'vib'
+      sdat[ky] = {}
+      sdat[ky]['m0'], sdat[ky]['m1'] = {}, {}
+      for im,m in enumerate(sdat[ky].keys()):
+        #print('m = ', m, im, ' s = ', self.mol[im].nm)
+        # vibrational state, and position and coordinate modes.. since the modes are standardized, we only need to plot one for each vibrational state. 
+        sdat[ky][m] = {} 
+        sdat[ky][m]['vi'] = [[] for _ in range(self.mol[im].sp.nm)] 
+        sdat[ky][m]['Q'],  sdat[ky][m]['P'] = [[] for i in range(self.mol[im].ip.MaxV+1) ], [[] for i in range(self.mol[im].ip.MaxV+1) ]
+        sdat[ky][m]['sQ'], sdat[ky][m]['sP'] = [[] for i in range(self.mol[im].ip.MaxV+1)], [[] for i in range(self.mol[im].ip.MaxV+1)]
+        sdat[ky][m]['senergy'] = [[] for i in range(self.mol[im].ip.MaxV+1)]
+         # vibrational energy  
+      for si, info in enumerate(self.sampls['info']):
+        if debug:
+          print('######',si)
+          for kys in info.keys():
+             print('########### ', kys)
+             for ky in info[kys].keys():
+                 print('        ###  ', ky)
+                 if 'm0' == ky or 'm1' == ky:
+                    for kk in info[kys][ky]:
+                       print('          #', kk)
+      return sdat
+
+    def AddInfoToSamples(self,sdat,info,**dic):
+      debug = False 
+      if 'debug' in dic.keys():
+        debug = True
+        print('INFO = ', info)
+      for kys in info.keys():
+        debug  and print('kys=',kys)
+        for ky in info[kys].keys():
+          debug  and print('ky=',ky)
+          if 'm0' == ky or 'm1' == ky:
+            mi = int(ky[-1])
+            if 'rot' == kys:
+              debug and print('YES')
+              sjz = info[kys][ky]['sjz'] 
+              jz = info[kys][ky]['jz'] 
+              qjz = info[kys][ky]['qjz'] 
+              J   = info[kys][ky]['J'] 
+              sdat[kys][ky]['J'].append(J)
+              debug  and print('ky=',ky, 'append = ', len(sdat[kys][ky]['J']))
+              if J not in sdat[kys][ky].keys(): 
+                sdat[kys][ky][J] = {}
+                sdat[kys][ky][J]['jz'] = []
+                sdat[kys][ky][J]['qjz'] = []
+                sdat[kys][ky][J]['sjz'] = []
+              sdat[kys][ky][J]['jz'].append(jz)
+              sdat[kys][ky][J]['sjz'].append(sjz)
+              sdat[kys][ky][J]['qjz'].append(qjz)
+              if 'idjz' in info[kys][ky].keys():
+                id = info[kys][ky]['idjz']
+                if id not in sdat[kys][ky][J].keys():
+                  sdat[kys][ky][J][id] = {'sbet':[],'sgamm':[], 'bet':[],'gamm':[]}
+                sdat[kys][ky][J][id]['sbet'].append(info[kys][ky]['sbet'])
+                sdat[kys][ky][J][id]['sgamm'].append(info[kys][ky]['sgamm'])
+                sdat[kys][ky][J][id]['bet'].append(info[kys][ky]['bet'])
+                sdat[kys][ky][J][id]['gamm'].append(info[kys][ky]['gamm'])
+            elif 'vib' == kys:
+              if 'vi' not in info[kys][ky].keys():
+                 continue
+              vi = info[kys][ky]['vi']
+              for i,v in enumerate(vi):
+               sdat[kys][ky]['vi'][i].append(v)
+               for k in ['Q','sQ','P','sP']:
+                 sdat[kys][ky][k][v] += [info[kys][ky][k][self.mol[mi].sp.ntr+i]]
+               sdat[kys][ky]['senergy'][v] += [info[kys][ky]['senergy'][i]]
+            else:
+              for k in info[kys][ky].keys():
+                if k in sdat[kys][ky].keys():
+                  sdat[kys][ky][k].append(info[kys][ky][k])
+          elif ky in sdat[kys].keys():
+            sdat[kys][ky].append(info[kys][ky]) 
+      return 
+
+    def PlotSamples(self): 
+      sdat = self.sdat
+      print('generating histograms...')
+      debug = False
+      #debug = True
+      hist, edg = {}, {}
+      for kys in sdat.keys():
+        if debug:
+         print('###################', kys)
+        hist[kys], edg[kys] = {}, {}
+        for ky in sdat[kys].keys(): 
+          if debug:
+           print('   ###################', ky)
+          hist[kys][ky], edg[kys][ky] = {}, {}
+          if 'm0' == ky or 'm1' == ky:
+            if 'rot' == kys:
+#              hist[kys][ky]['J'], edg[kys][ky]['J'] = np.histogram(sdat[kys][ky]['J'],bins='auto')
+              hist_emit(sdat[kys][ky]['J'], "J",
+                        stage="sampled", scope=f"molecule_{ky}")
+              for J in set(sdat[kys][ky]['J']): 
+                if debug:
+                 print('      ###################', J)
+                hist[kys][ky][J], edg[kys][ky][J] = {}, {}
+                for k1 in sdat[kys][ky][J].keys(): 
+                  if debug:
+                   print('         ###################', k1, ' ln  = ',len(sdat[kys][ky][J][k1]))
+                  if 'jz' == k1 or 'sjz' == k1 or 'qjz' == k1:
+#                    hist[kys][ky][J][k1], edg[kys][ky][J][k1] = np.histogram(sdat[kys][ky][J][k1],bins='auto')
+                    hist_emit(sdat[kys][ky][J][k1], f"J{J}_{k1}",
+                              stage="sampled", scope=f"molecule_{ky}")
+                  else: 
+                    hist[kys][ky][J][k1], edg[kys][ky][J][k1] = {}, {}
+                    for k2 in sdat[kys][ky][J][k1].keys(): 
+                      if debug:
+                       print('            ###################', k2, ' ln  = ',len(sdat[kys][ky][J][k1][k2]))
+#                      hist[kys][ky][J][k1][k2], edg[kys][ky][J][k1][k2] = np.histogram(sdat[kys][ky][J][k1][k2],bins='auto')
+                      hist_emit(sdat[kys][ky][J][k1][k2], f"J{J}_i{k1}_{k2}",
+                                stage="sampled", scope=f"molecule_{ky}")
+            elif 'vib' == kys: 
+              for mi, vlist in enumerate(sdat[kys][ky]['vi']):
+                hist_emit(vlist, f"vi_mode{mi}",
+                          stage="sampled", scope=f"molecule_{ky}")
+              for vi in range(self.mol[int(ky[-1])].ip.MaxV+1):
+               for k in ['Q','sQ','P','sP','senergy']:
+                 hist_emit(sdat[kys][ky][k][vi], f"v{vi}_{k}",
+                           stage="sampled", scope=f"molecule_{ky}")
+            else:
+              for k in sdat[kys][ky].keys():
+                if debug:
+                 print('      ###################', k, ' ln  = ',len(sdat[kys][ky][k]))
+#                hist[kys][ky][k], edg[kys][ky][k] = np.histogram(sdat[kys][ky][k],bins='auto')
+                hist_emit(sdat[kys][ky][k], str(k),
+                          stage="sampled", scope=f"molecule_{ky}")
+          else:
+            if debug:
+              print('                      ', ky, ' ln  = ',len(sdat[kys][ky]))
+#            hist[kys][ky], edg[kys][ky] = np.histogram(sdat[kys][ky],bins='auto')
+            hist_emit(sdat[kys][ky], f"{kys}_{ky}",
+                      stage="sampled", scope="system")
+          
+          
+
+    def AnalyseSample(self,sa):
+        """
+        Analyze a sample by performing various calculations and generating a summary.
+
+        This method calculates various physical properties of the sample and appends the results to a log.
+
+        It consists of the following steps:
+        1. Calculate Euler orientation of the molecular frame from position and velocity (self.CalcOrient()).
+        2. Calculate rotational information from position and velocity (self.CalcRotEner()).
+        3. Calculate vibrational information from position and velocity (self.CalcInterEner()).
+        4. Calculate intermolecular information from position and velocity (self.CalcInterMolMomentum()).
+        5. Summarize and log energy information (self.SummarizeLogEnergy()).
+        6. Generate output including final coordinates and velocity.
+
+        The results are stored in the 'slog', 'sampls', and 'SampInfo' attributes of the object.
+
+        Returns:
+        None
+        """
+        ip = self.ip
+        sp = self.sp
+        sa.slog.append("###################################################################\n")
+        sa.slog.append("####################### Sample " +str(sa.sii) + " Final Analysis:\n")
+        sa.slog.append("###################################################################\n")
+        # Calculates Euler orientation of molecular frame from xx and vv
+        self.CalcOrient(sa)
+        # Calculates Rotational information from xx and vv
+        self.CalcRotEner(sa)
+        # Calculates Vibrational information from xx and vv
+        self.CalcInterEner(sa)
+        # Calculate InterMolecular information from xx and vv
+        self.CalcInterMolMomentum(sa)
+        # Calculate Jacobi coordinates 
+        self.CalcJacobiCoordinates(sa)
+        # write up some energy information
+        self.SummarizeLogEnergy(sa,True)
+        # generate output
+        sa.slog.append("####################### Sample "+ str(sa.sii)+ " Final Coordinates/Velocity:\n")
+        if ip.KeepInfo:
+          self.sampls['cv'].append([sa.sxx.copy(), sa.svv.copy()])
+          self.sampls['info'].append(sa.SampInfo.copy())
+        else: 
+          self.sampls['cv'].append([sa.sxx.copy(), sa.svv.copy()]) 
+
+    def ReadSamples(self,sa, filx, filv):
+        """
+        Read sample data from files, analyze each sample, and write results to an output file.
+
+        Parameters:
+        filx (str): The filename containing position data (XYZs).
+        filv (str): The filename containing velocity data.
+
+        This method reads data from 'filx' and 'filv', assigns the data to the appropriate properties
+        of the 'mol' object, and then analyzes each sample using the 'AnalyseSample' method. The results
+        are stored in 'self.slog' and written to an output file named '[self.fileout]_samples.info'.
+
+        Note:
+        - The 'ReadXYZs' function is used to read position and velocity data from the specified files.
+        - The 'AnalyseSample' method is called for each sample to perform the analysis.
+
+        Returns:
+        None
+        """
+        el, xyzs, xmess = ReadXYZs(filx)
+        el, vels, vmess = ReadXYZs(filv)
+        mol = sa.mol
+        n0 = self.mol[0].sp.na
+        for i, x in enumerate(xyzs):
+            v = vels[i]
+            m = xmess[i] + ' & ' + vmess[i]
+            sa.sii = i
+            sa.SampInfo = {}
+            # Ensure per-molecule sample defaults exist for analysis-only paths.
+            self.mol[0].InitializeSample(mol[0])
+            self.mol[1].InitializeSample(mol[1])
+            mol[0].sxx = x[:n0, :]*ang2au 
+            mol[1].sxx = x[n0:, :]*ang2au 
+            mol[0].svv = v[:n0, :]*ang2au/fmt2au
+            mol[1].svv = v[n0:, :]*ang2au/fmt2au
+            sa.slog += [ '###### Sample Name ' + m + '\n']
+            self.AnalyseSample(sa)
+
+
+iscatter = icats
+
+
+# Example Usage:
+if __name__ == "__main__":
+    # Create an instance of the icats class
+    sc = icats()
+
+    # Read input data from a file
+    sc.ReadInput("input.txt")
+
+    # Generate scattering samples
+    sc.GenSamples(N=10)

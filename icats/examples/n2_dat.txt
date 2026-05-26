@@ -1,0 +1,4 @@
+xyz  = n2_geom.xyz
+hess = n2_hessian.txt
+w    = n2_freq.txt
+vel  = 600 100 3 

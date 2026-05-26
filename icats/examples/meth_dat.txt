@@ -1,0 +1,4 @@
+xyz  = meth_geom.xyz
+hess = meth_hessian.txt
+w    = meth_freq.txt
+vel  = 600 100 3 

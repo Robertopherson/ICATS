@@ -1,0 +1,4 @@
+xyz  = co2_geom.xyz
+hess = co2_hessian.txt
+w    = co2_freq.txt
+vel  = 600 100 3 

@@ -1,0 +1,6 @@
+#reference geometry of the molecule
+xyz  = ammonia_geom.xyz  
+#mass scaled hessian of the molecule at ref geometry (for some method), if not present vibrations are neglected
+hess = ammonia_hessian.txt  
+w    = ammonia_freq.txt      
+vel  = 1000 100 3
