@@ -84,7 +84,7 @@ angular momentum `L` both remain close to the intended linear degeneracy forms,
 `1 + 2J` and `1 + 2L`. The drop near the upper boundary is the expected effect
 of a finite requested angular-momentum window.
 
-![NH3 H2O Wang-Landau umbrella](assets/figures/wl-nh3-h2o-umbrella.png)
+<img src="assets/figures/wl-nh3-h2o-umbrella.png" alt="NH3 H2O Wang-Landau umbrella" style="width: 50%; min-width: 320px;">
 
 The corresponding Wang-Landau umbrella is largest at small `J`, where the
 molecular rotor sum `Jab` strongly affects the total `J` density of states. At
