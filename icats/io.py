@@ -73,6 +73,8 @@ KNOWN_KEYS = {
     "wl-flatness",
     "wl-wn-factor",
     "wl-wn",
+    "wl-angular-sampler",
+    "wl-audit-angular-sampler",
     "seed-mode",
     "run-mode",
     "run-tag",
@@ -122,7 +124,7 @@ def load_and_validate(input_file: str) -> Dict[str, object]:
                 raise ValueError(f"Invalid molecule index in 'mol': {vals[0]} (expected 0 or 1)")
             mol_entries.append((key, vals))
             continue
-        if key in ("wang", "keepinfo", "continue", "plothist", "phisample", "dry-run", "check-input", "hist_initial", "hist_sampled"):
+        if key in ("wang", "keepinfo", "continue", "plothist", "phisample", "dry-run", "check-input", "hist_initial", "hist_sampled", "wl-audit-angular-sampler"):
             _parse_bool(vals[0], key)
         if key in ("workers", "seed", "maxj", "maxl", "maxv", "wl-nstep", "wl-wn", "wl-max-iter", "wl-log-every", "save-frequency"):
             _ensure_numeric(vals[0], key, as_int=True)
@@ -206,6 +208,8 @@ wlmode = default
 # wl-tol = 1.000001
 # wl-max-iter = 0
 # wl-log-every = 1
+# wl-angular-sampler = fast
+# wl-audit-angular-sampler = False
 
 # User-friendly run behavior
 run-mode = fresh

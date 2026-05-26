@@ -954,7 +954,12 @@ counts, edges, _ = ax.hist(data, bins=bins, color="tab:blue",
                            alpha=0.7, edgecolor="k")
 
 # Mean and standard deviation annotation
-mu, sigma = np.mean(data), np.std(data, ddof=1)
+if len(data) == 0:
+    mu, sigma = float("nan"), float("nan")
+elif len(data) == 1:
+    mu, sigma = float(data[0]), 0.0
+else:
+    mu, sigma = np.mean(data), np.std(data, ddof=1)
 ax.annotate(rf"$\mu={{mu:.3g}},\;\sigma={{sigma:.3g}}$",
             xy=(0.98, 0.95), xycoords="axes fraction",
             ha="right", va="top", fontsize=10,

@@ -158,7 +158,9 @@ TUTORIALS = {
         "maxb": 16,
         "extra": [
             "wang = True",
-            "wlmode = fast",
+            "wlmode = normal",
+            "wl-flatness = 0.90",
+            "wl-tol = 1.00001",
             "run-mode = fresh",
             "phisample = True",
         ],

@@ -91,6 +91,8 @@ class icats:
               self.wl_flatness = 0.90
               self.wl_wn_factor = 4.0
               self.wl_wn = None
+              self.wl_angular_sampler = "fast"
+              self.wl_audit_angular_sampler = False
               self.wl_ff_user = None
               self.wl_nstep_user = None
               self.wl_flatness_user = None
@@ -564,6 +566,14 @@ class icats:
             if ky == "wl-wn":
                 ip.wl_wn_user = int(val[0])
                 self.log += ["Wang-Landau wn bins: " + val[0] + "\n"]
+            if ky == "wl-angular-sampler":
+                ip.wl_angular_sampler = val[0].lower()
+                if ip.wl_angular_sampler not in ("fast", "legacy"):
+                    raise ValueError("wl-angular-sampler must be fast or legacy")
+                self.log += ["Wang-Landau angular sampler: " + ip.wl_angular_sampler + "\n"]
+            if ky == "wl-audit-angular-sampler":
+                ip.wl_audit_angular_sampler = bool(val[0]=='True')
+                self.log += ["Wang-Landau audit angular sampler: " + val[0] + "\n"]
             if ky == "keepinfo":
                 self.log += ["Keeping Sample Info:" + val[0] + "\n"]
                 ip.KeepInfo = bool(val[0]=='True') 
@@ -1343,15 +1353,69 @@ class icats:
         return log 
 
     def GenerateWang(self,wks):
+        def SampleWangAngularMomenta(self, sa, ii, cap, fast=True, audit=False):
+          if audit:
+            import copy
+            import random
+            rng_state = np.random.get_state()
+            py_rng_state = random.getstate()
+            old_sa = copy.deepcopy(sa)
+            new_sa = copy.deepcopy(sa)
+            old_vals = SampleWangAngularMomenta(self, old_sa, ii, cap, fast=False, audit=False)
+            np.random.set_state(rng_state)
+            random.setstate(py_rng_state)
+            new_vals = SampleWangAngularMomenta(self, new_sa, ii, cap, fast=True, audit=False)
+            dJ = abs(old_vals[0] - new_vals[0])
+            dL = abs(old_vals[1] - new_vals[1])
+            dJab = norm(old_vals[2] - new_vals[2])
+            if dJ > 1.0e-9 or dL > 1.0e-9 or dJab > 1.0e-9:
+              raise ValueError(
+                  "Fast Wang-Landau angular sampler mismatch: "
+                  + "dJ=" + str(dJ) + " dL=" + str(dL) + " dJab=" + str(dJab)
+              )
+            np.random.set_state(rng_state)
+            random.setstate(py_rng_state)
+
+          self.InitializeSample(sa, ii)
+          if not fast:
+            self.SampleOrbitalL(sa,cap=cap)
+            self.SampleRigidRotorState0(sa)
+            self.SampleOrientat0(sa)
+            self.SampleJ(sa)
+            return sa.sJ, sa.sL, sa.sjab
+
+          self.SampleOrbitalL(sa,cap=cap)
+          Jab = np.zeros(3)
+          for imol in range(2):
+            moli = self.mol[imol]
+            msai = sa.mol[imol]
+            if moli.sp.na > 1 and 'rotJ' in msai.dist:
+              moli.SampleTotMolAngMom(msai)
+              moli.SampleRigidRotorState(msai)
+              if 'ori' in msai.dist:
+                moli.SampleRotation(msai)
+                Ji = matmul(msai.soR, msai.srpar[-1])
+              else:
+                Ji = msai.srpar[-1]
+            else:
+              Ji = np.zeros(3)
+            Jab += Ji
+          sa.sjab = Jab
+          sa.snjab = norm(Jab)
+          sa.scJ = sa.scL + Jab
+          sa.snJ = norm(sa.scJ)
+          sa.sJ = 0.5 * (-1 + sqrt(1 + 4.0 * norm(sa.snJ) ** 2) )
+          return sa.sJ, sa.sL, Jab
+
         def GetiL(self,sa,rnge,cap):
           cost = []
           iiLL = np.empty(rnge[1] - rnge[0], dtype=np.int32)
           for k, s in enumerate(range(rnge[0],rnge[1])):
-            self.InitializeSample(sa,s)
-            log  = self.SampleOrbitalL(sa,cap=cap)
-            log += self.SampleRigidRotorState0(sa)
-            log += self.SampleOrientat0(sa) 
-            log += self.SampleJ(sa)
+            SampleWangAngularMomenta(
+                self, sa, s, cap,
+                fast=ip.wl_angular_sampler == "fast",
+                audit=ip.wl_audit_angular_sampler and n == 0 and k < 20,
+            )
             if sa.snL*sa.snjab > 0.0: 
               costhet = np.dot(sa.scL,sa.sjab)/(sa.snL*sa.snjab)
             else:
@@ -1381,8 +1445,8 @@ class icats:
             break
           ac = 0
           wg.hh = np.zeros(wg.wn)
-          nstps = int(wg.nstep/ip.nwork)
-          iiLL_parts = Parallel(n_jobs=ip.nwork)(delayed(GetiL)(self, wks[i], [i*nstps, (i+1)*nstps], cap) for i in range(ip.nwork))
+          edges = np.linspace(0, wg.nstep, ip.nwork + 1, dtype=int)
+          iiLL_parts = Parallel(n_jobs=ip.nwork)(delayed(GetiL)(self, wks[i], [int(edges[i]), int(edges[i+1])], cap) for i in range(ip.nwork))
           iiLL = np.concatenate(iiLL_parts)
           for iiL in iiLL: 
             if iiL <= wg.wn-1:

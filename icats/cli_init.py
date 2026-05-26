@@ -50,6 +50,8 @@ OPTIONAL_INPUT_KEYS = [
     ("wl-tol", "Wang-Landau stopping tolerance on f."),
     ("wl-max-iter", "Maximum WL iterations (0 means no cap)."),
     ("wl-log-every", "WL status print period in iterations."),
+    ("wl-angular-sampler", "WL angular sampler implementation: fast or legacy."),
+    ("wl-audit-angular-sampler", "Compare fast and legacy WL angular samplers on initial draws (True/False)."),
     ("progress", "Console verbosity: quiet, normal, verbose."),
     ("dry-run", "Validate/load setup but skip generation (True/False)."),
     ("check-input", "Check input/setup only and exit before sampling (True/False)."),

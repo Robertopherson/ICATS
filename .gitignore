@@ -29,3 +29,6 @@ histograms/plots/
 
 tutorial_*/
 tutorial_hist_*/
+!icats/tutorials/precomputed/**/
+!icats/tutorials/precomputed/**/wang.pkl
+!icats/tutorials/precomputed/**/*.py
