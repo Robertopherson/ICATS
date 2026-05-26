@@ -27,6 +27,7 @@ larger trajectory set.
 - [Input Files](input-files.md)
 - [Wang-Landau Sampling](wang-landau.md)
 - [Initial-Condition Theory](theory.md)
+- [Visual Guide](visual-guide.md)
 - [Annotated First Output](annotated-output.md)
 - [Dynamics and Analysis Pipeline](pipeline.md)
 - [Diagnostics and Audits](diagnostics.md)
@@ -56,7 +57,9 @@ orbital angular momentum.
 2. Run the [Quick Start](quick-start.md).
 3. Read [Annotated First Output](annotated-output.md) while looking at the first
    generated log.
-4. Use [Diagnostics and Audits](diagnostics.md) to check that the generated
+4. Use [Visual Guide](visual-guide.md) to connect the main coordinates and
+   angular momenta to the diagrams.
+5. Use [Diagnostics and Audits](diagnostics.md) to check that the generated
    initial conditions make sense.
-5. Read [Initial-Condition Theory](theory.md) when the output terms need
+6. Read [Initial-Condition Theory](theory.md) when the output terms need
    interpretation.

@@ -72,6 +72,29 @@ the accepted `L` and `J` histograms should both remain close to their intended
 degeneracy-weighted forms, while the angle between `L` and `Jab` is not being
 chosen artificially.
 
+## NH3 + H2O Example
+
+The NH3 + H2O tutorial gives a useful visual diagnostic of what a successful
+Wang-Landau correction is meant to accomplish.
+
+![NH3 H2O sampled J and L distributions](assets/figures/wl-nh3-h2o-linear-lj.png)
+
+In this 100k-sample check, the accepted total angular momentum `J` and orbital
+angular momentum `L` both remain close to the intended linear degeneracy forms,
+`1 + 2J` and `1 + 2L`. The drop near the upper boundary is the expected effect
+of a finite requested angular-momentum window.
+
+![NH3 H2O Wang-Landau umbrella](assets/figures/wl-nh3-h2o-umbrella.png)
+
+The corresponding Wang-Landau umbrella is largest at small `J`, where the
+molecular rotor sum `Jab` strongly affects the total `J` density of states. At
+larger `J`, the umbrella becomes much flatter because the orbital angular
+momentum dominates and `J` increasingly tracks `L`.
+
+These images are diagnostic manual figures. For a publication figure, regenerate
+the same panels from the final input file, final `wang.pkl`, and archived
+sampled histogram data so that the caption can state the exact settings.
+
 Enable Wang-Landau sampling with:
 
 ```text

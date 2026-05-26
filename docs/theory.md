@@ -7,6 +7,9 @@ title: Initial-Condition Theory
 
 ![ICATS analysis map](assets/angular-decomposition.svg)
 
+For the main coordinate and angular-momentum diagrams, see the
+[Visual Guide](visual-guide.md).
+
 This page explains the model ICATS uses and, just as importantly, how the code
 turns that model into the quantities printed in the analysis files. The aim is
 not to reproduce the full manuscript. The aim is to make the program output

@@ -25,6 +25,7 @@ histograms/plots/
 
 *.pdf
 *.png
+!docs/assets/**/*.png
 *.zip
 
 tutorial_*/
