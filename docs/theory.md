@@ -55,6 +55,11 @@ E_{v,k}
   = \omega_k\left(v_k+\frac{1}{2}\right).
 $$
 
+The first expression is the classical phase-point energy reconstructed from the
+sampled `Q, P` values. The second is the harmonic-oscillator level energy used
+when assigning Boltzmann populations. A single Husimi phase-space draw does not
+have to make these two numbers identical mode by mode.
+
 For molecular rotations, the natural variables are angular momenta rather than
 Cartesian velocities. ICATS therefore uses a quasi-classical vector model:
 sample a rotational state, construct a classical angular momentum vector with
