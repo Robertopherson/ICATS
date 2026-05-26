@@ -850,6 +850,8 @@ class imolecule:
         sa.SampInfo['rot']["svecJ0"]  = L0
         sa.SampInfo['rot']["svecJ0s"]  = L0s
         sa.SampInfo['rot']["senergy"] = ee
+        sa.SampInfo['rot']["senergy_full"] = ee
+        sa.SampInfo['rot']["senergy_vec"] = E0
         sa.SampInfo['rot']['sang']    = [bet,gamm]
         sa.SampInfo['rot']['sbet']    = bet
         sa.SampInfo['rot']['sgamm']   = gamm

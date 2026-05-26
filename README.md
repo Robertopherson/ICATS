@@ -44,6 +44,18 @@ Analyse trajectory output pairs:
 icats.analyse tutorial_input.txt --dir rd_tutorial_input/outputs --prefix out
 ```
 
+Run the tutorial initial-condition audit without dynamics:
+
+```bash
+icats.audit-tutorials
+```
+
+## Manual
+
+The user manual is being developed in [`docs/`](docs/index.md). It covers
+installation, the tutorial workflow, input files, Wang-Landau umbrellas,
+diagnostics, and the theory behind the initial-condition sampling.
+
 ## Wang-Landau Umbrellas
 
 For Wang-Landau runs, `wang.pkl` stores the generated Wang-Landau umbrella and

@@ -31,6 +31,7 @@ dynamics = [
 icats = "icats.cli:main"
 "icats.init" = "icats.cli_init:main"
 "icats.analyse" = "icats.cli_analyse:main"
+"icats.audit-tutorials" = "icats.cli_audit_tutorials:main"
 
 [tool.setuptools]
 packages = ["icats"]

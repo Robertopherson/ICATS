@@ -75,6 +75,9 @@ KNOWN_KEYS = {
     "wl-wn",
     "wl-angular-sampler",
     "wl-audit-angular-sampler",
+    "audit-initial-sample",
+    "audit-initial-energy-tol",
+    "audit-initial-angular-tol",
     "seed-mode",
     "run-mode",
     "run-tag",
@@ -124,11 +127,11 @@ def load_and_validate(input_file: str) -> Dict[str, object]:
                 raise ValueError(f"Invalid molecule index in 'mol': {vals[0]} (expected 0 or 1)")
             mol_entries.append((key, vals))
             continue
-        if key in ("wang", "keepinfo", "continue", "plothist", "phisample", "dry-run", "check-input", "hist_initial", "hist_sampled", "wl-audit-angular-sampler"):
+        if key in ("wang", "keepinfo", "continue", "plothist", "phisample", "dry-run", "check-input", "hist_initial", "hist_sampled", "wl-audit-angular-sampler", "audit-initial-sample"):
             _parse_bool(vals[0], key)
         if key in ("workers", "seed", "maxj", "maxl", "maxv", "wl-nstep", "wl-wn", "wl-max-iter", "wl-log-every", "save-frequency"):
             _ensure_numeric(vals[0], key, as_int=True)
-        if key in ("tvel", "trot", "tvib", "maxb", "rz", "beam-angle", "wl-ff", "wl-flatness", "wl-wn-factor", "wl-tol"):
+        if key in ("tvel", "trot", "tvib", "maxb", "rz", "beam-angle", "wl-ff", "wl-flatness", "wl-wn-factor", "wl-tol", "audit-initial-energy-tol", "audit-initial-angular-tol"):
             _ensure_numeric(vals[0], key, as_int=False)
 
     if len(mol_entries) < 2:
@@ -210,6 +213,9 @@ wlmode = default
 # wl-log-every = 1
 # wl-angular-sampler = fast
 # wl-audit-angular-sampler = False
+# audit-initial-sample = False
+# audit-initial-energy-tol = 0.02
+# audit-initial-angular-tol = 0.0
 
 # User-friendly run behavior
 run-mode = fresh
