@@ -5,14 +5,16 @@ title: School and Outreach Videos
 
 # School and Outreach Videos
 
-The outreach videos are best kept separate from the main code repository. The
-current candidate material is in:
+ICATS is intended to be useful both as a research tool and as a teaching aid.
+The outreach video demo will be maintained separately from the code repository
+so that the main ICATS clone stays small.
 
-```text
-/home/chris/work/initc/new_videos
-```
+The planned demo will provide a simple web interface where a student can choose
+two molecules and play a short trajectory-style visualization of the collision.
+It is not meant to replace the scientific tutorials; it is a visual introduction
+to the idea of molecular scattering.
 
-The useful minimal set is:
+The video repository should contain only the files needed for the web demo:
 
 ```text
 scatervid.html
@@ -23,7 +25,7 @@ README.md
 The raw video set is roughly 100 MB. That is technically possible to store in a
 GitHub repository, but it will make the repository heavier for every clone.
 
-Recommended plan:
+Recommended publishing plan:
 
 1. Create a separate `ICATS-videos` repository.
 2. Keep only the HTML interface and compressed MP4 files.
