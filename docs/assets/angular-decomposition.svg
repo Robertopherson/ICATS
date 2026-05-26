@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="300" viewBox="0 0 760 300" role="img" aria-labelledby="title desc">
+  <title id="title">Angular momentum decomposition</title>
+  <desc id="desc">The full instantaneous angular momentum is decomposed into a vector-model component and a vibrational angular component.</desc>
+  <defs>
+    <style>
+      .panel { fill: #fbfcfd; stroke: #d1dae3; stroke-width: 1.5; rx: 10; }
+      .axis { stroke: #8796a5; stroke-width: 1.5; }
+      .jfull { stroke: #1f5f8b; stroke-width: 5; marker-end: url(#arrowBlue); }
+      .jvec { stroke: #287a4d; stroke-width: 5; marker-end: url(#arrowGreen); }
+      .jvib { stroke: #b04d38; stroke-width: 5; marker-end: url(#arrowRed); }
+      .txt { fill: #1d2b36; font-family: Arial, sans-serif; font-size: 17px; font-weight: 700; }
+      .small { fill: #425466; font-family: Arial, sans-serif; font-size: 13px; }
+    </style>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L8,3 z" fill="#1f5f8b"/></marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L8,3 z" fill="#287a4d"/></marker>
+    <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L8,3 z" fill="#b04d38"/></marker>
+  </defs>
+  <rect class="panel" x="15" y="15" width="730" height="270"/>
+  <line class="axis" x1="100" y1="225" x2="330" y2="225"/>
+  <line class="axis" x1="100" y1="225" x2="100" y2="55"/>
+  <line class="jvec" x1="100" y1="225" x2="265" y2="145"/>
+  <line class="jvib" x1="265" y1="145" x2="315" y2="80"/>
+  <line class="jfull" x1="100" y1="225" x2="315" y2="80"/>
+  <text class="txt" x="365" y="75">J_full = J_vector + J_vib</text>
+  <text class="small" x="365" y="110">J_vector: reference-geometry rotor model</text>
+  <text class="small" x="365" y="135">J_vib: instantaneous vibrational angular term</text>
+  <text class="small" x="365" y="160">Audit compares sampled rotor energy to vector-model energy</text>
+  <text class="small" x="365" y="185">Full instantaneous rotational energy is reported separately</text>
+  <text class="small" x="205" y="137" fill="#287a4d">J_vector</text>
+  <text class="small" x="305" y="119" fill="#b04d38">J_vib</text>
+  <text class="small" x="185" y="90" fill="#1f5f8b">J_full</text>
+</svg>

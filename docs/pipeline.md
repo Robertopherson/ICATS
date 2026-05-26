@@ -5,6 +5,8 @@ title: Dynamics and Analysis Pipeline
 
 # Dynamics and Analysis Pipeline
 
+![ICATS workflow](assets/pipeline.svg)
+
 The ICATS workflow has three stages:
 
 1. Generate initial conditions with `icats.init`.
@@ -36,3 +38,49 @@ icats.audit-tutorials
 This command does not call the cheap dynamics backend. It only generates each
 tutorial, runs `icats.init`, and checks that sampled model energies are
 recovered from the immediate Cartesian analysis.
+
+## Files Produced By Each Stage
+
+After `icats --tutorial ... --setup-only`:
+
+```text
+tutorial_input.txt
+run_cheap_dynamics.sh
+run_analysis.sh
+molecule data files
+```
+
+After `icats.init tutorial_input.txt`:
+
+```text
+rd_tutorial_input/dat_tutorial_input.txt.pkl
+rd_tutorial_input/work_sys_tutorial_input.txt.pkl
+rd_tutorial_input/outputs/out_*.xyz or out_*.md.xyz
+rd_tutorial_input/outputs/out_*.vel or out_*.md.vel
+```
+
+For Wang-Landau tutorials, the run directory can also contain:
+
+```text
+rd_tutorial_input/wang.pkl
+rd_tutorial_input/histograms/wl/
+```
+
+After `./run_analysis.sh`:
+
+```text
+rd_tutorial_input/outputs/dynamics*.analinfo
+```
+
+These `.analinfo` files are plain text and are the first place to look when
+checking whether a trajectory or initial condition is sensible.
+
+## What The Dynamics Step Means
+
+The bundled dynamics scripts are deliberately cheap. They demonstrate how ICATS
+coordinate/velocity files can be passed to a dynamics engine and then read back
+for analysis.
+
+Do not judge the initial-condition generator by long-time energy drift in the
+toy dynamics alone. First use the initial-sample audit to check that the
+generated model state is internally consistent before dynamics.
