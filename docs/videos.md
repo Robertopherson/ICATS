@@ -9,11 +9,12 @@ ICATS also includes a small outreach player for introducing molecular
 collisions visually. Pick two molecules below and the page loads a short
 pre-rendered trajectory-style video for that pair.
 
-[Launch the outreach collision player](outreach/index.html)
+[Launch the outreach collision player on the published manual site](https://robertopherson.github.io/ICATS/outreach/)
 
-If this manual is being read through the GitHub repository file viewer, the
-embedded window below may not be displayed because GitHub blocks iframes in
-Markdown previews. The launch link above opens the same HTML player directly.
+If that link gives a 404, GitHub Pages still needs to be enabled for the
+repository: use `Settings -> Pages`, choose the `main` branch, and select the
+`/docs` folder. Clicking `docs/outreach/index.html` inside the normal GitHub
+repository view will show the HTML source code, not the running player.
 
 <iframe src="outreach/index.html"
         title="ICATS molecular collision outreach player"
@@ -31,41 +32,7 @@ rather than a scientific diagnostic. The molecule buttons select one of the
 available pair videos, including self-collisions such as water-water or
 nitrogen-nitrogen.
 
-The current manual bundle includes compressed MP4 files for all 15 combinations
-of ammonia, carbon dioxide, water, methane, and nitrogen. These are suitable for
-quick web viewing; the raw frame-generation material should stay outside the
-main ICATS repository.
-
-## File Layout
-
-The embedded player is stored under:
-
-```text
-docs/outreach/index.html
-docs/outreach/videos/vid_*.mp4
-```
-
-Video names follow the same convention as the player code:
-
-```text
-vid_<molecule1>_<molecule2>.mp4
-```
-
-The molecule ids are sorted alphabetically in the filename. For example,
-selecting water and nitrogen loads `vid_h2o_n2.mp4`.
-
-## Updating The Videos
-
-When replacing a video, keep the manual copy small enough for a normal GitHub
-clone. The current files were made with a 960-pixel-wide H.264 encode:
-
-```bash
-ffmpeg -i source.mp4 \
-  -vf scale=960:-2 \
-  -an -c:v libx264 -preset medium -crf 32 -movflags +faststart \
-  docs/outreach/videos/vid_h2o_n2.mp4
-```
-
-If the outreach material grows into raw videos, frame dumps, scripts, or
-multiple versions, it should move to a separate repository and this page can
-embed that published page instead.
+The videos are included in this repository. The bundled set contains compressed
+MP4 files for all 15 combinations of ammonia, carbon dioxide, water, methane,
+and nitrogen. The raw frame-generation material is not included because it is
+much larger and is not needed for the web player.
