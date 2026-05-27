@@ -22,7 +22,7 @@ repository view will show the HTML source code, not the running player.
         width="100%"
         height="790"
         style="border:1px solid #d0d7de; border-radius:8px; background:#0b0f14;">
-  <p><a href="outreach/index.html">Open the outreach collision player.</a></p>
+  <p><a href="https://robertopherson.github.io/ICATS/outreach/">Open the outreach collision player.</a></p>
 </iframe>
 
 ## What It Shows
