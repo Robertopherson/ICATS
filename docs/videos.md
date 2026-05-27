@@ -9,14 +9,20 @@ ICATS also includes a small outreach player for introducing molecular
 collisions visually. Pick two molecules below and the page loads a short
 pre-rendered trajectory-style video for that pair.
 
-<iframe
-  src="outreach/index.html"
-  title="ICATS molecular collision outreach player"
-  loading="lazy"
-  style="width:100%; min-height:790px; border:1px solid #d0d7de; border-radius:8px; background:#0b0f14;">
-</iframe>
+[Launch the outreach collision player](outreach/index.html)
 
-[Open the outreach player full screen](outreach/).
+If this manual is being read through the GitHub repository file viewer, the
+embedded window below may not be displayed because GitHub blocks iframes in
+Markdown previews. The launch link above opens the same HTML player directly.
+
+<iframe src="outreach/index.html"
+        title="ICATS molecular collision outreach player"
+        loading="lazy"
+        width="100%"
+        height="790"
+        style="border:1px solid #d0d7de; border-radius:8px; background:#0b0f14;">
+  <p><a href="outreach/index.html">Open the outreach collision player.</a></p>
+</iframe>
 
 ## What It Shows
 
