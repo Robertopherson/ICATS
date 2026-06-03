@@ -135,7 +135,8 @@ class imolecule:
             if ky == "name":
                 self.name = val[0]
             if ky == "nfreeze":
-                sp.nfreeze = [int(n) for n in val]
+                ip.nfreeze = [int(n) for n in val]
+                sp.nfreeze = ip.nfreeze
             if ky == "ordist":
                 if 'read' == val[0]:
                   self.log += ["Orientation Distribuition Function File: " + val[1] + ' File : '+ val[2] + "\n"]

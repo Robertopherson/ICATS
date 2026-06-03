@@ -138,7 +138,7 @@ These options appear inside each molecule file referenced by `mol`.
 | `trot` | `trot = 50.0` | Molecule-level rotational temperature override. |
 | `tvib` | `tvib = 50.0` | Molecule-level vibrational temperature override. |
 | `vel` | `vel = 1000 100 3` | Molecule beam-speed distribution: centre, FWHM, and velocity power. |
-| `nfreeze` | `nfreeze = 1 2 3` | Atom indices to freeze/exclude from normal-mode treatment. |
+| `nfreeze` | `nfreeze = 1 2 3` | Normal-mode indices to leave at zero during vibrational sampling. |
 | `ordist` | `ordist = read file function ...` | Read a molecule orientation distribution from a user-supplied function. |
 | `ordist` | `ordist = fixed` | Fixed-orientation mode. |
 | `rot-param` | `rot-param = xyz` or `euler` | Rotation-angle parameterisation for this molecule. |
@@ -189,6 +189,7 @@ values override them. Atom-only systems force both to zero.
 | `Rz` | `Rz = 15.0` | Initial separation along the collision axis, in Angstrom. |
 | `beam-angle` | `beam-angle = 90.0` | Crossed-beam angle in degrees. |
 | `maxb` | `maxb = 10.0` | Maximum impact parameter estimate, in Angstrom. |
+| `fixed-b` | `fixed-b = 3.5` | Fixed impact parameter in Angstrom. This bypasses impact-parameter sampling and derives the corresponding orbital angular momentum from the sampled relative velocity. Currently use with `wang = False`. |
 | `maxl` | `maxl = 80` | Maximum orbital angular momentum quantum number. |
 | `maxj` | `maxj = 80` | Maximum total angular momentum for Wang-Landau/J setup. If `maxl` is omitted, ICATS can use `maxj` as the orbital cap. |
 | `chi` | `chi = 0.0` | Azimuthal scattering angle/control used by the intermolecular setup. |
@@ -214,6 +215,7 @@ distributions, enable histograms and inspect the resulting angular distributions
 | --- | --- | --- |
 | `maxv` | `maxv = 10` | Maximum vibrational quantum number considered in Boltzmann sampling. |
 | `Tvib` | `Tvib = 500.0` | Vibrational temperature, also listed above because it controls vibrational populations. |
+| `vib-mode` | `vib-mode = sample` or `rigid` | `sample` uses the harmonic normal-mode sampler. `rigid` skips vibrational sampling and leaves molecules at the reference geometry while still sampling rotations and orientations. |
 
 The normal modes come from the molecule Hessian. If a molecule has no Hessian,
 the current model can still handle rigid/atomic pieces but has no harmonic

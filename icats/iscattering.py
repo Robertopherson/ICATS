@@ -82,6 +82,8 @@ class icats:
               self.MaxB = 0
               self.MaxJ = 0
               self.MaxL = 0
+              self.FixedB = None
+              self.vib_mode = "sample"
               self.continues = False
               self.KeepInfo = False
               self.isotropic = True
@@ -285,6 +287,14 @@ class icats:
             if ky == "maxb":
                 self.log += ["Maximum impact parameter: " + val[0] + "\n"]
                 ip.MaxB = float(val[0])*ang2au
+            if ky == "fixed-b":
+                ip.FixedB = float(val[0])*ang2au
+                self.log += ["Fixed impact parameter: " + val[0] + " Ang\n"]
+            if ky == "vib-mode":
+                ip.vib_mode = val[0].lower()
+                if ip.vib_mode not in ("sample", "rigid"):
+                    raise ValueError("vib-mode must be sample or rigid")
+                self.log += ["Vibrational mode: " + ip.vib_mode + "\n"]
             if ky == "maxj":
                 self.log += ["Maximum total angular momentum J: " + val[0] + "\n"]
                 ip.MaxJ = int(val[0])
@@ -445,6 +455,9 @@ class icats:
         if ip.MaxL <= 0 and ip.MaxJ > 0:
           ip.MaxL = int(ip.MaxJ)
           self.log += ["Using maxj as orbital cap maxl: " + str(ip.MaxL) + "\n"]
+
+        if ip.FixedB is not None and ip.usewang:
+          raise ValueError("fixed-b is currently supported only with wang = False")
 
         # Wang-Landau profile defaults (KIS):
         # default = current behavior, fast = cheaper, accurate = heavier.
@@ -739,8 +752,13 @@ class icats:
             self._log_maxb_equivalence()
             self._logged_maxb_equiv = True
         sa.dist = {}
-        # impact parameter sampling:
-        if ip.MaxL == 0:
+        # impact parameter / orbital angular-momentum sampling:
+        if ip.FixedB is not None:
+          sa.slog += ["Using fixed impact parameter b= "
+                      + str(ip.FixedB * au2ang) + " Ang\n"]
+          sa.dist['phi'] = {}
+          sa.dist['phi']['cont'] = InitICDF(1,uniform,[0,tpi])
+        elif ip.MaxL == 0:
           sa.dist['b'] = {} 
           sa.dist['b']['MaxB'] = ip.MaxB
           sa.slog += ["Generated impact parater with maximum b= " + str(ip.MaxB) + "\n"]
@@ -1114,30 +1132,43 @@ class icats:
           debug and print('Initialize...',ii)  
           while True:
             self.InitializeSample(sa,ii)
-            log  = self.SampleOrbitalL(sa,cap=ip.MaxL*ff)
-            log += self.SampleRigidRotorState0(sa)
-            log += self.SampleOrientat0(sa) 
-            log += self.SampleJ(sa)
-            # Old-style gate: cap very large J before WL acceptance.
-            if ip.MaxL > 0 and sa.sJ >= ip.MaxL*ff:
-              continue
-            if len(sp.td) == 0:
+            log = []
+            if ip.FixedB is not None:
+              log += self.SampleRigidRotorState0(sa)
+              log += self.SampleOrientat0(sa)
+              self.SampleInterMolZVeloc(sa)
+              log += self.SampleFixedImpactOrbital(sa)
+              log += self.SampleJ(sa)
               break
-            iiL = int(np.floor(wn*abs(sa.sJ)/ip.MaxJ))
-            if iiL < len(sp.td):
-              if np.random.rand() <= sp.td[iiL]:
-                break
             else:
-              continue
+              log  = self.SampleOrbitalL(sa,cap=ip.MaxL*ff)
+              log += self.SampleRigidRotorState0(sa)
+              log += self.SampleOrientat0(sa)
+              log += self.SampleJ(sa)
+              # Old-style gate: cap very large J before WL acceptance.
+              if ip.MaxL > 0 and sa.sJ >= ip.MaxL*ff:
+                continue
+              if len(sp.td) == 0:
+                break
+              iiL = int(np.floor(wn*abs(sa.sJ)/ip.MaxJ))
+              if iiL < len(sp.td):
+                if np.random.rand() <= sp.td[iiL]:
+                  break
+              else:
+                continue
           sa.slog += log
           if ip.isotropic and ip.ostandard: 
            self.SetStandardOrientation(sa)
           debug and print('Sample HOVib... ')  
-          self.SampleHOVibrState(sa)
+          if ip.vib_mode == "rigid":
+            sa.slog += [" -HO Vibrational State Sample: skipped (vib-mode = rigid)\n"]
+          else:
+            self.SampleHOVibrState(sa)
           # sample intermolecular DOF
           debug and print('Sample InterMolZ...')  
           self.SetInterZDist(sa,sp.Rz) # set z distance ...
-          self.SampleInterMolZVeloc(sa) # need to get the magnitude of intermol v before getting impact parameter 
+          if ip.FixedB is None:
+            self.SampleInterMolZVeloc(sa) # need to get the magnitude of intermol v before getting impact parameter
           self.StoreOrbitalInfoLog(sa)
           debug and print('Sample Impact Param...')  
           self.SetImpactParam(sa,sa.sb, sa.sphi)
@@ -1695,6 +1726,34 @@ class icats:
         sa.SampInfo['orb']['inL'] = sa.snL 
         sa.SampInfo['orb']['icL'] = sa.scL 
         return log
+
+    def SampleFixedImpactOrbital(self, sa):
+        ip = self.ip
+        sp = self.sp
+        if ip.FixedB is None:
+            raise ValueError("SampleFixedImpactOrbital called without fixed-b")
+        if not hasattr(sa, "sV"):
+            raise ValueError("fixed-b orbital setup requires relative velocity first")
+        b = float(ip.FixedB)
+        phi = float(ICDFsample(sa.dist['gen']['cont'])) * tpi
+        nL = sp.rmass * sa.sV * b
+        L = 0.5 * (-1.0 + sqrt(1.0 + 4.0 * nL ** 2))
+        cL = nL * np.array([sin(phi), -cos(phi), 0.0])
+        sa.sb = b
+        sa.sphi = phi
+        sa.sL = L
+        sa.snL = nL
+        sa.scL = cL
+        if 'orb' not in sa.SampInfo.keys():
+            sa.SampInfo['orb'] = {}
+        sa.SampInfo['orb']['iL'] = sa.sL
+        sa.SampInfo['orb']['inL'] = sa.snL
+        sa.SampInfo['orb']['icL'] = sa.scL
+        sa.SampInfo['orb']['fixed_b'] = b
+        return [" - Fixed impact parameter b = : "
+                + "{0:10.5f}".format(b * au2ang)
+                + " Ang; implied L = "
+                + "{0:3.2f}".format(L) + "\n"]
 
     def SetStandardOrientation(self,sa):
          msa = sa.mol
