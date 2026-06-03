@@ -83,6 +83,7 @@ class icats:
               self.MaxJ = 0
               self.MaxL = 0
               self.FixedB = None
+              self.ImpactPhi = None
               self.vib_mode = "sample"
               self.continues = False
               self.KeepInfo = False
@@ -290,6 +291,9 @@ class icats:
             if ky == "fixed-b":
                 ip.FixedB = float(val[0])*ang2au
                 self.log += ["Fixed impact parameter: " + val[0] + " Ang\n"]
+            if ky == "impact-phi":
+                ip.ImpactPhi = float(val[0])
+                self.log += ["Fixed impact-parameter azimuth phi: " + val[0] + " rad\n"]
             if ky == "vib-mode":
                 ip.vib_mode = val[0].lower()
                 if ip.vib_mode not in ("sample", "rigid"):
@@ -1157,7 +1161,7 @@ class icats:
               else:
                 continue
           sa.slog += log
-          if ip.isotropic and ip.ostandard: 
+          if ip.isotropic and ip.ostandard and ip.ImpactPhi is None:
            self.SetStandardOrientation(sa)
           debug and print('Sample HOVib... ')  
           if ip.vib_mode == "rigid":
@@ -1716,7 +1720,8 @@ class icats:
         sa.sL = L
         nL = np.sqrt(L*(L+1))
         sa.snL = nL
-        cL = matmul(Rabout(float(ICDFsample(sa.dist['gen']['cont']))*tpi,2),y)
+        phi = self.SampleImpactPhi(sa)
+        cL = matmul(Rabout(phi,2),y)
         cL = nL*cL/norm(cL)
         sa.scL = cL
         log = [" - Orbital Angular Q.N. L = : " + "{0:3.2f}".format(L)+"\n"]
@@ -1727,6 +1732,12 @@ class icats:
         sa.SampInfo['orb']['icL'] = sa.scL 
         return log
 
+    def SampleImpactPhi(self, sa):
+        ip = self.ip
+        if ip.ImpactPhi is not None:
+            return float(ip.ImpactPhi)
+        return float(ICDFsample(sa.dist['gen']['cont'])) * tpi
+
     def SampleFixedImpactOrbital(self, sa):
         ip = self.ip
         sp = self.sp
@@ -1735,7 +1746,7 @@ class icats:
         if not hasattr(sa, "sV"):
             raise ValueError("fixed-b orbital setup requires relative velocity first")
         b = float(ip.FixedB)
-        phi = float(ICDFsample(sa.dist['gen']['cont'])) * tpi
+        phi = self.SampleImpactPhi(sa)
         nL = sp.rmass * sa.sV * b
         L = 0.5 * (-1.0 + sqrt(1.0 + 4.0 * nL ** 2))
         cL = nL * np.array([sin(phi), -cos(phi), 0.0])

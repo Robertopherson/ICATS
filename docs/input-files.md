@@ -190,6 +190,7 @@ values override them. Atom-only systems force both to zero.
 | `beam-angle` | `beam-angle = 90.0` | Crossed-beam angle in degrees. |
 | `maxb` | `maxb = 10.0` | Maximum impact parameter estimate, in Angstrom. |
 | `fixed-b` | `fixed-b = 3.5` | Fixed impact parameter in Angstrom. This bypasses impact-parameter sampling and derives the corresponding orbital angular momentum from the sampled relative velocity. Currently use with `wang = False`. |
+| `impact-phi` | `impact-phi = 0.0` | Fixed impact-parameter azimuth in the lab frame, in radians. Omit this key to sample the azimuth. This controls the collision plane, not the full Jacobi/Euler `phi, theta, chi` transformation reconstructed later from the Cartesian geometry. |
 | `maxl` | `maxl = 80` | Maximum orbital angular momentum quantum number. |
 | `maxj` | `maxj = 80` | Maximum total angular momentum for Wang-Landau/J setup. If `maxl` is omitted, ICATS can use `maxj` as the orbital cap. |
 | `chi` | `chi = 0.0` | Azimuthal scattering angle/control used by the intermolecular setup. |

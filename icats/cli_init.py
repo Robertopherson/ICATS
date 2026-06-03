@@ -34,6 +34,7 @@ OPTIONAL_INPUT_KEYS = [
     ("maxl", "Use for non-WL runs: orbital angular-momentum cap L."),
     ("maxb", "Maximum impact parameter (Angstrom in input, converted internally)."),
     ("fixed-b", "Use one fixed impact parameter in Angstrom; currently for non-Wang-Landau runs."),
+    ("impact-phi", "Fixed impact-parameter azimuth in radians; omit to sample it."),
     ("Trot", "Rotational temperature."),
     ("Tvib", "Vibrational temperature."),
     ("vib-mode", "Vibrational treatment: sample or rigid. rigid skips harmonic vibrational sampling."),

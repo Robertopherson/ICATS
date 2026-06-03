@@ -49,6 +49,7 @@ KNOWN_KEYS = {
     "tvib",
     "maxb",
     "fixed-b",
+    "impact-phi",
     "vib-mode",
     "maxj",
     "maxl",
@@ -133,7 +134,7 @@ def load_and_validate(input_file: str) -> Dict[str, object]:
             _parse_bool(vals[0], key)
         if key in ("workers", "seed", "maxj", "maxl", "maxv", "wl-nstep", "wl-wn", "wl-max-iter", "wl-log-every", "save-frequency"):
             _ensure_numeric(vals[0], key, as_int=True)
-        if key in ("tvel", "trot", "tvib", "maxb", "fixed-b", "rz", "beam-angle", "wl-ff", "wl-flatness", "wl-wn-factor", "wl-tol", "audit-initial-energy-tol", "audit-initial-angular-tol"):
+        if key in ("tvel", "trot", "tvib", "maxb", "fixed-b", "impact-phi", "rz", "beam-angle", "wl-ff", "wl-flatness", "wl-wn-factor", "wl-tol", "audit-initial-energy-tol", "audit-initial-angular-tol"):
             _ensure_numeric(vals[0], key, as_int=False)
 
     if len(mol_entries) < 2:
