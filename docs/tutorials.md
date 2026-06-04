@@ -29,8 +29,11 @@ Current tutorials cover:
 - `methane_methane`: heavier symmetric-top example.
 - `single_atom_he_he`: atom-atom edge case.
 - `single_atom_diatom_he_n2`: atom-diatom template.
-- `fixed_plane_atom_diatom_ar_no`: constrained Ar + NO setup with fixed `b`,
-  fixed impact plane, rigid NO, and zero initial diatom rotation.
+- `fixed_plane_atom_diatom_ar_no`: constrained Ar + NO diagnostic setup. It
+  uses `incoming-k = 13.615392`, `fixed-b = 4.5`, `impact-phi = 0.0`,
+  `vib-mode = rigid`, `Trot = 0.0`, and `Tvib = 0.0`; it samples only the NO
+  orientation and writes combined `out_full.info`, `out_full.xyz`, and
+  `out_full.vel` files.
 - `single_atom_diatom_he_n2_wl`: atom-diatom with Wang-Landau weighting.
 - `wang_landau_nh3_h2o`: NH3 + H2O with Wang-Landau weighting.
 - `npz_output_co2_co2`: dual xyz/vel and NPZ output.
