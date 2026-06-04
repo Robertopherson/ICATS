@@ -35,8 +35,40 @@ $$
 ![Body-fixed Euler-angle construction](assets/figures/bffdiag.png)
 
 Molecular rotations and orientations are easiest to understand as rotations
-between the space-fixed and body-fixed frames. The same distinction appears in
-the logs as space-frame, Eckart-frame, and body-frame angular quantities.
+between the space-fixed and body-fixed frames. ICATS follows the manuscript
+convention for molecular Euler angles:
+
+```text
+alpha, beta, gamma
+```
+
+These are the angles printed in molecular orientation blocks and in the
+space-to-Eckart analysis for each molecule. For linear molecules, rotation
+about the molecular axis is a gauge coordinate; ICATS reports `gamma = 0` for
+that arbitrary spin angle.
+
+## Two-Vector System Embedding
+
+![Two-vector system body-fixed embedding](assets/figures/two-vector-embedding.png)
+
+For a bimolecular collision, ICATS also reconstructs a system body-fixed frame
+from the two molecular centres of mass and a second molecular embedding vector.
+The system Euler angles are printed as:
+
+```text
+phi, beta, chi
+```
+
+Here `phi` is the space-fixed azimuth, `beta` is the polar rotation that brings
+the system `z` axis onto the Jacobi vector `R_AB`, and `chi` is the final
+body-fixed azimuth about that system `z` axis. Older ICATS data may also contain
+the key `theta`; it is the same polar angle now labelled `beta` in the manual
+and logs.
+
+Do not confuse this reconstructed system `phi` with the input key
+`impact-phi`. `impact-phi` fixes or samples the cylindrical azimuth of the
+impact parameter in the incoming lab plane. The system Euler angles are
+retro-analysed later from the generated Cartesian coordinates.
 
 ## Vibrational Phase Space
 

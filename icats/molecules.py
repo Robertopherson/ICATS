@@ -250,19 +250,23 @@ class imolecule:
         log = [" :" + ip.name + " : \n"]
         if sp.na > 1:
             R = EckartFrameTrans(sp.xxe, sa.sxx, sp.mass).T 
-            phi, theta, chi = iR2q(R)
+            alpha, beta, gamma = iR2q(R)
             wx, wy, wz = iR2xyz(R)
             if sp.na == 2:  # these are arbitrary for 2 atoms
-              chi, wz = 0.0, 0.0
+              gamma, wz = 0.0, 0.0
             if 'ori' not in sa.SampInfo.keys():
              sa.SampInfo['ori'] = {}
-            sa.SampInfo['ori']["seul"] = [phi, theta, chi]
+            sa.SampInfo['ori']["seul"] = [alpha, beta, gamma]
             sa.SampInfo['ori']["sxyz"] = [wx, wy, wz]
-            sa.SampInfo['ori']["sphi"] = phi
-            sa.SampInfo['ori']["stheta"] = theta
-            sa.SampInfo['ori']["schi"] = chi
-            log += ["   Orientation, Euler Angles: " + "".join(["{0:10.7f}".format(a / pi) +
-                          " " for a in [phi, theta, chi]])
+            sa.SampInfo['ori']["salpha"] = alpha
+            sa.SampInfo['ori']["sbeta"] = beta
+            sa.SampInfo['ori']["sgamma"] = gamma
+            # Backward-compatible names used by older histogram helpers.
+            sa.SampInfo['ori']["sphi"] = alpha
+            sa.SampInfo['ori']["stheta"] = beta
+            sa.SampInfo['ori']["schi"] = gamma
+            log += ["   Orientation, Euler Angles (alpha,beta,gamma): " + "".join(["{0:10.7f}".format(a / pi) +
+                          " " for a in [alpha, beta, gamma]])
                 + " * pi rad \n", "   Orientation,  XYZ  Angles: "
                 + "".join(["{0:10.7f}".format(a / pi) + " " for a in [wx, wy, wz]])
                 + " * pi rad \n"]
@@ -621,10 +625,14 @@ class imolecule:
              eul[2] = 0.0
           sa.SampInfo['ori']['xyz'] = xyz
           sa.SampInfo['ori']['eul'] = eul
+          sa.SampInfo['ori']["alpha"] = sa.SampInfo['ori']['eul'][0]
+          sa.SampInfo['ori']["beta"] = sa.SampInfo['ori']['eul'][1]
+          sa.SampInfo['ori']["gamma"] = sa.SampInfo['ori']['eul'][2]
+          # Backward-compatible names used by older histogram helpers.
           sa.SampInfo['ori']["phi"] = sa.SampInfo['ori']['eul'][0]
           sa.SampInfo['ori']["theta"] = sa.SampInfo['ori']['eul'][1]
           sa.SampInfo['ori']["chi"] = sa.SampInfo['ori']['eul'][2]
-          log += ["    Orientations (phi,theta,chi): "
+          log += ["    Orientations (alpha,beta,gamma): "
               + "".join(["{0:10.7f}".format(a / pi) + " " for a in eul]) + " * pi rad \n"]
           log += ["    Orientations (wx,wy,wz)     : "
                 + "".join(["{0:10.7f}".format(a / pi) + " " for a in xyz]) + " * pi rad \n"]

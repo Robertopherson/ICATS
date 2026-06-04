@@ -259,7 +259,7 @@ over the intermolecular relative speed.
 | `beam-angle` | `beam-angle = 90.0` | Crossed-beam angle in degrees. |
 | `maxb` | `maxb = 10.0` | Maximum impact parameter estimate, in Angstrom. |
 | `fixed-b` | `fixed-b = 3.5` | Fixed impact parameter in Angstrom. This bypasses impact-parameter sampling and derives the corresponding orbital angular momentum from the sampled relative velocity. Currently use with `wang = False`. |
-| `impact-phi` | `impact-phi = 0.0` | Fixed impact-parameter azimuth in the lab frame, in radians. Omit this key to sample the azimuth. This controls the collision plane, not the full Jacobi/Euler `phi, theta, chi` transformation reconstructed later from the Cartesian geometry. |
+| `impact-phi` | `impact-phi = 0.0` | Fixed impact-parameter azimuth in the lab frame, in radians. Omit this key to sample the azimuth. This controls the collision plane, not the full Jacobi/Euler `phi, beta, chi` transformation reconstructed later from the Cartesian geometry. |
 | `maxl` | `maxl = 80` | Maximum orbital angular momentum quantum number. |
 | `maxj` | `maxj = 80` | Maximum total angular momentum for Wang-Landau/J setup. If `maxl` is omitted, ICATS can use `maxj` as the orbital cap. |
 | `chi` | `chi = 0.0` | Legacy azimuthal scattering-angle/control variable. Do not use this to fix the lab impact plane; use `impact-phi` for that. |
@@ -298,9 +298,10 @@ angular momentum from
 
 and uses `impact-phi` as the lab-frame azimuth of the impact parameter. If
 `impact-phi` is absent, the azimuth is sampled. The later Jacobi/Euler
-`phi, theta, chi` values are still reconstructed from the generated Cartesian
+`phi, beta, chi` values are still reconstructed from the generated Cartesian
 geometry; they are not direct input controls for the full body-frame
-transformation.
+transformation. Older sample-data keys may call the polar angle `theta`; in the
+manual and current logs this same angle is labelled `beta`.
 
 ### Rotations and Orientations
 
@@ -316,6 +317,11 @@ Set `Trot = 0.0` when the molecule should have no initial rigid-rotor angular
 momentum but should still have a sampled orientation. This is useful for
 fixed-plane atom-diatom tests where the diatom bond direction is sampled but
 the diatom starts non-rotating.
+
+For molecular orientations, ICATS uses the manuscript Euler labels
+`alpha, beta, gamma`. Linear molecules have an arbitrary final spin about the
+bond axis, so ICATS reports `gamma = 0` for that gauge coordinate; the physical
+axis direction is controlled by `alpha` and `beta`.
 
 ### Vibrations
 

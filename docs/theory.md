@@ -230,6 +230,67 @@ frame matters. The vector-model rotor is defined with the reference geometry.
 The full instantaneous rotational analysis is defined from the actual distorted
 geometry at that snapshot.
 
+## Euler Angles And Output Names
+
+ICATS uses the same rotation convention as the manuscript, but older internal
+keys used a less careful naming scheme. The current logs and manual use these
+names:
+
+| Quantity | Manuscript-style output | Meaning |
+| --- | --- | --- |
+| molecular orientation | `alpha, beta, gamma` | Euler rotation from the space-fixed frame into the molecule/Eckart frame. |
+| system Jacobi embedding | `phi, beta, chi` | Euler rotation from the space-fixed frame into the two-vector body-fixed frame of the collision complex. |
+| impact-parameter azimuth | `impact-phi` | Input/sample coordinate fixing the lab collision plane; not the full system Euler `phi`. |
+
+The molecular Euler triple follows the usual `Z-Y-Z`/line-of-nodes
+construction:
+
+$$
+R(\alpha,\beta,\gamma)
+  = R_Z(\alpha)R_Y(\beta)R_Z(\gamma).
+$$
+
+In the molecular output, `alpha` is the first azimuthal rotation about the
+space-fixed axis, `beta` is the polar line-of-nodes rotation, and `gamma` is the
+final body-fixed spin about the molecule's own axis. For atoms there is no
+molecular orientation space. For linear molecules, the final spin about the
+bond is arbitrary; ICATS reports `gamma = 0` for that gauge coordinate.
+
+For the two-body collision analysis, the first embedding vector is the Jacobi
+COM-to-COM vector:
+
+$$
+\vec{R}_{AB} = \vec{R}_A-\vec{R}_B.
+$$
+
+ICATS computes the system angles from the generated Cartesian coordinates as
+
+$$
+\phi = \mathrm{atan2}(R_y,R_x),
+\qquad
+\beta = \cos^{-1}\left(\frac{R_z}{|\vec{R}_{AB}|}\right),
+$$
+
+then uses a second molecular embedding vector to define the final azimuth
+`chi` about the system body-fixed `z` axis. The sampled data still includes a
+legacy key `theta`; it is an alias for this same system polar angle `beta`.
+
+The practical output mapping is:
+
+| Output block/key | Read as |
+| --- | --- |
+| `Orientations (alpha,beta,gamma)` | generated molecular orientation. |
+| `Orientation, Euler Angles (alpha,beta,gamma)` | reconstructed molecular/Eckart orientation from Cartesian coordinates. |
+| `System Euler (phi,beta,chi)` | reconstructed two-vector Jacobi/system embedding. |
+| `Molecule (1) BF Euler`, `Molecule (2) BF Euler` | molecule frame angles after rotating into the system body-fixed frame. |
+| `2bJac.theta` | legacy alias for `2bJac.beta`. |
+
+This distinction matters in constrained runs. For example, `impact-phi = 0`
+fixes the incoming impact-parameter plane, but it does not force a diatomic
+molecule to be coplanar. The diatom orientation is still sampled through its
+molecular `alpha,beta` angles, while its molecular `gamma` spin is arbitrary
+and therefore reported as zero.
+
 ## Vibrational Sampling
 
 The molecule setup constructs normal modes from the reference geometry and

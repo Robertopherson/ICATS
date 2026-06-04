@@ -1066,14 +1066,15 @@ class icats:
  
     def CalcJacobiCoordinates(self,sa,**dic):
         """This takes the principal axis (the symmetry axis if its a symmetric top or near top) of each molecule and 
-        treats it like a Jacobi distance (R) vector. 
-        We then calculate R Jacobi (COM to COM) distance and 3 Jacobi Angles: the theta angles of the principal axis 
-        of the molecule with the intermolecular R, and the dihedral angle phi between such vectors. 
+        treats it like a Jacobi distance (R) vector.
+        We then calculate the Jacobi COM-to-COM distance and the system Euler
+        angles (phi, beta, chi). The polar angle beta was historically stored
+        under the key theta; that alias is retained for compatibility.
         returns information into the log file
 
         Parameters
         ----------
-        phi, chi, theta : floats   (radians)
+        phi, beta, chi : floats   (radians)
         """
         #copy to sxx 
         mol = self.mol
@@ -1093,9 +1094,9 @@ class icats:
         vv_rel = mol[0].MolecularVeloc(msa[0]).flatten() - mol[1].MolecularVeloc(msa[1]).flatten()
         rx, ry, rz = r
         phi   = np.arctan2(ry, rx)              # (-pi, pi]
-        theta = np.arccos(rz / nr)              #   [0, pi]
+        beta = np.arccos(rz / nr)               #   [0, pi]
         R1Z = Rabout(-phi,2)                    # rotate phi about Z 
-        R2N = Rabout(-theta,1)                  # rotate theta about line of nodes 
+        R2N = Rabout(-beta,1)                   # rotate beta about line of nodes
         R12 = matmul(R2N, R1Z)                  # takes r -> [0,0,|r|]
         sxx = matmul(sxx,R12.T)
         sx1, sx2 = sxx[:msp[0].na,:], sxx[msp[0].na:,:] 
@@ -1112,8 +1113,8 @@ class icats:
         vtest = EckartFrameTrans(msp[0].xxe, sx1, msp[0].mass)[2,:]
         vtest2 = EckartFrameTrans(msp[0].xxe, sxx[:msp[0].na,:], msp[0].mass)[2,:]
         # matrix in ZYZ which makes system to standard isotropic frame:
-        RJ = matmul(Rabout(-chi,2),matmul(Rabout(-theta,1),Rabout(-phi,2)))
-        Rr = matmul(Rabout(theta,1),RJ)
+        RJ = matmul(Rabout(-chi,2),matmul(Rabout(-beta,1),Rabout(-phi,2)))
+        Rr = matmul(Rabout(beta,1),RJ)
         rii = matmul(Rr,vv_rel)
         rii = matmul(Rr,z)
         c1, c2 = COM(sxx[:msp[0].na,:],msp[0].mass).flatten(), COM(sxx[msp[0].na:,:],msp[1].mass).flatten()
@@ -1132,9 +1133,9 @@ class icats:
         else:
           dphi = 0.0
         sa.slog += [" -Body-Fixed Angles           :   Alpha    Beta   Gamma \n"]
-        sa.slog += ['   Euler Intermolecular Angles: ' + ''.join(["{0:6.4f}".format(a/pi).rjust(8) for a in [phi,theta,chi] ]).rjust(24)  +' pi rad\n']
-        sa.slog += ['   Euler Molecule (1)   Angles: ' + ''.join(["{0:6.4f}".format(a/pi).rjust(8) for a in sBFa1]).rjust(24)  +' pi rad\n']
-        sa.slog += ['   Euler Molecule (2)   Angles: ' + ''.join(["{0:6.4f}".format(a/pi).rjust(8) for a in sBFa2]).rjust(24)  +' pi rad\n']
+        sa.slog += ['   System Euler (phi,beta,chi): ' + ''.join(["{0:6.4f}".format(a/pi).rjust(8) for a in [phi,beta,chi] ]).rjust(24)  +' pi rad\n']
+        sa.slog += ['   Molecule (1) BF Euler      : ' + ''.join(["{0:6.4f}".format(a/pi).rjust(8) for a in sBFa1]).rjust(24)  +' pi rad\n']
+        sa.slog += ['   Molecule (2) BF Euler      : ' + ''.join(["{0:6.4f}".format(a/pi).rjust(8) for a in sBFa2]).rjust(24)  +' pi rad\n']
         sa.slog += ['   v1 v2 dihedral       Angles: ' + "{0:6.4f}".format(dphi/pi).rjust(8) + ' pi rad\n']
         sa.slog += ["   Jacobi R (Ang)             : " +"{0:10.5f}".format(float(norm(r))*au2ang) + " \n"]
         sa.slog += ["   Body-Fixed Frame for J     : " +''.join([''.join(["{0:6.4f}".format(a).rjust(8) for a in RJ[:,i].tolist()]).rjust(24) + ' ,' for i in range(3)])[:-2] + " \n"]
@@ -1144,7 +1145,8 @@ class icats:
         sa.SampInfo["2bJac"]['R'] = r
         sa.SampInfo['2bJac']['dphi'] = dphi 
         sa.SampInfo['2bJac']['phi'] = phi 
-        sa.SampInfo['2bJac']['theta'] = theta
+        sa.SampInfo['2bJac']['beta'] = beta
+        sa.SampInfo['2bJac']['theta'] = beta
         sa.SampInfo['2bJac']['chi'] = chi
         sa.SampInfo['2bJac']['Rr'] = Rr 
         sa.SampInfo['2bJac']['alpha1'],sa.SampInfo['2bJac']['beta1'], sa.SampInfo['2bJac']['gamma1'] = sBFa1
@@ -2272,7 +2274,7 @@ class icats:
       #plot rotational body-fixed coordinates: 
       ky = '2bJac'
       sdat[ky] = {}
-      sdat[ky]['phi'], sdat[ky]['theta'], sdat[ky]['chi'] = [], [], []
+      sdat[ky]['phi'], sdat[ky]['beta'], sdat[ky]['theta'], sdat[ky]['chi'] = [], [], [], []
       sdat[ky]['alpha1'], sdat[ky]['beta1'], sdat[ky]['gamma1'] = [], [], []
       sdat[ky]['alpha2'], sdat[ky]['beta2'], sdat[ky]['gamma2'] = [], [], []
       #plot molecular orientations 
@@ -2280,6 +2282,8 @@ class icats:
       sdat[ky] = {}
       sdat[ky]['m0'], sdat[ky]['m1'] = {}, {}
       for m in sdat[ky].keys():
+        sdat[ky][m]['salpha'], sdat[ky][m]['sbeta'], sdat[ky][m]['sgamma'] = [], [] , []
+        sdat[ky][m]['alpha'], sdat[ky][m]['beta'], sdat[ky][m]['gamma'] = [], [] , []
         sdat[ky][m]['sphi'], sdat[ky][m]['stheta'], sdat[ky][m]['schi'] = [], [] , []
         sdat[ky][m]['phi'], sdat[ky][m]['theta'], sdat[ky][m]['chi'] = [], [] , []
       #molecular angular momentum 
