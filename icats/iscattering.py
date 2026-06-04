@@ -124,6 +124,7 @@ class icats:
               self.MaxL = 0
               self.FixedB = None
               self.ImpactPhi = None
+              self.orbital_sampling = "geometric"
               self.velfwhm = 0.0
               self.relative_channel = None
               self.vib_mode = "sample"
@@ -361,6 +362,11 @@ class icats:
             if ky == "impact-phi":
                 ip.ImpactPhi = float(val[0])
                 self.log += ["Fixed impact-parameter azimuth phi: " + val[0] + " rad\n"]
+            if ky == "orbital-sampling":
+                ip.orbital_sampling = val[0].lower()
+                if ip.orbital_sampling not in ("geometric", "flat-l"):
+                    raise ValueError("orbital-sampling must be geometric or flat-l")
+                self.log += ["Orbital L sampling mode: " + ip.orbital_sampling + "\n"]
             if ky == "vib-mode":
                 ip.vib_mode = val[0].lower()
                 if ip.vib_mode not in ("sample", "rigid"):
@@ -529,6 +535,10 @@ class icats:
 
         if ip.FixedB is not None and ip.usewang:
           raise ValueError("fixed-b is currently supported only with wang = False")
+
+        if not any(str(k).lower() == "orbital-sampling" for k, _ in ip.inpd):
+          mode_label = "fixed-b" if ip.FixedB is not None else "geometric"
+          self.log += ["Orbital L sampling mode: " + mode_label + "\n"]
 
         # Wang-Landau profile defaults (KIS):
         # default = current behavior, fast = cheaper, accurate = heavier.
@@ -1820,15 +1830,24 @@ class icats:
         sa.slog += [info_scalar(mol[1].ip.name + " z velocity", vv[1, 2] * au2mps, "m/s")]
         sa.slog += [info_scalar(mol[0].ip.name + " kinetic", sa.smkin[0] * au2ev, "eV")]
         sa.slog += [info_scalar(mol[1].ip.name + " kinetic", sa.smkin[1] * au2ev, "eV")]
+        sa.slog += [f"{'orbital sampling':<{INFO_LABEL_WIDTH}} = {getattr(self.ip, 'orbital_sampling', 'geometric')}\n"]
         return
 
 
     def SampleOrbitalL(self,sa,**dic):
-        L = ICDFsample(sa.dist['L']['cont'])
-        if 'cap' in dic.keys():
-          mxL = dic['cap']
-          while L > mxL:
-            L = ICDFsample(sa.dist['L']['cont'])
+        cap = dic.get('cap', None)
+        mode = getattr(self.ip, "orbital_sampling", "geometric")
+        if mode == "flat-l":
+          mxL = float(cap if cap is not None else self.ip.MaxL)
+          if mxL <= 0:
+            raise ValueError("flat-l orbital sampling requires a positive maxl/cap")
+          L = float(ICDFsample(sa.dist['gen']['cont'])) * mxL
+        else:
+          L = ICDFsample(sa.dist['L']['cont'])
+          if cap is not None:
+            mxL = cap
+            while L > mxL:
+              L = ICDFsample(sa.dist['L']['cont'])
         sa.sL = L
         nL = np.sqrt(L*(L+1))
         sa.snL = nL
@@ -1839,6 +1858,7 @@ class icats:
         log = [" - Orbital Angular Q.N. L = : " + "{0:3.2f}".format(L)+"\n"]
         if 'orb' not in sa.SampInfo.keys():
             sa.SampInfo['orb'] = {}
+        sa.SampInfo['orb']['sampling'] = mode
         sa.SampInfo['orb']['iL'] = sa.sL 
         sa.SampInfo['orb']['inL'] = sa.snL 
         sa.SampInfo['orb']['icL'] = sa.scL 
@@ -1872,9 +1892,11 @@ class icats:
         sa.SampInfo['orb']['iL'] = sa.sL
         sa.SampInfo['orb']['inL'] = sa.snL
         sa.SampInfo['orb']['icL'] = sa.scL
+        sa.SampInfo['orb']['sampling'] = "fixed-b"
         sa.SampInfo['orb']['fixed_b'] = b
         return [
             *info_section("intermolecular"),
+            f"{'orbital sampling':<{INFO_LABEL_WIDTH}} = fixed-b\n",
             info_scalar("fixed b", b * au2ang, "Ang", "{:14.5f}"),
             info_scalar("implied L", L, "", "{:14.2f}"),
         ]

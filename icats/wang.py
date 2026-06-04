@@ -14,6 +14,7 @@ def metadata_from_input(ip) -> Dict[str, Any]:
         "version": 1,
         "maxj": int(ip.MaxJ),
         "maxl": int(ip.MaxL),
+        "orbital_sampling": str(getattr(ip, "orbital_sampling", "geometric")),
         "peak_jab": int(getattr(ip, "PeakJab", 0)),
         "wlmode": str(ip.wlmode),
         "wl_ff": float(ip.wl_ff),
@@ -98,6 +99,7 @@ def validate(path: str, uu, iwld, td, metadata, expected_metadata: Dict[str, Any
     checks = [
         ("maxj", int),
         ("maxl", int),
+        ("orbital_sampling", str),
         ("wlmode", str),
         ("wl_nstep_mult", int),
         ("wl_wn", lambda x: None if x is None else int(x)),

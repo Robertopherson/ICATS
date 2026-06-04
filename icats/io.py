@@ -55,6 +55,7 @@ KNOWN_KEYS = {
     "maxb",
     "fixed-b",
     "impact-phi",
+    "orbital-sampling",
     "vib-mode",
     "maxj",
     "maxl",

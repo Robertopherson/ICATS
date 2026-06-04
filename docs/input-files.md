@@ -35,6 +35,7 @@ Trot = 500.0
 Rz = 15
 maxl = 182
 maxb = 16
+orbital-sampling = geometric
 phisample = True
 ```
 
@@ -262,12 +263,19 @@ over the intermolecular relative speed.
 | `impact-phi` | `impact-phi = 0.0` | Fixed impact-parameter azimuth in the lab frame, in radians. Omit this key to sample the azimuth. This controls the collision plane, not the full Jacobi/Euler `phi, beta, chi` transformation reconstructed later from the Cartesian geometry. |
 | `maxl` | `maxl = 80` | Maximum orbital angular momentum quantum number. |
 | `maxj` | `maxj = 80` | Maximum total angular momentum for Wang-Landau/J setup. If `maxl` is omitted, ICATS can use `maxj` as the orbital cap. |
+| `orbital-sampling` | `geometric` or `flat-l` | Proposal distribution for non-fixed orbital angular momentum. `geometric` is the default/current behavior and samples the classical impact-parameter measure, approximately `P(L) ~ L`. `flat-l` samples `L` uniformly over the requested cap and lets `J = L + Jab` emerge. |
 | `chi` | `chi = 0.0` | Legacy azimuthal scattering-angle/control variable. Do not use this to fix the lab impact plane; use `impact-phi` for that. |
 | `phisample` | `True` or `False` | Legacy standard-azimuth switch. In isotropic runs, `True` rotates the sampled system to a standard azimuth unless `impact-phi` is explicitly set. |
 
 For non-Wang-Landau runs, `maxl` is usually the direct cap. For Wang-Landau
 runs, `maxj` is the important requested total-`J` range, but `L` still enters
 the actual Cartesian collision geometry.
+
+Use `orbital-sampling = flat-l` for diagnostic or trajectory-budgeting runs
+where the small-impact-parameter region should be sampled as heavily as the
+large-impact-parameter region. The resulting ensemble is not geometrically
+weighted by default; reweight by the desired measure, for example by `L` or
+`b`, when reconstructing a geometric cross-section-like average.
 
 #### Fixed Impact-Parameter Runs
 

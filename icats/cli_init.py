@@ -33,6 +33,7 @@ OPTIONAL_INPUT_KEYS = [
     ("maxj", "Use for Wang-Landau runs: total angular-momentum cap used in WL/J setup."),
     ("maxl", "Use for non-WL runs: orbital angular-momentum cap L."),
     ("maxb", "Maximum impact parameter (Angstrom in input, converted internally)."),
+    ("orbital-sampling", "Orbital L proposal: geometric (default) or flat-l."),
     ("fixed-b", "Use one fixed impact parameter in Angstrom; currently for non-Wang-Landau runs."),
     ("impact-phi", "Fixed impact-parameter azimuth in radians; omit to sample it."),
     ("Trot", "Rotational temperature."),
