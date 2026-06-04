@@ -1149,6 +1149,8 @@ class imolecule:
         """
         sp = self.sp 
         ip = self.ip 
+        if T <= 0:
+            return 1
         MaxR = 5
         ii = np.arange(5000)
         EE = sp.J2c * ii * (ii + 1)
@@ -1723,7 +1725,7 @@ class imolecule:
                      sa.dist['arotGam']['cont'] = InitICDF(1,reject_phi,[],par0=[*jxy],seed=seed*211)
                      sa.dist['arotBing']['cont'] = InitICDF(1,reject_bingham, [],par0=[sig3],seed=seed*241)
             else:
-                sa.rotsamp = [0 for i in range(Nsamp)]
+                sa.rotsamp = [0 for i in range(nsamp)]
         else:
             log += ["No rotational state distro" ]
         # generate orientation 

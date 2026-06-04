@@ -252,6 +252,11 @@ transformation.
 Use isotropic/default orientations first. When using custom orientation
 distributions, enable histograms and inspect the resulting angular distributions.
 
+Set `Trot = 0.0` when the molecule should have no initial rigid-rotor angular
+momentum but should still have a sampled orientation. This is useful for
+fixed-plane atom-diatom tests where the diatom bond direction is sampled but
+the diatom starts non-rotating.
+
 ### Vibrations
 
 | Key | Form | Meaning |
