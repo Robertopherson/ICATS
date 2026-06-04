@@ -58,6 +58,28 @@ For the default tutorial, the generated Cartesian samples appear under:
 rd_tutorial_input/outputs/
 ```
 
+The tutorial input normally uses:
+
+```text
+printout = 0 0 1 0
+```
+
+which writes one coordinate/velocity pair per sample:
+
+```text
+rd_tutorial_input/outputs/out_0.xyz
+rd_tutorial_input/outputs/out_0.vel
+```
+
+If a downstream code prefers one combined coordinate file and one combined
+velocity file, use:
+
+```text
+printout = 1 0 0 0
+```
+
+which writes `out_full.xyz` and `out_full.vel`.
+
 The initial-condition stage is independent of the cheap dynamics backend.
 
 ## 4. Run The Initial-Condition Audit

@@ -306,9 +306,18 @@ before reuse and refuses incompatible files.
 | `units-out` | `ang-fs`, `au` | Output unit system. |
 | `keepinfo` | `True` or `False` | Store extra per-sample information. |
 
+The `printout` line has four integer switches:
+
+| Position | Example value | Files written |
+| --- | --- | --- |
+| 1 | `1 0 0 0` | Combined coordinate/velocity files: `out_full.xyz`, `out_full.vel`. |
+| 2 | `0 1 0 0` | Combined generation and analysis log: `out_full.info`. |
+| 3 | `0 0 1 0` | Per-sample files in `dirout`: `outputs/out_0.xyz`, `outputs/out_0.vel`, ... |
+| 4 | `0 0 0 1` | Per-sample info logs in `dirout`: `outputs/out_0.info`, ... |
+
 The common tutorial setting `printout = 0 0 1 0` writes a directory of Cartesian
-coordinate and velocity files suitable for the demonstration dynamics.
-The combined-file setting `printout = 1 0 0 0` writes the same samples into
+coordinate and velocity files suitable for the demonstration dynamics. The
+combined-file setting `printout = 1 0 0 0` writes the same samples into
 `out_full.xyz` and `out_full.vel`.
 
 ### Histograms and Diagnostics
@@ -350,21 +359,58 @@ total-`J` distribution. When `wang = True`, always inspect the sampled `J` and
 
 ## Output Controls
 
-The common tutorial setting:
+The `printout` setting is the main control over how generated samples are
+written. It is a four-number switch:
+
+```text
+printout = combined_xyzvel combined_info per_sample_xyzvel per_sample_info
+```
+
+Each number is either `0` or `1`. Several switches can be enabled at once, but
+large runs should avoid writing unnecessary logs.
+
+### Dynamics-Friendly Output
+
+The common tutorial setting is:
 
 ```text
 printout = 0 0 1 0
 ```
 
-requests Cartesian coordinate/velocity output suitable for dynamics. To write a
-single combined coordinate/velocity pair instead, use:
+This writes one coordinate file and one velocity file per sampled initial
+condition:
+
+```text
+rd_<run-tag>/outputs/out_0.xyz
+rd_<run-tag>/outputs/out_0.vel
+rd_<run-tag>/outputs/out_1.xyz
+rd_<run-tag>/outputs/out_1.vel
+```
+
+This is usually the easiest output for trajectory scripts, because each sample
+is already a separate coordinate/velocity pair.
+
+### Single Combined Coordinate/Velocity Pair
+
+To write all initial conditions into one coordinate file and one matching
+velocity file, use:
 
 ```text
 printout = 1 0 0 0
 ```
 
-This writes `out_full.xyz` and `out_full.vel`. To write a
-full generation log for debugging, use:
+This writes:
+
+```text
+out_full.xyz
+out_full.vel
+```
+
+The two files contain matching sample blocks in the same order.
+
+### Debugging A Sample
+
+To write the detailed generation and immediate analysis log, use:
 
 ```text
 printout = 0 1 0 0
@@ -372,6 +418,31 @@ printout = 0 1 0 0
 
 This creates `out_full.info`, which is useful for reading the generation and
 immediate analysis blocks for each sample.
+
+For a very small debugging run, it is often useful to write both the Cartesian
+files and the full log:
+
+```text
+Nsamp = 2
+printout = 1 1 1 0
+```
+
+For large runs, avoid `printout = 0 1 0 0` or `printout = 0 0 0 1` unless you
+really need the text logs; they can become bulky.
+
+### Histogram-Only Or Setup Checks
+
+If you only want histograms or input checking, it can be useful to suppress
+coordinate/velocity output:
+
+```text
+printout = 0 0 0 0
+plothist = True
+hist_initial = True
+hist_sampled = True
+```
+
+This is the pattern used by some histogram-focused tutorials.
 
 ## Safe First Values
 
