@@ -47,7 +47,7 @@ with the previous number, and the explicit unit keeps text parsing simple.
 Angles in Euler triples are printed in units of `pi rad`:
 
 ```text
-system Euler           = [    -0.0000,     0.0246,     0.0000 ]  pi rad   # phi, beta, chi
+system Euler           = [    -0.0000,     0.0246,     0.0000 ]  pi rad   # SFF -> Jacobi BF; phi, beta, chi
 alpha,beta,gamma       = [     0.6287,     0.3324,     0.0000 ]  pi rad   # molecular Euler
 ```
 
@@ -199,11 +199,14 @@ The system-angle block is the two-vector embedding reconstruction:
 
 ```text
 [system angles]
-system Euler           = [    -0.0000,     0.0246,     0.0000 ]  pi rad   # phi, beta, chi
-mol 1 BF Euler         = [     0.0000,     0.0000,     0.0000 ]  pi rad   # alpha, beta, gamma
-mol 2 BF Euler         = [     0.6413,     0.3425,     0.0000 ]  pi rad   # alpha, beta, gamma
+frame note             = SFF is the lab Cartesian frame; Jacobi BF is the collision frame
+system Euler           = [    -0.0000,     0.0246,     0.0000 ]  pi rad   # SFF -> Jacobi BF; phi, beta, chi
+mol 1 BF Euler         = [     0.0000,     0.0000,     0.0000 ]  pi rad   # molecule 1 in Jacobi BF; alpha, beta, gamma
+mol 2 BF Euler         = [     0.6413,     0.3425,     0.0000 ]  pi rad   # molecule 2 in Jacobi BF; alpha, beta, gamma
 v1-v2 dihedral         =         0.0000  pi rad
 Jacobi R               =       58.38317  Ang
+SFF->Jacobi BF         = [    1.0000,   -0.0000,    0.0000 ]; [    0.0000,    0.9969,    0.0772 ]; [   -0.0000,   -0.0772,    0.9969 ]
+Jacobi BF->mol1 BF     = [    1.0000,    0.0000,    0.0000 ]; [    0.0000,    1.0000,    0.0000 ]; [    0.0000,    0.0000,    1.0000 ]
 ```
 
 Do not confuse `impact-phi` in the input with the reconstructed system Euler
@@ -211,6 +214,10 @@ Do not confuse `impact-phi` in the input with the reconstructed system Euler
 triple is reconstructed later from the full Cartesian geometry.
 For a linear molecule, `gamma` in `mol i BF Euler` is an arbitrary spin about
 the molecular axis, so ICATS reports it as zero.
+The printed matrices are row-vector rotation matrices used by the analysis:
+`SFF->Jacobi BF` takes lab Cartesian components into the collision frame, and
+`Jacobi BF->mol i BF` takes Jacobi-frame components into the molecule's
+Eckart/body-fixed frame.
 
 ## 8. Energy Summary
 

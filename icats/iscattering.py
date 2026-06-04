@@ -1176,14 +1176,15 @@ class icats:
         else:
           dphi = 0.0
         sa.slog += info_section("system angles")
-        sa.slog += [info_angle_vec("system Euler", [phi, beta, chi], "phi, beta, chi")]
-        sa.slog += [info_angle_vec("mol 1 BF Euler", sBFa1, "alpha, beta, gamma")]
-        sa.slog += [info_angle_vec("mol 2 BF Euler", sBFa2, "alpha, beta, gamma")]
+        sa.slog += [f"{'frame note':<{INFO_LABEL_WIDTH}} = SFF is the lab Cartesian frame; Jacobi BF is the collision frame\n"]
+        sa.slog += [info_angle_vec("system Euler", [phi, beta, chi], "SFF -> Jacobi BF; phi, beta, chi")]
+        sa.slog += [info_angle_vec("mol 1 BF Euler", sBFa1, "molecule 1 in Jacobi BF; alpha, beta, gamma")]
+        sa.slog += [info_angle_vec("mol 2 BF Euler", sBFa2, "molecule 2 in Jacobi BF; alpha, beta, gamma")]
         sa.slog += [info_scalar("v1-v2 dihedral", dphi / pi, "pi rad", "{:14.4f}")]
         sa.slog += [info_scalar("Jacobi R", float(norm(r)) * au2ang, "Ang", "{:14.5f}")]
-        sa.slog += [info_matrix("BF frame J", RJ.T)]
-        sa.slog += [info_matrix("BF frame mol 1", Ra1.T)]
-        sa.slog += [info_matrix("BF frame mol 2", Ra2.T)]
+        sa.slog += [info_matrix("SFF->Jacobi BF", RJ.T)]
+        sa.slog += [info_matrix("Jacobi BF->mol1 BF", Ra1.T)]
+        sa.slog += [info_matrix("Jacobi BF->mol2 BF", Ra2.T)]
         sa.SampInfo['2bJac'] = {} 
         sa.SampInfo["2bJac"]['R'] = r
         sa.SampInfo['2bJac']['dphi'] = dphi 
