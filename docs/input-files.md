@@ -38,6 +38,15 @@ maxb = 16
 phisample = True
 ```
 
+Useful constrained-sampling controls:
+
+```text
+vib-mode = rigid
+fixed-b = 3.5
+impact-phi = 0.0
+wang = False
+```
+
 Common output controls:
 
 ```text
@@ -193,12 +202,45 @@ values override them. Atom-only systems force both to zero.
 | `impact-phi` | `impact-phi = 0.0` | Fixed impact-parameter azimuth in the lab frame, in radians. Omit this key to sample the azimuth. This controls the collision plane, not the full Jacobi/Euler `phi, theta, chi` transformation reconstructed later from the Cartesian geometry. |
 | `maxl` | `maxl = 80` | Maximum orbital angular momentum quantum number. |
 | `maxj` | `maxj = 80` | Maximum total angular momentum for Wang-Landau/J setup. If `maxl` is omitted, ICATS can use `maxj` as the orbital cap. |
-| `chi` | `chi = 0.0` | Azimuthal scattering angle/control used by the intermolecular setup. |
-| `phisample` | `True` or `False` | Whether to sample the orbital azimuthal coordinate `phi`. |
+| `chi` | `chi = 0.0` | Legacy azimuthal scattering-angle/control variable. Do not use this to fix the lab impact plane; use `impact-phi` for that. |
+| `phisample` | `True` or `False` | Legacy standard-azimuth switch. In isotropic runs, `True` rotates the sampled system to a standard azimuth unless `impact-phi` is explicitly set. |
 
 For non-Wang-Landau runs, `maxl` is usually the direct cap. For Wang-Landau
 runs, `maxj` is the important requested total-`J` range, but `L` still enters
 the actual Cartesian collision geometry.
+
+#### Fixed Impact-Parameter Runs
+
+For diagnostic calculations, it is often useful to hold the collision geometry
+fixed while still sampling internal rotations and orientations. For example, an
+atom-diatom setup such as Ar + NO can be run with a fixed impact parameter,
+fixed lab-frame impact plane, and rigid NO bond:
+
+```text
+mol = 0 ar_dat.txt
+mol = 1 no_dat.txt
+
+Trot = 300.0
+Tvib = 0.0
+vib-mode = rigid
+
+fixed-b = 3.5
+impact-phi = 0.0
+wang = False
+```
+
+In this mode ICATS samples the relative velocity first, then sets the orbital
+angular momentum from
+
+```text
+|L| = mu * v_rel * b
+```
+
+and uses `impact-phi` as the lab-frame azimuth of the impact parameter. If
+`impact-phi` is absent, the azimuth is sampled. The later Jacobi/Euler
+`phi, theta, chi` values are still reconstructed from the generated Cartesian
+geometry; they are not direct input controls for the full body-frame
+transformation.
 
 ### Rotations and Orientations
 
@@ -221,6 +263,12 @@ distributions, enable histograms and inspect the resulting angular distributions
 The normal modes come from the molecule Hessian. If a molecule has no Hessian,
 the current model can still handle rigid/atomic pieces but has no harmonic
 vibrational mode sampling for that molecule.
+
+`vib-mode = rigid` is the simplest way to freeze all intramolecular vibrational
+motion for a run without editing the molecule file. Molecule-level `nfreeze`
+can be used for finer control when only selected normal modes should be kept at
+zero. `maxv = 0` is different: it still samples the ground-state Husimi/Wigner
+width, so it is not a rigid-bond setting.
 
 ### Wang-Landau
 
