@@ -201,7 +201,7 @@ The system-angle block is the two-vector embedding reconstruction:
 [system angles]
 system Euler           = [    -0.0000,     0.0246,     0.0000 ]  pi rad   # phi, beta, chi
 mol 1 BF Euler         = [     0.0000,     0.0000,     0.0000 ]  pi rad   # alpha, beta, gamma
-mol 2 BF Euler         = [     0.6413,     0.3425,    -0.5382 ]  pi rad   # alpha, beta, gamma
+mol 2 BF Euler         = [     0.6413,     0.3425,     0.0000 ]  pi rad   # alpha, beta, gamma
 v1-v2 dihedral         =         0.0000  pi rad
 Jacobi R               =       58.38317  Ang
 ```
@@ -209,6 +209,8 @@ Jacobi R               =       58.38317  Ang
 Do not confuse `impact-phi` in the input with the reconstructed system Euler
 `phi`. The input fixes the lab impact-parameter azimuth. The system Euler
 triple is reconstructed later from the full Cartesian geometry.
+For a linear molecule, `gamma` in `mol i BF Euler` is an arbitrary spin about
+the molecular axis, so ICATS reports it as zero.
 
 ## 8. Energy Summary
 

@@ -1162,6 +1162,10 @@ class icats:
         Ra1, Ra2 = EckartFrameTrans(msp[0].xxe, sxx[:msp[0].na,:], msp[0].mass), EckartFrameTrans(msp[1].xxe, sxx[msp[0].na:,:], msp[1].mass) 
         sBFa1 = iR2q(Ra1.T)
         sBFa2 = iR2q(Ra2.T)
+        if msp[0].na == 2:
+          sBFa1 = [sBFa1[0], sBFa1[1], 0.0]
+        if msp[1].na == 2:
+          sBFa2 = [sBFa2[0], sBFa2[1], 0.0]
         sxx[:msp[0].na,:] = matmul(sxx[:msp[0].na,:],Ra1.T)+c1
         sxx[msp[0].na:,:] = matmul(sxx[msp[0].na:,:],Ra2.T)+c2
         if abs(sBFa1[1]) > 1e-6 and abs(sBFa2[1]) > 1e-6: 
