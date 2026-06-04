@@ -334,7 +334,7 @@ class icats:
                     po[i] = bool(int(val[i]))
                 self.ip.printout = po
                 if po[0]: 
-                  self.log += ["Printout single xyz samples : " + str(po[0]) + "\n"]
+                  self.log += ["Printout combined xyz/vel samples : " + str(po[0]) + "\n"]
                 if po[1]: 
                   self.log += ["Printout sample info File   : " + str(po[1]) + "\n"]
                 if po[2]: 
@@ -1122,6 +1122,7 @@ class icats:
         xyz = []
         slog = []
         sa.ixyz = []
+        sa.ivxyz = []
         if ip.progress == "quiet":
           hidebar = True
         elif sa.id == 0:
@@ -1191,6 +1192,7 @@ class icats:
           ixyz, ivxyz = self.ListXYZOut(sa,mess="Sample " + str(sa.sii))
           if ip.printout[0]:
             sa.ixyz += ixyz
+            sa.ivxyz += ivxyz
           if ip.printout[1]:
             slog += sa.slog
           if ip.printout[2]:
@@ -2123,10 +2125,13 @@ class icats:
           slog += sa.slog
          open(ip.fileout +"_full.info", "w").writelines(slog)
         if ip.printout[0]:
-         slog = [] 
+         slog = []
+         vslog = []
          for sa in wks: 
           slog += sa.ixyz
+          vslog += sa.ivxyz
          open(ip.fileout +"_full.xyz", "w").writelines(slog)
+         open(ip.fileout +"_full.vel", "w").writelines(vslog)
         self.sdat = self.MergeSdats(wks)
         self._write_costheta_convergence()
         self.saveworkers(wks)

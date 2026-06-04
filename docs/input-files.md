@@ -301,13 +301,15 @@ before reuse and refuses incompatible files.
 | --- | --- | --- |
 | `fileout` | `fileout = out` | Output filename prefix. |
 | `dirout` | `dirout = outputs` | Output directory. Relative paths are placed inside the run directory. |
-| `printout` | `printout = 0 0 1 0` | Four output flags: single xyz, full info file, xyz/vel directory, info directory. |
+| `printout` | `printout = 0 0 1 0` | Four output flags: combined xyz/vel files, full info file, xyz/vel directory, info directory. |
 | `output-format` | `xyzvel`, `npz`, `both` | Coordinate/velocity output format. |
 | `units-out` | `ang-fs`, `au` | Output unit system. |
 | `keepinfo` | `True` or `False` | Store extra per-sample information. |
 
 The common tutorial setting `printout = 0 0 1 0` writes a directory of Cartesian
 coordinate and velocity files suitable for the demonstration dynamics.
+The combined-file setting `printout = 1 0 0 0` writes the same samples into
+`out_full.xyz` and `out_full.vel`.
 
 ### Histograms and Diagnostics
 
@@ -355,6 +357,13 @@ printout = 0 0 1 0
 ```
 
 requests Cartesian coordinate/velocity output suitable for dynamics. To write a
+single combined coordinate/velocity pair instead, use:
+
+```text
+printout = 1 0 0 0
+```
+
+This writes `out_full.xyz` and `out_full.vel`. To write a
 full generation log for debugging, use:
 
 ```text
