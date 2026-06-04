@@ -93,6 +93,26 @@ the molecule-level beam velocities are first converted into this relative
 channel. `L` is the orbital angular momentum, `Ja` and `Jb` are the molecular
 rotor angular momenta, `Jab = Ja + Jb`, and `J = L + Jab`.
 
+Line meanings:
+
+- `relative velocity`: magnitude of the incoming relative velocity between the
+  two molecular centres of mass.
+- `collision energy`: relative translational kinetic energy of the two-body
+  collision channel.
+- `ammonia_dat z velocity`, `h2o_dat z velocity`: centre-of-mass beam
+  velocities assigned to each molecule in the lab frame for this sample.
+- `ammonia_dat kinetic`, `h2o_dat kinetic`: each molecule's centre-of-mass
+  translational kinetic-energy contribution.
+- `Ja`, `Jb`: molecular rotational angular momenta for molecules A and B.
+- `Jab`: combined molecular rotational angular momentum, `Ja + Jb`.
+- `L`: orbital angular momentum of the intermolecular Jacobi motion.
+- `J = L + Jab`: total angular momentum of the full two-molecule sample.
+- `b`: impact parameter corresponding to the sampled `L` and relative speed.
+- `impact phi`: lab-frame azimuth of the impact-parameter vector used during
+  generation.
+- `(QM: ...)`: the approximate quantum-number label inferred from a classical
+  angular-momentum magnitude.
+
 ## 3. Orientation
 
 For nonlinear molecules, all three molecular Euler angles are meaningful:
@@ -112,6 +132,15 @@ written. The later `analysis` section reconstructs orientations from the final
 coordinates and may use an equivalent Euler representation. For linear
 molecules, `gamma` is an arbitrary spin about the molecular axis; ICATS reports
 it as zero and the physical bond direction is carried by `alpha,beta`.
+
+Line meanings:
+
+- `sampled orientation`: the molecule was given an explicit orientation before
+  its atoms were written to Cartesian coordinates.
+- `alpha,beta,gamma`: molecular Euler angles for the molecule's orientation.
+  For nonlinear molecules all three angles affect the atom positions.
+- `wx,wy,wz`: an equivalent XYZ rotation-angle representation, printed as a
+  diagnostic for users who prefer that convention.
 
 ## 4. Rotation
 
@@ -142,6 +171,25 @@ diagnostic but not always the exact sampled model energy. `vibrational J` is
 the angular-momentum part left after subtracting the vector-model rotation in
 the Eckart/body-fixed analysis.
 
+Line meanings:
+
+- `oblate`, `asym-spherical`, `linear`: rotor type used for the molecule.
+- `symmetry constant`: the top-type parameter used by the rotational analysis;
+  it helps identify prolate, oblate, spherical, asymmetric, or linear limits.
+- `full J, space`: angular momentum reconstructed directly from all atomic
+  coordinates and velocities in the lab frame.
+- `full J, Eckart`: the same full angular momentum expressed in the molecule's
+  Eckart/body-fixed frame.
+- `vector J, space`: angular momentum corresponding to the sampled vector-model
+  rigid-rotor part, expressed in the lab frame.
+- `vector J, Eckart`: the vector-model rigid-rotor angular momentum in the
+  Eckart/body-fixed frame.
+- `vibrational J`: residual vibrational angular momentum in the Eckart/body
+  frame, approximately `full J - vector J` in that frame.
+- `vector rot. energy`: rotational energy from the sampled vector-model rotor.
+- `full rot. energy`: rotational energy obtained from the instantaneous
+  geometry and full angular momentum.
+
 ## 5. Vibration
 
 For a vibrationally active molecule, ICATS prints mode-by-mode harmonic
@@ -168,6 +216,8 @@ The `...` indicates that the excerpt has skipped middle modes. A nonlinear
 four-atom molecule such as NH3 has `3N - 6 = 6` vibrational modes, while H2O
 has three. The key columns are:
 
+- `mode`: normal-mode index in the molecule file.
+- `freq`: harmonic normal-mode frequency, in `cm^-1`.
 - `vstat`: sampled harmonic-oscillator state.
 - `Q`, `P`: sampled dimensionless normal coordinate and momentum.
 - `QE`, `PE`: coordinate and momentum energy contributions.
@@ -204,6 +254,19 @@ For rigid tests this residual should be zero or very small. It is not a
 harmonic vibrational energy table, because no Hessian or frequencies were
 supplied.
 
+Line meanings:
+
+- `vibrational space = none (atom)`: atoms have no internal vibrational
+  coordinates.
+- `vibrational modes = unavailable`: the molecule is not an atom, but no
+  Hessian/normal-mode basis was supplied.
+- `internal residual`: motion left after removing translation and rotation,
+  reported without assigning it to harmonic normal modes.
+- `residual |dx|`: size of the residual internal displacement.
+- `residual |p|`: size of the residual internal momentum.
+- `residual kinetic`: kinetic energy associated with that residual internal
+  motion.
+
 ## 6. Intermolecular Analysis
 
 The analysis-side intermolecular block reconstructs the two-body Jacobi
@@ -236,6 +299,21 @@ the coordinate convention or equivalent body-frame representation has changed.
 For initial-condition sanity checks, compare the magnitudes and the energy
 summary first, then inspect signs and frames if the system is anisotropic.
 
+Additional line meanings:
+
+- `molecules`: the two molecule records used to define the Jacobi pair.
+- `angular energy`: centrifugal part of the intermolecular kinetic energy,
+  associated with `L`.
+- `radial energy`: radial part of the intermolecular kinetic energy, associated
+  with motion along the Jacobi separation coordinate.
+- `total energy`: `angular energy + radial energy`.
+- `P_R`: Jacobi relative momentum vector.
+- `moment of inertia`: effective intermolecular moment of inertia for the
+  Jacobi separation.
+- `phi`: reconstructed azimuth of the Jacobi/orbital geometry in analysis. It
+  is not necessarily the same diagnostic as generation-time `impact phi`.
+- `COM 1`, `COM 2`: molecular centre-of-mass positions in Angstrom.
+
 ## 7. System Angles
 
 The system-angle block is the two-vector embedding reconstruction:
@@ -262,6 +340,21 @@ The printed matrices are row-vector rotation matrices used by the analysis:
 `SFF->Jacobi BF` takes lab Cartesian components into the collision frame, and
 `Jacobi BF->mol i BF` takes Jacobi-frame components into the molecule's
 Eckart/body-fixed frame.
+
+Line meanings:
+
+- `frame note`: reminder of the frame convention used by this block.
+- `system Euler`: Euler angles for the transformation from the space-fixed lab
+  frame to the Jacobi body-fixed collision frame.
+- `mol 1 BF Euler`, `mol 2 BF Euler`: Euler angles for each molecule's
+  body-fixed frame relative to the Jacobi body-fixed frame.
+- `v1-v2 dihedral`: dihedral angle between the two molecular reference
+  directions used in the Jacobi embedding.
+- `Jacobi R`: centre-of-mass separation between the two molecules.
+- `SFF->Jacobi BF`: row-vector rotation matrix from lab Cartesian components
+  to Jacobi body-fixed components.
+- `Jacobi BF->mol i BF`: row-vector rotation matrix from Jacobi components to
+  molecule `i` body-fixed/Eckart components.
 
 ## 8. Energy Summary
 
@@ -291,6 +384,14 @@ What do the final Cartesian coordinates and velocities contain when analysed bac
 For a first check, the generation and analysis totals should be close. For a
 strict initial-condition round trip, enable `audit-initial-sample = True`,
 which compares the correct vector-model terms directly.
+
+Line meanings:
+
+- `vibrational`: sum of harmonic normal-mode energies, or zero if vibration is
+  rigid/absent.
+- `rotational`: molecular rotational energy contribution.
+- `velocity`: centre-of-mass translational kinetic energy contribution.
+- `total`: sum of the listed contributions.
 
 ## Worked Example: NH3 + H2O
 
@@ -336,6 +437,26 @@ classical energy       =        0.02153  eV
 `classical J` vectors are the vector-model realisation of those quantum labels:
 the magnitude is approximately `sqrt(J(J+1))`, which is why `J = 11` appears
 with magnitude `|J| = 11.48913`.
+
+Rotor-draw line meanings:
+
+- `quantum J`: rotational quantum number selected from the requested rotor
+  distribution.
+- `quantum J_z`: projection quantum number used for a symmetric-top draw.
+- `quantum J_A`: projection-like angular-momentum component used for an
+  asymmetric-top draw.
+- `equilibrium energy`: rotational energy computed from the equilibrium
+  inertia tensor before the vector-model angular momentum is realised.
+- `classical J`: Cartesian vector-model angular momentum corresponding to the
+  sampled quantum labels.
+- `classical J_z`, `classical J_A`: classical projection corresponding to the
+  sampled top model.
+- `classical energy`: rotational energy associated with the realised
+  vector-model angular momentum.
+- `polar |J|`, `polar beta`, `polar gamma`: spherical-polar representation of
+  the vector-model angular momentum in the relevant body/top frame.
+- `instantaneous J`, `instant. energy`, `instant. I^-1`: diagnostic values
+  after applying the instantaneous geometry/inertia tensor.
 
 ```text
 ammonia_dat            = sampled orientation
@@ -485,6 +606,17 @@ If this passes, ICATS has generated Cartesian initial conditions consistent
 with its own harmonic-oscillator, rigid-rotor, and Jacobi model. It does not
 prove that a later dynamics method conserves energy or that the potential
 energy surface is appropriate.
+
+Audit line meanings:
+
+- `generation`: value from the model-side sample bookkeeping.
+- `analysis`: value reconstructed from the Cartesian coordinates and
+  velocities.
+- `diff`: absolute difference between generation and analysis.
+- `[OK]`: the difference is within the current audit tolerance for that
+  component.
+- `vib`, `rot`, `vel`, `total`: vibrational, rotational, translational, and
+  summed energy checks.
 
 ## Ensemble Histograms
 
