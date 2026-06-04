@@ -304,8 +304,26 @@ class imolecule:
         sp = self.sp 
         ip = self.ip 
         log = [f"{ip.name:<{INFO_LABEL_WIDTH}} = vibrational analysis\n"]
-        if sp.na == 1 or sp.nm == 0:
-          log += [f"{'vibrational space':<{INFO_LABEL_WIDTH}} = none\n"]
+        if sp.na == 1:
+          log += [f"{'vibrational space':<{INFO_LABEL_WIDTH}} = none (atom)\n"]
+          return log
+        if sp.nm == 0:
+          xx = sa.sxx.copy() - COM(sa.sxx, sp.mass).T
+          vv = sa.svv.copy() - COM(sa.svv, sp.mass).T
+          U = EckartFrameTrans(sp.xxe, xx, sp.mass)
+          xx = matmul(U, xx.T).T
+          vv = matmul(U, vv.T).T
+          RR = sp.c2m[:, : sp.ntr]
+          PP = np.eye(sp.nd)-matmul(RR, matmul(inv(matmul(RR.T, RR)), RR.T))
+          dx = matmul(PP, reshape(xx - sp.xxe, (sp.nd)))
+          dv = matmul(PP, reshape(vv, (sp.nd)))
+          dp = sp.mass2 * dv
+          ek = 0.5 * sum(sp.mass2 * dv**2)
+          log += [f"{'vibrational modes':<{INFO_LABEL_WIDTH}} = unavailable; no Hessian/normal modes\n"]
+          log += [f"{'internal residual':<{INFO_LABEL_WIDTH}} = projected outside translation/rotation\n"]
+          log += [info_scalar("residual |dx|", norm(dx) * au2ang, "Ang", "{:14.7f}")]
+          log += [info_scalar("residual |p|", norm(dp), "au", "{:14.7f}")]
+          log += [info_scalar("residual kinetic", ek * au2ev, "eV", "{:14.7f}")]
           return log
         debug = True
         debug = False
