@@ -13,6 +13,7 @@ TUTORIAL_ORDER = [
     "methane_methane",
     "single_atom_he_he",
     "single_atom_diatom_he_n2",
+    "fixed_plane_atom_diatom_ar_no",
     "single_atom_diatom_he_n2_wl",
     "wang_landau_nh3_h2o",
     "npz_output_co2_co2",
@@ -125,6 +126,35 @@ TUTORIALS = {
         "notes": [
             "Atom-diatom baseline; good before trying WL.",
             "Simple and fast while including one molecular rotor.",
+        ],
+    },
+    "fixed_plane_atom_diatom_ar_no": {
+        "desc": "Ar + NO constrained atom-diatom setup with fixed b and impact plane",
+        "mol0": "ar_dat.txt",
+        "mol1": "no_dat.txt",
+        "nsamp": 100,
+        "ntraj": 1,
+        "steps": 120,
+        "maxl": 120,
+        "maxb": 4.5,
+        "tvib": 0.0,
+        "trot": 0.0,
+        "rz": 58.20949319933,
+        "printout": "1 1 0 0",
+        "extra": [
+            "vib-mode = rigid",
+            "maxv = 0",
+            "incoming-k = 13.615392",
+            "fixed-b = 4.5",
+            "impact-phi = 0.0",
+            "wang = False",
+            "phisample = True",
+        ],
+        "notes": [
+            "Constrained diagnostic setup: rigid NO, zero initial rotor angular momentum.",
+            "Fixes impact parameter and lab impact-plane azimuth while sampling NO orientation.",
+            "Writes combined out_full.xyz, out_full.vel, and out_full.info for inspection.",
+            "Treat the cheap dynamics helper as optional; the main lesson is the initial condition.",
         ],
     },
     "single_atom_diatom_he_n2_wl": {
@@ -507,7 +537,7 @@ def _tutorial_input_text(name: str, cfg: dict, hist_samples: int | None = None) 
     ang_key = "maxj" if is_wl else "maxl"
     # Histogram-heavy tutorials are typically distribution diagnostics; avoid writing
     # per-sample xyz/vel files by default in this mode.
-    printout_line = "printout = 0 0 0 0" if hist_enabled else "printout = 0 0 1 0"
+    printout_line = "printout = 0 0 0 0" if hist_enabled else f"printout = {cfg.get('printout', '0 0 1 0')}"
     lines = [
         f"# Tutorial: {name}",
         f"# {cfg['desc']}",
@@ -518,7 +548,7 @@ def _tutorial_input_text(name: str, cfg: dict, hist_samples: int | None = None) 
         "",
         "# Core sampling controls",
         f"Nsamp = {nsamp_value}",
-        "workers = 1",
+        f"workers = {int(cfg.get('workers', 1))}",
         "seed = 400",
         "continue = False",
         "run-mode = fresh",
@@ -526,9 +556,9 @@ def _tutorial_input_text(name: str, cfg: dict, hist_samples: int | None = None) 
         "seed-mode = fixed",
         "",
         "# Thermal/beam settings",
-        "Tvib = 500.0",
-        "Trot = 500.0",
-        "Rz = 15",
+        f"Tvib = {float(cfg.get('tvib', 500.0))}",
+        f"Trot = {float(cfg.get('trot', 500.0))}",
+        f"Rz = {cfg.get('rz', 15)}",
         "",
         f"# Orbital controls ({ang_key} and maxb)",
         f"{ang_key} = {cfg['maxl']}",

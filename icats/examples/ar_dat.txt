@@ -1,0 +1,2 @@
+name = ar_dat
+xyz  = ar_geom.xyz

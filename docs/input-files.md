@@ -303,6 +303,11 @@ geometry; they are not direct input controls for the full body-frame
 transformation. Older sample-data keys may call the polar angle `theta`; in the
 manual and current logs this same angle is labelled `beta`.
 
+The packaged tutorial `fixed_plane_atom_diatom_ar_no` is the runnable version
+of this idea. It uses `Trot = 0.0`, `vib-mode = rigid`, `incoming-k`,
+`fixed-b`, and `impact-phi` to create a fixed-plane Ar + NO ensemble while
+still sampling the NO orientation.
+
 ### Rotations and Orientations
 
 | Key | Form | Meaning |

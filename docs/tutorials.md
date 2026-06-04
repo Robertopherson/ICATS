@@ -29,6 +29,8 @@ Current tutorials cover:
 - `methane_methane`: heavier symmetric-top example.
 - `single_atom_he_he`: atom-atom edge case.
 - `single_atom_diatom_he_n2`: atom-diatom template.
+- `fixed_plane_atom_diatom_ar_no`: constrained Ar + NO setup with fixed `b`,
+  fixed impact plane, rigid NO, and zero initial diatom rotation.
 - `single_atom_diatom_he_n2_wl`: atom-diatom with Wang-Landau weighting.
 - `wang_landau_nh3_h2o`: NH3 + H2O with Wang-Landau weighting.
 - `npz_output_co2_co2`: dual xyz/vel and NPZ output.
@@ -47,17 +49,23 @@ toy dynamics with more serious calculations.
    Adds one linear rotor. This is the easiest place to learn molecular angular
    momentum output.
 
-3. `quickstart`
+3. `fixed_plane_atom_diatom_ar_no`
+   Shows how to hold selected intermolecular variables fixed: impact parameter
+   `b`, lab impact-plane azimuth `impact-phi`, rigid vibration, and zero
+   initial diatom angular momentum. This is mainly an initial-condition
+   diagnostic tutorial.
+
+4. `quickstart`
    Introduces two polyatomic molecules and the full file pipeline.
 
-4. `methane_methane`
+5. `methane_methane`
    Shows a heavier symmetric-top case. This is useful for seeing vibrational
    angular momentum in the analysis.
 
-5. `single_atom_diatom_he_n2_wl`
+6. `single_atom_diatom_he_n2_wl`
    Adds Wang-Landau weighting in a relatively cheap system.
 
-6. `wang_landau_nh3_h2o`
+7. `wang_landau_nh3_h2o`
    Demonstrates Wang-Landau sampling in a more demanding polyatomic system.
 
 ## Running A Tutorial
@@ -105,3 +113,31 @@ Search for:
 
 These blocks are the fastest way to understand what ICATS sampled and what the
 analysis reconstructed.
+
+## Constrained Ar + NO Tutorial
+
+Use this tutorial when you want a small setup that fixes selected variables
+instead of sampling the full intermolecular geometry:
+
+```bash
+icats --tutorial fixed_plane_atom_diatom_ar_no --setup-only
+cd tutorial_fixed_plane_atom_diatom_ar_no
+icats.init tutorial_input.txt
+```
+
+The generated input uses:
+
+```text
+Trot = 0.0
+Tvib = 0.0
+vib-mode = rigid
+incoming-k = 13.615392
+fixed-b = 4.5
+impact-phi = 0.0
+printout = 1 1 0 0
+```
+
+This freezes the NO bond at the reference geometry, starts the diatom with no
+rigid-rotor angular momentum, fixes the impact parameter and lab impact-plane
+azimuth, and still samples the NO bond orientation. Inspect `out_full.info`,
+`out_full.xyz`, and `out_full.vel` after `icats.init`.
