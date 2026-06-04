@@ -37,7 +37,8 @@ def info_vec(label, vec, unit="", mag_label=None, mag=None, qm=None, fmt="{:12.5
     if mag_label is not None:
         if mag is None:
             mag = norm(vec)
-        line += ", |{0}| = {1:12.5f}".format(mag_label, float(mag))
+        mag_name = "|{0}|".format(mag_label)
+        line += ", {0:<7s} = {1:12.5f}".format(mag_name, float(mag))
     if qm is not None:
         line += "  (QM: {0:6.2f})".format(float(qm))
     return line + "\n"
@@ -1598,7 +1599,7 @@ class icats:
             stage = "generation"
         sa.slog += info_section("energy summary")
         sa.slog.append(
-            "{0:<{w}} = {1:<16s} {2:>14s} {3:>14s}\n".format(
+            "{0:<{w}} = {1:>16s} {2:>14s} {3:>14s}\n".format(
                 "component",
                 self.mol[0].ip.name + "/eV",
                 self.mol[1].ip.name + "/eV",
