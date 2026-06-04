@@ -614,15 +614,20 @@ class imolecule:
           log = ["  :" + ip.name + " : \n"]
           if 'ori' not in sa.SampInfo.keys():
              sa.SampInfo['ori'] = {}
-          sa.SampInfo['ori']['xyz'] = iR2ang(sa.soR,'xyz')  
-          sa.SampInfo['ori']['eul'] = iR2ang(sa.soR,'eul') 
+          xyz = list(iR2ang(sa.soR,'xyz'))
+          eul = list(iR2ang(sa.soR,'eul'))
+          if sp.na == 2:  # spin about a linear molecule axis is arbitrary
+             xyz[2] = 0.0
+             eul[2] = 0.0
+          sa.SampInfo['ori']['xyz'] = xyz
+          sa.SampInfo['ori']['eul'] = eul
           sa.SampInfo['ori']["phi"] = sa.SampInfo['ori']['eul'][0]
           sa.SampInfo['ori']["theta"] = sa.SampInfo['ori']['eul'][1]
           sa.SampInfo['ori']["chi"] = sa.SampInfo['ori']['eul'][2]
           log += ["    Orientations (phi,theta,chi): "
-              + "".join(["{0:10.7f}".format(a / pi) + " " for a in iR2ang(sa.soR,'eul')]) + " * pi rad \n"]
+              + "".join(["{0:10.7f}".format(a / pi) + " " for a in eul]) + " * pi rad \n"]
           log += ["    Orientations (wx,wy,wz)     : "
-                + "".join(["{0:10.7f}".format(a / pi) + " " for a in iR2ang(sa.soR,'xyz') ]) + " * pi rad \n"]
+                + "".join(["{0:10.7f}".format(a / pi) + " " for a in xyz]) + " * pi rad \n"]
         return log
 
     def InertiaFrameTransform(self,sa):
