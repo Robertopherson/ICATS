@@ -10,9 +10,10 @@ Current tutorial index:
 4 -> single_atom_he_he
 5 -> single_atom_diatom_he_n2
 6 -> fixed_plane_atom_diatom_ar_no
-7 -> single_atom_diatom_he_n2_wl
-8 -> wang_landau_nh3_h2o
-9 -> npz_output_co2_co2
+7 -> flat_l_atom_diatom_ar_no
+8 -> single_atom_diatom_he_n2_wl
+9 -> wang_landau_nh3_h2o
+10 -> npz_output_co2_co2
 
 Generate with:
   icats --tutorial quickstart --setup-only
