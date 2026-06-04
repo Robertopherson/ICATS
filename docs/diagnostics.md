@@ -133,6 +133,28 @@ The columns mean:
 - `PE`: momentum part of the harmonic energy.
 - `EE`: `QE + PE`.
 
+If no harmonic normal-mode basis is available, the block is shorter. For an
+atom it reports:
+
+```text
+vibrational space      = none (atom)
+```
+
+For a non-atomic molecule without a Hessian it reports an internal residual:
+
+```text
+vibrational modes      = unavailable; no Hessian/normal modes
+internal residual      = projected outside translation/rotation
+residual |dx|          =      0.0000000  Ang
+residual |p|           =      0.0000000  au
+residual kinetic       =      0.0000000  eV
+```
+
+These residuals are useful in rigid or constrained tests. They say whether the
+Cartesian sample contains motion outside the reference translation/rotation
+space. They are not harmonic vibrational energies, because no Hessian or
+frequencies were supplied.
+
 ## Reading Intermolecular Analysis
 
 The intermolecular block reports:

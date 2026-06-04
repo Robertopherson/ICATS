@@ -362,8 +362,13 @@ This is why the initial-sample audit is meaningful. The generated `Q, P`
 variables are converted to Cartesian coordinates and velocities, then the
 analysis tries to recover the same `Q, P` from the final Cartesian sample.
 
-If the molecule is an atom, or if no vibrational normal-mode space exists, the
-analysis prints `No vibrational space`.
+If the molecule is an atom, the analysis prints `vibrational space = none
+(atom)`. If the molecule has internal coordinates but no Hessian/normal-mode
+basis, ICATS does not invent a harmonic vibrational table. Instead it reports
+an `internal residual`: the displacement, momentum, and kinetic-energy content
+left after projecting the analysed Cartesian sample outside translation and
+rotation. This is a geometry/velocity consistency check, not a normal-mode
+energy decomposition.
 
 ## Rotational Sampling
 

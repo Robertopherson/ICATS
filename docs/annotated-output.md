@@ -148,6 +148,25 @@ the same normal-mode coordinates. That reconstructed table should agree with
 the generated one within the accuracy expected from the model and numerical
 projection.
 
+If a molecule has no Hessian, ICATS cannot assign internal motion to harmonic
+normal modes. The analysis then reports a residual outside the translation and
+rotation space:
+
+```text
+ar_dat                 = vibrational analysis
+vibrational space      = none (atom)
+no_dat                 = vibrational analysis
+vibrational modes      = unavailable; no Hessian/normal modes
+internal residual      = projected outside translation/rotation
+residual |dx|          =      0.0000000  Ang
+residual |p|           =      0.0000000  au
+residual kinetic       =      0.0000000  eV
+```
+
+For rigid tests this is a useful check: the residual should be zero or very
+small. It is not a harmonic vibrational energy table, because no Hessian or
+frequencies were supplied.
+
 ## 6. Intermolecular Analysis
 
 The analysis-side intermolecular block reconstructs the two-body Jacobi
@@ -222,49 +241,180 @@ which compares the correct vector-model terms directly.
 
 ## Worked Example: NH3 + H2O
 
-For a polyatomic pair such as ammonia + water, the `.info` file is most useful
-when read section by section rather than top to bottom. A representative
-generation energy summary might look like:
+A small NH3 + H2O run using the quickstart molecule files produced the
+following representative `.info` sample:
+
+```text
+Nsamp = 12
+Tvib = 500.0
+Trot = 500.0
+Rz = 15
+maxl = 182
+maxb = 16
+wang = False
+printout = 0 1 0 0
+```
+
+Sample 3 is a useful teaching example because both molecules rotate, both have
+normal-mode vibrations, and the analysis reconstructs similar values from the
+Cartesian coordinates and velocities.
+
+### Generation: Rotor Draws
+
+```text
+Sample 3 | generation
+ - Orbital Angular Q.N. L = : 169.52
+
+[orientation]
+ammonia_dat            = angular velocity from sampled rotor
+quantum J              =           11.0
+quantum J_z            =          9.000  au
+classical J            = [   -7.0537000,   -1.1159377,    9.0000000 ]  au, |J| =     11.48913  (QM:  11.00)
+classical energy       =        0.12929  eV
+
+h2o_dat                = angular velocity from sampled rotor
+quantum J              =            2.0
+classical J            = [   -2.2262829,    0.0424868,    1.0207152 ]  au, |J| =      2.44949  (QM:   2.00)
+classical energy       =        0.02153  eV
+```
+
+`L` is the sampled orbital angular-momentum quantum number. The molecular
+`quantum J` lines are the rotor states selected for each monomer. The
+`classical J` vectors are the vector-model realisation of those quantum labels:
+the magnitude is approximately `sqrt(J(J+1))`, which is why `J = 11` appears
+as `|J| = 11.48913`.
+
+```text
+ammonia_dat            = sampled orientation
+alpha,beta,gamma       = [  0.7452936,  0.7338185,  0.7312064 ]  pi rad
+h2o_dat                = sampled orientation
+alpha,beta,gamma       = [  0.6461051,  0.6799557, -0.2812087 ]  pi rad
+total J                =         172.24
+```
+
+These `alpha,beta,gamma` triples are molecular Euler angles. They describe
+each molecule's body-frame orientation before the Cartesian sample is written.
+`total J` is the vector sum of sampled orbital `L` and molecular
+`Jab = Ja + Jb`.
+
+### Generation: Vibrations
+
+```text
+[vibration]
+  :ammonia_dat :
+    mode   freq  vstat    Q         P         QE        PE        EE (eV)
+    0     652.3  1     1.075534  0.926277  0.046775  0.034693  0.081468
+    1    1816.3  0     0.220889  0.101438  0.005494  0.001159  0.006652
+...
+  :h2o_dat :
+    mode   freq  vstat    Q         P         QE        PE        EE (eV)
+    0    1756.9  0     0.486248  0.110618  0.025751  0.001333  0.027084
+```
+
+`freq` is the harmonic normal-mode frequency. `vstat` is the sampled oscillator
+state used by the Husimi-like normal-mode sampler. `Q` and `P` are the sampled
+mass/frequency-scaled coordinate and momentum. `QE`, `PE`, and `EE` are the
+coordinate, momentum, and total harmonic energy for that mode.
+
+### Generation: Intermolecular Channel
+
+```text
+[intermolecular]
+relative velocity      =   1435.6131231  m/s
+collision energy       =      0.0934994  eV
+ammonia_dat kinetic    =      0.0480626  eV
+h2o_dat kinetic        =      0.0454368  eV
+Ja, vector model       = [      5.42409,      0.00708,    -10.12814 ]  au, |Ja| =     11.48913
+Jb, vector model       = [      0.14867,      2.36552,      0.61824 ]  au, |Jb| =      2.44949
+L                      = [      0.00000,    170.01775,      0.00000 ]  au, |L| =    170.01775
+J = L + Jab            = [      5.57276,    172.39035,     -9.50990 ]  au, |J| =    172.74237
+b                      =        8.59126  Ang
+impact phi             =        1.00000  pi rad
+```
+
+The relative velocity and collision energy are the incoming two-body channel.
+`Ja` and `Jb` are molecular angular momenta in the lab frame, `Jab` is their
+sum, `L` is orbital angular momentum, and `J = L + Jab` is the total. The
+impact parameter follows from `L = mu v_rel b`.
 
 ```text
 [energy summary]
-component             ammonia_dat/eV     h2o_dat/eV       total/eV
-vibrational                 1.0268         0.3820         1.4088
-rotational                  0.0082         0.0498         0.0580
-velocity                    0.0492         0.0465         0.0957
-total                       1.0842         0.4783         1.5625
+component        ammonia_dat/eV     h2o_dat/eV       total/eV
+vibrational              0.2478         0.3656         0.6135
+rotational               0.1293         0.0215         0.1508
+velocity                 0.0481         0.0454         0.0935
+total                    0.4252         0.4326         0.8578
 ```
 
-Start with the `velocity` row. It tells you the incoming translational energy
-assigned to the two molecular centres of mass. This should match the beam or
-direct-channel setup you intended.
+Read this as the sampled model budget: harmonic vibration, vector-model
+rotation, and incoming COM motion.
 
-Next read the `rotational` row. For water and ammonia, the sampled rotor energy
-comes from the rigid-rotor/vector-model state selected for each molecule. In
-the analysis block, compare this to `vector rot. energy`, not blindly to
-`full rot. energy`, because the full instantaneous line uses the realised
-vibrationally distorted geometry.
-
-Then read the `vibrational` row and the mode tables. If the vibrational
-temperature is high, a single sample can carry substantial oscillator energy.
-The ensemble should reproduce the intended Husimi/harmonic-oscillator
-population, while one sample is just one phase-space point.
-
-Finally check the intermolecular block:
+### Analysis: Reconstructing the Cartesian Sample
 
 ```text
-Jab, vector model      = [     -1.43210,      0.28744,      2.91013 ]  au, |Jab| =      3.25660  (QM:   2.81)
-L                      = [      0.00000,    114.07766,      0.00000 ]  au, |L| =    114.07766  (QM: 113.58)
-J = L + Jab            = [     -1.43210,    114.36510,      2.91013 ]  au, |J| =    114.41125  (QM: 113.91)
-b                      =        5.69860  Ang
+Sample 3 | analysis
+
+[rotation]
+ammonia_dat            = oblate, symmetry constant =   1.00
+full J, space          = [      6.78943,     -0.28659,     -9.65061 ]  au, |J| =     11.80309
+vector J, space        = [      5.42514,      0.00672,    -10.12783 ]  au, |J| =     11.48935
+vibrational J          = [     -0.51418,      1.38125,      0.05324 ]  au, |J| =      1.47481
+vector rot. energy     = [      0.06826,      0.00171,      0.05933 ]  eV, |E| =      0.12929
+full rot. energy       = [      0.00171,      0.07625,      0.05964 ]  eV, |E| =      0.13759
 ```
 
-This is the part to inspect for Wang-Landau or angular-momentum-window
-questions. In a molecular collision, `J` is not simply `L`; the rotor vector
-contribution `Jab = JA + JB` shifts the total angular momentum. Wang-Landau
-sampling is useful when you want the accepted ensemble to balance the intended
-total-`J` window with a physically broad impact-parameter/orbital-`L`
-distribution.
+The analysis block is reconstructed from the actual Cartesian coordinates and
+velocities. `vector J` is the part corresponding to the intended rigid-rotor
+model. `full J` uses the instantaneous molecular geometry and therefore also
+sees vibrational angular momentum. Their difference is reported as
+`vibrational J`. For sampler checks, compare the generated rotor energy with
+`vector rot. energy`; inspect `full rot. energy` to see how the instantaneous
+distorted geometry changes the decomposition.
+
+```text
+[vibration]
+ammonia_dat            = vibrational analysis
+ mode    freq     ~vstat       Q         P         QE        PE       EE (eV)
+   0    652.3     0.5073  1.075533  0.926191  0.046775  0.034687  0.081461
+...
+h2o_dat                = vibrational analysis
+   0   1756.9    -0.3757  0.486248  0.110606  0.025751  0.001332  0.027083
+```
+
+The reconstructed `Q`, `P`, `QE`, and `PE` values should match the generated
+ones closely. The `~vstat` value is not resampling a quantum number; it is the
+classical reconstructed oscillator energy expressed as `E/omega - 0.5`.
+
+```text
+[intermolecular]
+angular energy         =    2.30266e-02  eV
+radial energy          =    7.02990e-02  eV
+total energy           =        0.09333  eV
+L                      = [     -0.47993,   -169.76306,     -0.27488 ]  au, |L| =    169.76396
+J = L + Jab            = [      5.09247,   -167.39197,     -9.78332 ]  au, |J| =    167.75493
+b                      =        8.58642  Ang
+```
+
+The analysed collision energy, impact parameter, and angular-momentum
+magnitudes are close to the generated values. Signs may differ because the
+analysis reports the reconstructed geometry after standard orientation and
+frame choices; start by comparing magnitudes and energies.
+
+```text
+[energy summary]
+component        ammonia_dat/eV     h2o_dat/eV       total/eV
+vibrational              0.2500         0.3643         0.6143
+rotational               0.1376         0.0205         0.1581
+velocity                 0.0480         0.0454         0.0933
+total                    0.4356         0.4302         0.8658
+```
+
+This is the final round-trip check. The generation total was `0.8578 eV`; the
+analysis total is `0.8658 eV`. The small difference comes from reconstructing
+the Cartesian geometry into instantaneous rotational and vibrational
+components. Large unexpected differences are a sign to inspect the vibrational
+table, the vector/full rotational split, and the intermolecular `L`, `Jab`,
+and `J` lines.
 
 ## Audit Block
 
