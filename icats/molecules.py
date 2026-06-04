@@ -71,7 +71,7 @@ class imolecule:
               self.Tvib = 0
               self.Trot = 0
               self.Tvel = 0
-              self.Velpar = []
+              self.VelPar = []
               self.ordist = 0
               self.nfreeze = []
               self.rotpar = 'xyz'
