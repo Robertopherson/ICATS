@@ -38,7 +38,7 @@ label                  =          value  unit
 Vector lines use:
 
 ```text
-label                  = [          x,          y,          z ]  unit, |name| =      value
+label                  = [          x,          y,          z ]  unit, |name|  =      value
 ```
 
 This spacing is intentional. The commas prevent negative signs from merging
@@ -112,13 +112,13 @@ rotational diagnostics from the Cartesian coordinates:
 ```text
 [rotation]
 no_dat                 = linear, symmetry constant =  -1.00
-full J, space          = [      0.00000,      0.00000,      0.00000 ]  au, |J| =      0.00000  (QM:   0.00)
-full J, Eckart         = [      0.00000,      0.00000,      0.00000 ]  au, |J| =      0.00000  (QM:   0.00)
-vector J, space        = [      0.00000,      0.00000,      0.00000 ]  au, |J| =      0.00000  (QM:   0.00)
-vector J, Eckart       = [      0.00000,      0.00000,      0.00000 ]  au, |J| =      0.00000  (QM:   0.00)
-vibrational J          = [      0.00000,      0.00000,      0.00000 ]  au, |J| =      0.00000  (QM:   0.00)
-vector rot. energy     = [      0.00000,      0.00000,      0.00000 ]  eV, |E| =      0.00000
-full rot. energy       = [      0.00000,      0.00000,      0.00000 ]  eV, |E| =      0.00000
+full J, space          = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000  (QM:   0.00)
+full J, Eckart         = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000  (QM:   0.00)
+vector J, space        = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000  (QM:   0.00)
+vector J, Eckart       = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000  (QM:   0.00)
+vibrational J          = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000  (QM:   0.00)
+vector rot. energy     = [      0.00000,      0.00000,      0.00000 ]  eV, |E|     =      0.00000
+full rot. energy       = [      0.00000,      0.00000,      0.00000 ]  eV, |E|     =      0.00000
 ```
 
 The most important comparison for sampler validation is the generated
@@ -132,7 +132,7 @@ If `vib-mode = rigid`, generation says so directly:
 
 ```text
 [vibration]
-vib-mode              = rigid; harmonic oscillator sampling skipped
+vib-mode               = rigid; harmonic oscillator sampling skipped
 ```
 
 For a vibrationally active molecule, ICATS prints mode-by-mode harmonic
@@ -178,10 +178,10 @@ molecules              = ar_dat x no_dat
 angular energy         =    4.79710e-04  eV
 radial energy          =    8.02678e-02  eV
 total energy           =        0.08075  eV
-Jab, vector model      = [      0.00000,      0.00000,      0.00000 ]  au, |Jab| =      0.00000  (QM:   0.00)
-L                      = [      0.00000,    115.78237,      0.00000 ]  au, |L| =    115.78237  (QM: 115.28)
-P_R                    = [      1.04631,     -0.00000,     13.53450 ]  au, |P_R| =     13.57489  (QM:  13.08)
-J = L + Jab            = [      0.00000,    115.78237,      0.00000 ]  au, |J| =    115.78237  (QM: 115.28)
+Jab, vector model      = [      0.00000,      0.00000,      0.00000 ]  au, |Jab|   =      0.00000  (QM:   0.00)
+L                      = [      0.00000,    115.78237,      0.00000 ]  au, |L|     =    115.78237  (QM: 115.28)
+P_R                    = [      1.04631,     -0.00000,     13.53450 ]  au, |P_R|   =     13.57489  (QM:  13.08)
+J = L + Jab            = [      0.00000,    115.78237,      0.00000 ]  au, |J|     =    115.78237  (QM: 115.28)
 b                      =        4.50000  Ang
 phi                    =        1.00000  pi rad
 COM 1                  = [      1.93023,      0.00000,     24.96832 ]  Ang
@@ -278,12 +278,12 @@ Sample 3 | generation
 ammonia_dat            = angular velocity from sampled rotor
 quantum J              =           11.0
 quantum J_z            =          9.000  au
-classical J            = [   -7.0537000,   -1.1159377,    9.0000000 ]  au, |J| =     11.48913  (QM:  11.00)
+classical J            = [   -7.0537000,   -1.1159377,    9.0000000 ]  au, |J|     =     11.48913  (QM:  11.00)
 classical energy       =        0.12929  eV
 
 h2o_dat                = angular velocity from sampled rotor
 quantum J              =            2.0
-classical J            = [   -2.2262829,    0.0424868,    1.0207152 ]  au, |J| =      2.44949  (QM:   2.00)
+classical J            = [   -2.2262829,    0.0424868,    1.0207152 ]  au, |J|     =      2.44949  (QM:   2.00)
 classical energy       =        0.02153  eV
 ```
 
@@ -291,7 +291,7 @@ classical energy       =        0.02153  eV
 `quantum J` lines are the rotor states selected for each monomer. The
 `classical J` vectors are the vector-model realisation of those quantum labels:
 the magnitude is approximately `sqrt(J(J+1))`, which is why `J = 11` appears
-as `|J| = 11.48913`.
+with magnitude `|J| = 11.48913`.
 
 ```text
 ammonia_dat            = sampled orientation
@@ -333,10 +333,10 @@ relative velocity      =   1435.6131231  m/s
 collision energy       =      0.0934994  eV
 ammonia_dat kinetic    =      0.0480626  eV
 h2o_dat kinetic        =      0.0454368  eV
-Ja, vector model       = [      5.42409,      0.00708,    -10.12814 ]  au, |Ja| =     11.48913
-Jb, vector model       = [      0.14867,      2.36552,      0.61824 ]  au, |Jb| =      2.44949
-L                      = [      0.00000,    170.01775,      0.00000 ]  au, |L| =    170.01775
-J = L + Jab            = [      5.57276,    172.39035,     -9.50990 ]  au, |J| =    172.74237
+Ja, vector model       = [      5.42409,      0.00708,    -10.12814 ]  au, |Ja|    =     11.48913
+Jb, vector model       = [      0.14867,      2.36552,      0.61824 ]  au, |Jb|    =      2.44949
+L                      = [      0.00000,    170.01775,      0.00000 ]  au, |L|     =    170.01775
+J = L + Jab            = [      5.57276,    172.39035,     -9.50990 ]  au, |J|     =    172.74237
 b                      =        8.59126  Ang
 impact phi             =        1.00000  pi rad
 ```
@@ -365,11 +365,11 @@ Sample 3 | analysis
 
 [rotation]
 ammonia_dat            = oblate, symmetry constant =   1.00
-full J, space          = [      6.78943,     -0.28659,     -9.65061 ]  au, |J| =     11.80309
-vector J, space        = [      5.42514,      0.00672,    -10.12783 ]  au, |J| =     11.48935
-vibrational J          = [     -0.51418,      1.38125,      0.05324 ]  au, |J| =      1.47481
-vector rot. energy     = [      0.06826,      0.00171,      0.05933 ]  eV, |E| =      0.12929
-full rot. energy       = [      0.00171,      0.07625,      0.05964 ]  eV, |E| =      0.13759
+full J, space          = [      6.78943,     -0.28659,     -9.65061 ]  au, |J|     =     11.80309
+vector J, space        = [      5.42514,      0.00672,    -10.12783 ]  au, |J|     =     11.48935
+vibrational J          = [     -0.51418,      1.38125,      0.05324 ]  au, |J|     =      1.47481
+vector rot. energy     = [      0.06826,      0.00171,      0.05933 ]  eV, |E|     =      0.12929
+full rot. energy       = [      0.00171,      0.07625,      0.05964 ]  eV, |E|     =      0.13759
 ```
 
 The analysis block is reconstructed from the actual Cartesian coordinates and
@@ -399,8 +399,8 @@ classical reconstructed oscillator energy expressed as `E/omega - 0.5`.
 angular energy         =    2.30266e-02  eV
 radial energy          =    7.02990e-02  eV
 total energy           =        0.09333  eV
-L                      = [     -0.47993,   -169.76306,     -0.27488 ]  au, |L| =    169.76396
-J = L + Jab            = [      5.09247,   -167.39197,     -9.78332 ]  au, |J| =    167.75493
+L                      = [     -0.47993,   -169.76306,     -0.27488 ]  au, |L|     =    169.76396
+J = L + Jab            = [      5.09247,   -167.39197,     -9.78332 ]  au, |J|     =    167.75493
 b                      =        8.58642  Ang
 ```
 
