@@ -71,38 +71,47 @@ and later the angular-momentum geometry:
 
 ```text
 [intermolecular]
-relative velocity      =    953.5976463  m/s
-collision energy       =      0.0807475  eV
-ar_dat z velocity      =    409.0352371  m/s
-no_dat z velocity      =   -544.5624092  m/s
-ar_dat kinetic         =      0.0346357  eV
-no_dat kinetic         =      0.0461117  eV
+relative velocity      =   1435.6131231  m/s
+collision energy       =      0.0934994  eV
+ammonia_dat z velocity =    737.9644293  m/s
+h2o_dat z velocity     =   -697.6486938  m/s
+ammonia_dat kinetic    =      0.0480626  eV
+h2o_dat kinetic        =      0.0454368  eV
 
-fixed b                =        4.50000  Ang
-implied L              =         115.28
-total J                =         115.28
+Ja, vector model       = [      5.42409,      0.00708,    -10.12814 ]  au, |Ja|    =     11.48913  (QM:  11.00)
+Jb, vector model       = [      0.14867,      2.36552,      0.61824 ]  au, |Jb|    =      2.44949  (QM:   2.00)
+Jab, vector model      = [      5.57276,      2.37260,     -9.50990 ]  au, |Jab|   =     11.27489  (QM:  10.79)
+L                      = [      0.00000,    170.01775,      0.00000 ]  au, |L|     =    170.01775  (QM: 169.52)
+J = L + Jab            = [      5.57276,    172.39035,     -9.50990 ]  au, |J|     =    172.74237  (QM: 172.24)
+b                      =        8.59126  Ang
+impact phi             =        1.00000  pi rad
 ```
 
 For direct-channel runs, `relative velocity`, `collision energy`, or
 `incoming-k` determines the incoming two-body channel. For crossed-beam runs,
 the molecule-level beam velocities are first converted into this relative
-channel.
+channel. `L` is the orbital angular momentum, `Ja` and `Jb` are the molecular
+rotor angular momenta, `Jab = Ja + Jb`, and `J = L + Jab`.
 
 ## 3. Orientation
 
-For a diatom with sampled orientation and zero rotational angular momentum:
+For nonlinear molecules, all three molecular Euler angles are meaningful:
 
 ```text
 [orientation]
-ar_dat                 = no orientational state
-no_dat                 = sampled orientation
-alpha,beta,gamma       = [  0.6287488,  0.3323750,  0.0000000 ]  pi rad   # molecular Euler
-wx,wy,wz               = [ -0.3205039, -0.1105013,  0.0000000 ]  pi rad   # XYZ rotation angles
+ammonia_dat            = sampled orientation
+alpha,beta,gamma       = [  0.7452936,  0.7338185,  0.7312064 ]  pi rad   # molecular Euler
+wx,wy,wz               = [ -0.7863115, -0.1729308, -0.9524227 ]  pi rad   # XYZ rotation angles
+h2o_dat                = sampled orientation
+alpha,beta,gamma       = [  0.6461051,  0.6799557, -0.2812087 ]  pi rad   # molecular Euler
+wx,wy,wz               = [ -0.6960331, -0.1220539,  0.1364084 ]  pi rad   # XYZ rotation angles
 ```
 
-For a linear molecule, `gamma` is an arbitrary spin about the molecular axis.
-ICATS reports it as zero. The physical bond direction is carried by
-`alpha,beta`.
+These are the sampled molecular orientations before the Cartesian sample is
+written. The later `analysis` section reconstructs orientations from the final
+coordinates and may use an equivalent Euler representation. For linear
+molecules, `gamma` is an arbitrary spin about the molecular axis; ICATS reports
+it as zero and the physical bond direction is carried by `alpha,beta`.
 
 ## 4. Rotation
 
@@ -111,32 +120,48 @@ rotational diagnostics from the Cartesian coordinates:
 
 ```text
 [rotation]
-no_dat                 = linear, symmetry constant =  -1.00
-full J, space          = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000  (QM:   0.00)
-full J, Eckart         = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000  (QM:   0.00)
-vector J, space        = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000  (QM:   0.00)
-vector J, Eckart       = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000  (QM:   0.00)
-vibrational J          = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000  (QM:   0.00)
-vector rot. energy     = [      0.00000,      0.00000,      0.00000 ]  eV, |E|     =      0.00000
-full rot. energy       = [      0.00000,      0.00000,      0.00000 ]  eV, |E|     =      0.00000
+ammonia_dat            = oblate, symmetry constant =   1.00
+full J, space          = [      6.78943,     -0.28659,     -9.65061 ]  au, |J|     =     11.80309  (QM:  11.31)
+vector J, space        = [      5.42514,      0.00672,    -10.12783 ]  au, |J|     =     11.48935  (QM:  11.00)
+vibrational J          = [     -0.51418,      1.38125,      0.05324 ]  au, |J|     =      1.47481  (QM:   1.06)
+vector rot. energy     = [      0.06826,      0.00171,      0.05933 ]  eV, |E|     =      0.12929
+full rot. energy       = [      0.00171,      0.07625,      0.05964 ]  eV, |E|     =      0.13759
+
+h2o_dat                = asym-spherical, symmetry constant =  -0.66
+full J, space          = [     -0.23574,      2.04596,      0.82321 ]  au, |J|     =      2.21793  (QM:   1.77)
+vector J, space        = [      0.14725,      2.36438,      0.61940 ]  au, |J|     =      2.44859  (QM:   2.00)
+vibrational J          = [      0.06575,      0.06853,     -0.52971 ]  au, |J|     =      0.53815  (QM:   0.23)
+vector rot. energy     = [      0.02028,      0.00000,      0.00124 ]  eV, |E|     =      0.02152
+full rot. energy       = [      0.02024,      0.00005,      0.00026 ]  eV, |E|     =      0.02054
 ```
 
 The most important comparison for sampler validation is the generated
 rigid-rotor energy against `vector rot. energy`. `full rot. energy` uses the
 instantaneous realised geometry, so for vibrating polyatomics it is a useful
-diagnostic but not always the exact sampled model energy.
+diagnostic but not always the exact sampled model energy. `vibrational J` is
+the angular-momentum part left after subtracting the vector-model rotation in
+the Eckart/body-fixed analysis.
 
 ## 5. Vibration
 
-If `vib-mode = rigid`, generation says so directly:
+For a vibrationally active molecule, ICATS prints mode-by-mode harmonic
+oscillator information:
 
 ```text
 [vibration]
-vib-mode               = rigid; harmonic oscillator sampling skipped
+  :ammonia_dat :
+    mode   freq  vstat    Q         P         QE        PE        EE (eV)
+    0     652.3  1     1.075534  0.926277  0.046775  0.034693  0.081468
+    1    1816.3  0     0.220889  0.101438  0.005494  0.001159  0.006652
+    2    1819.8  0    -0.138505  0.519897  0.002164  0.030493  0.032657
+
+  :h2o_dat :
+    mode   freq  vstat    Q         P         QE        PE        EE (eV)
+    0    1756.9  0     0.486248  0.110618  0.025751  0.001333  0.027084
+    1    4009.6  0     0.752618 -0.399297  0.140794  0.039630  0.180424
 ```
 
-For a vibrationally active molecule, ICATS prints mode-by-mode harmonic
-oscillator information. The key columns are:
+The key columns are:
 
 - `vstat`: sampled harmonic-oscillator state.
 - `Q`, `P`: sampled dimensionless normal coordinate and momentum.
@@ -148,8 +173,15 @@ the same normal-mode coordinates. That reconstructed table should agree with
 the generated one within the accuracy expected from the model and numerical
 projection.
 
-If a molecule has no Hessian, ICATS cannot assign internal motion to harmonic
-normal modes. The analysis then reports a residual outside the translation and
+If `vib-mode = rigid`, generation says so directly:
+
+```text
+[vibration]
+vib-mode               = rigid; harmonic oscillator sampling skipped
+```
+
+If a molecule has no Hessian, analysis cannot assign internal motion to
+harmonic normal modes. It then reports a residual outside the translation and
 rotation space:
 
 ```text
@@ -163,9 +195,9 @@ residual |p|           =      0.0000000  au
 residual kinetic       =      0.0000000  eV
 ```
 
-For rigid tests this is a useful check: the residual should be zero or very
-small. It is not a harmonic vibrational energy table, because no Hessian or
-frequencies were supplied.
+For rigid tests this residual should be zero or very small. It is not a
+harmonic vibrational energy table, because no Hessian or frequencies were
+supplied.
 
 ## 6. Intermolecular Analysis
 
@@ -174,18 +206,24 @@ quantities from the Cartesian sample:
 
 ```text
 [intermolecular]
-molecules              = ar_dat x no_dat
-angular energy         =    4.79710e-04  eV
-radial energy          =    8.02678e-02  eV
-total energy           =        0.08075  eV
-Jab, vector model      = [      0.00000,      0.00000,      0.00000 ]  au, |Jab|   =      0.00000  (QM:   0.00)
-L                      = [      0.00000,    115.78237,      0.00000 ]  au, |L|     =    115.78237  (QM: 115.28)
-P_R                    = [      1.04631,     -0.00000,     13.53450 ]  au, |P_R|   =     13.57489  (QM:  13.08)
-J = L + Jab            = [      0.00000,    115.78237,      0.00000 ]  au, |J|     =    115.78237  (QM: 115.28)
-b                      =        4.50000  Ang
-phi                    =        1.00000  pi rad
-COM 1                  = [      1.93023,      0.00000,     24.96832 ]  Ang
-COM 2                  = [     -2.56977,      0.00000,    -33.24117 ]  Ang
+molecules              = ammonia_dat x h2o_dat
+angular energy         =    2.30266e-02  eV
+radial energy          =    7.02990e-02  eV
+total energy           =        0.09333  eV
+Ja, full               = [      6.78943,     -0.28659,     -9.65061 ]  au, |Ja|    =     11.80309  (QM:  11.31)
+Jb, full               = [     -0.23574,      2.04596,      0.82321 ]  au, |Jb|    =      2.21793  (QM:   1.77)
+Jab, full              = [      6.55369,      1.75937,     -8.82740 ]  au, |Jab|   =     11.13415  (QM:  10.65)
+Ja, vector model       = [      5.42514,      0.00672,    -10.12783 ]  au, |Ja|    =     11.48935  (QM:  11.00)
+Jb, vector model       = [      0.14725,      2.36438,      0.61940 ]  au, |Jb|    =      2.44859  (QM:   2.00)
+Jab, vector model      = [      5.57240,      2.37109,     -9.50844 ]  au, |Jab|   =     11.27316  (QM:  10.78)
+L                      = [     -0.47993,   -169.76306,     -0.27488 ]  au, |L|     =    169.76396  (QM: 169.26)
+P_R                    = [     -4.51302,      0.00000,      7.87955 ]  au, |P_R|   =      9.08046  (QM:   8.59)
+J = L + Jab            = [      5.09247,   -167.39197,     -9.78332 ]  au, |J|     =    167.75493  (QM: 167.26)
+moment of inertia      =      1.703e+07  au
+b                      =        8.58642  Ang
+phi                    =       -0.00090  pi rad
+COM 1                  = [     -4.41626,      0.00000,      7.71062 ]  Ang
+COM 2                  = [      4.17500,     -0.00000,     -7.28938 ]  Ang
 ```
 
 The sign of a vector component may differ between generation and analysis if
@@ -200,13 +238,14 @@ The system-angle block is the two-vector embedding reconstruction:
 ```text
 [system angles]
 frame note             = SFF is the lab Cartesian frame; Jacobi BF is the collision frame
-system Euler           = [    -0.0000,     0.0246,     0.0000 ]  pi rad   # SFF -> Jacobi BF; phi, beta, chi
-mol 1 BF Euler         = [     0.0000,     0.0000,     0.0000 ]  pi rad   # molecule 1 in Jacobi BF; alpha, beta, gamma
-mol 2 BF Euler         = [     0.6413,     0.3425,     0.0000 ]  pi rad   # molecule 2 in Jacobi BF; alpha, beta, gamma
-v1-v2 dihedral         =         0.0000  pi rad
-Jacobi R               =       58.38317  Ang
-SFF->Jacobi BF         = [    1.0000,   -0.0000,    0.0000 ]; [    0.0000,    0.9969,    0.0772 ]; [   -0.0000,   -0.0772,    0.9969 ]
-Jacobi BF->mol1 BF     = [    1.0000,    0.0000,    0.0000 ]; [    0.0000,    1.0000,    0.0000 ]; [    0.0000,    0.0000,    1.0000 ]
+system Euler           = [     1.0000,     0.1656,    -0.5102 ]  pi rad   # SFF -> Jacobi BF; phi, beta, chi
+mol 1 BF Euler         = [    -0.0000,     0.7867,     0.9646 ]  pi rad   # molecule 1 in Jacobi BF; alpha, beta, gamma
+mol 2 BF Euler         = [    -0.1555,     0.7907,    -0.1106 ]  pi rad   # molecule 2 in Jacobi BF; alpha, beta, gamma
+v1-v2 dihedral         =         0.9008  pi rad
+Jacobi R               =       17.28611  Ang
+SFF->Jacobi BF         = [    0.0279,   -0.8673,   -0.4970 ]; [    0.9995,    0.0322,    0.0000 ]; [    0.0160,   -0.4967,    0.8677 ]
+Jacobi BF->mol1 BF     = [    0.7790,    0.0869,    0.6209 ]; [    0.1109,   -0.9938,   -0.0000 ]; [    0.6171,    0.0688,   -0.7839 ]
+Jacobi BF->mol2 BF     = [   -0.8170,    0.2032,    0.5397 ]; [    0.0485,    0.9568,   -0.2868 ]; [   -0.5746,   -0.2082,   -0.7915 ]
 ```
 
 Do not confuse `impact-phi` in the input with the reconstructed system Euler
