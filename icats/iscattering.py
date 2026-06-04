@@ -84,6 +84,8 @@ class icats:
               self.MaxL = 0
               self.FixedB = None
               self.ImpactPhi = None
+              self.velfwhm = 0.0
+              self.relative_channel = None
               self.vib_mode = "sample"
               self.continues = False
               self.KeepInfo = False
@@ -259,12 +261,37 @@ class icats:
                     self.log += ["Temperature for Intermolecular Velocity: "+ val[0]+ " \n"]
                     ip.Tvel = float(val[0])
                 else:
+                    if len(val) < 2:
+                        val = [val[0], "0.0"]
                     self.log +=['Intermolecular Velocity (m/s) centre: '
                         + val[0]+ ' FWHM: ' + val[1] + '\n']
                     if len(val) > 1:
                         self.log +=['Full Width Half-Maximum (FWHM): '+ val[1] + '\n']
                         ip.velfwhm = float(val[1])*mps2au
                     ip.Tvel = float(val[0])*mps2au
+            if ky == "relative-velocity":
+                ip.Tvel = -abs(float(val[0])) * mps2au
+                if len(val) > 1:
+                    ip.velfwhm = abs(float(val[1])) * mps2au
+                    self.log += ["Relative velocity FWHM: " + val[1] + " m/s\n"]
+                else:
+                    ip.velfwhm = 0.0
+                self.log += ["Relative velocity centre: " + val[0] + " m/s\n"]
+            if ky == "relative-velocity-fwhm":
+                ip.velfwhm = abs(float(val[0])) * mps2au
+                self.log += ["Relative velocity FWHM: " + val[0] + " m/s\n"]
+            if ky == "collision-energy":
+                ip.relative_channel = ("collision-energy", float(val[0]))
+                ip.velfwhm = 0.0
+                self.log += ["Fixed collision energy: " + val[0] + " eV\n"]
+            if ky == "incoming-p0":
+                ip.relative_channel = ("incoming-p0", float(val[0]))
+                ip.velfwhm = 0.0
+                self.log += ["Fixed incoming relative momentum p0: " + val[0] + " a.u.\n"]
+            if ky == "incoming-k":
+                ip.relative_channel = ("incoming-k", float(val[0]))
+                ip.velfwhm = 0.0
+                self.log += ["Fixed incoming wave number k: " + val[0] + " bohr^-1\n"]
             if ky == "fileout":
                 self.log += ["Prefix output Prefix Name: " + val[0] + "\n"]
                 ip.fileout = val[0]
@@ -532,6 +559,7 @@ class icats:
         sp.nd = sp.na * 3
         w0, w1 = sum(mol[0].sp.mass), sum(mol[1].sp.mass)
         sp.w0, sp.w1 = w0 / (w1 + w0), w1 / (w1 + w0)
+        self.ResolveRelativeChannel()
         self.consistentT()
         if all(m.sp.na == 1 for m in mol):
             ip.Trot = 0.0
@@ -579,6 +607,40 @@ class icats:
             if hasattr(self.ip, "Tvib"):
                 self.log.append("Overwriting molecular Tvib to system Tvib.." + str(self.ip.Tvib)+ "\n")
                 mol[i].ip.Tvib = self.ip.Tvib
+
+    def ResolveRelativeChannel(self):
+        """Convert direct relative-channel inputs to a fixed relative speed."""
+        ip = self.ip
+        sp = self.sp
+        if ip.relative_channel is None:
+            return
+        kind, raw = ip.relative_channel
+        if kind == "collision-energy":
+            E = raw * ev2au
+            if E <= 0.0:
+                raise ValueError("collision-energy must be positive")
+            V = sqrt(2.0 * E / sp.rmass)
+            p0 = sp.rmass * V
+        elif kind in ("incoming-p0", "incoming-k"):
+            p0 = abs(raw)
+            if p0 <= 0.0:
+                raise ValueError(kind + " must be positive")
+            V = p0 / sp.rmass
+            E = 0.5 * p0 * p0 / sp.rmass
+        else:
+            raise ValueError("Unknown relative-channel input: " + str(kind))
+        ip.Tvel = -V
+        self.log += [
+            "Resolved direct relative channel: v_rel = "
+            + "{0:.7f}".format(V * au2mps)
+            + " m/s, E_coll = "
+            + "{0:.7f}".format(E * au2ev)
+            + " eV, p0 = k = "
+            + "{0:.7f}".format(p0)
+            + " a.u.\n"
+        ]
+        return
+
     def AsymRigidRotorProjEnergies(self):
         """Calculate rigid rotor energies for molecules.
 
@@ -851,19 +913,21 @@ class icats:
                  sa.slog += [str(hist) +'\n']
                  sa.dist['vel']['cont'] = InitICDF(1, MBiCDF, [A], seed=seed*419)
             elif T < 0.0:
+               v0 = abs(T)
                if ip.velfwhm > 0.0: 
                   sigma = ip.velfwhm/(2*sqrt(2.0*np.log(2.0)))              
-                  sa.dist['vel']['cont'] = InitICDF(1, GaussianF2, [0,sigma],seed=seed*383) 
+                  A = 1.0 / (2.0 * sigma ** 2)
+                  sa.dist['vel']['cont'] = InitICDF(1, GaussianICDF, [v0,A],seed=seed*383) 
                   if nsamp != 0:                                                     
                     vv = [ICDFsample(sa.dist['vel']['cont'])/mps2au for _ in range(nsamp)]     
                     hist_emit(vv, "vel", stage="initial", scope="system")
                     hist, edg = np.histogram(vv, bins=11)                            
-                    sa.slog += ['Molecular Velocity  Histogram  = \n']                   
+                    sa.slog += ['Intermolecular Velocity Histogram  = \n']                   
                     sa.slog += [str(edg) + '\n']                                         
                     sa.slog += [str(hist) +'\n']                                         
-                    sa.dist['vel']['cont'] = InitICDF(1, GaussianF2, [0,sigma],seed=seed*151) 
+                    sa.dist['vel']['cont'] = InitICDF(1, GaussianICDF, [v0,A],seed=seed*151) 
                else:
-                  sa.dist['vel']['v'] = abs(T)
+                  sa.dist['vel']['v'] = v0
         elif nsamp != 0:
            vv = []
            for _ in range(nsamp):
@@ -1683,7 +1747,10 @@ class icats:
         msp = [mol[0].sp,mol[1].sp]
         # if the user chose intermolecular energy/velocity directly
         if 'vel' in sa.dist.keys():
-            V = abs(ICDFsample(sa.dist['vel']['cont']))
+            if 'cont' in sa.dist['vel']:
+                V = abs(ICDFsample(sa.dist['vel']['cont']))
+            else:
+                V = abs(sa.dist['vel']['v'])
             sa.sV  = V 
             vv = self.GetInterMolZVeloc(V)
             sa.svel = vv

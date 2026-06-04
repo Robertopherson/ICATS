@@ -119,7 +119,7 @@ logs, histogram file names, or input options.
 | Orbital angular momentum | `L` | semiclassical partial-wave measure, $P(L) dL \propto (2L+1) dL$ |
 | Total angular momentum | `J` | target partial-wave measure, $P(J) dJ \propto (2J+1) dJ$ |
 | Orbital azimuth | `phi` | uniform angle when `phisample = True` |
-| Relative speed | intermolecular velocity | Maxwell-Boltzmann or beam/Gaussian-like velocity distribution, depending on input mode |
+| Relative speed | intermolecular velocity | Crossed-beam molecular speed distributions, direct relative-speed/channel input, or Maxwell-Boltzmann relative-speed sampling, depending on input mode |
 | Wang-Landau correction | accepted total `J` | rejection weight proportional to $(2J+1)/\Omega_{\mathrm{WL}}(J)$ |
 
 The important practical point is that these distributions are not all sampled
@@ -129,6 +129,43 @@ into Cartesian coordinates and velocities. Intermolecular distributions define
 the incoming collision geometry. Wang-Landau then acts on the combined trial
 sample, after `L`, `J_A`, and `J_B` have already produced a candidate total
 angular momentum.
+
+## Intermolecular Velocity Ensembles
+
+The incoming translational motion can be interpreted in two different ways.
+
+In a crossed-beam interpretation, each molecule has its own beam speed
+distribution. ICATS samples the two molecular centre-of-mass speeds separately
+from the molecule-file `vel` entries, then combines them using the requested
+`beam-angle`. This produces the Jacobi relative speed and therefore the
+collision energy:
+
+$$
+v_{\mathrm{rel}}^2
+= v_A^2 + v_B^2 - 2 v_A v_B \cos\varphi ,
+\qquad
+E_{\mathrm{coll}} = \frac{1}{2}\mu v_{\mathrm{rel}}^2 .
+$$
+
+This is the natural model for a crossed-beam experiment where the beam
+velocities and crossing angle are known.
+
+In a direct-channel interpretation, the user specifies the relative incoming
+channel itself. The equivalent quantities are:
+
+$$
+p_0 = \mu v_{\mathrm{rel}},
+\qquad
+E_{\mathrm{coll}} = \frac{p_0^2}{2\mu},
+\qquad
+k = \frac{p_0}{\hbar}.
+$$
+
+Since ICATS uses atomic units internally, \(\hbar=1\), so the numerical values
+of `incoming-p0` and `incoming-k` are the same when both are expressed in
+atomic units. This direct-channel setup is closest to the usual partial-wave
+language, where an incoming channel is labelled by \(k\) and semiclassically
+\(L \simeq k b\).
 
 ## Code-Level Workflow
 

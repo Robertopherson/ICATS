@@ -42,6 +42,11 @@ def validate_molecule_file_refs(base_dir: Path, mol_file: str) -> List[str]:
 KNOWN_KEYS = {
     "mol",
     "tvel",
+    "relative-velocity",
+    "relative-velocity-fwhm",
+    "collision-energy",
+    "incoming-p0",
+    "incoming-k",
     "fileout",
     "dirout",
     "seed",
@@ -134,7 +139,7 @@ def load_and_validate(input_file: str) -> Dict[str, object]:
             _parse_bool(vals[0], key)
         if key in ("workers", "seed", "maxj", "maxl", "maxv", "wl-nstep", "wl-wn", "wl-max-iter", "wl-log-every", "save-frequency"):
             _ensure_numeric(vals[0], key, as_int=True)
-        if key in ("tvel", "trot", "tvib", "maxb", "fixed-b", "impact-phi", "rz", "beam-angle", "wl-ff", "wl-flatness", "wl-wn-factor", "wl-tol", "audit-initial-energy-tol", "audit-initial-angular-tol"):
+        if key in ("tvel", "relative-velocity", "relative-velocity-fwhm", "collision-energy", "incoming-p0", "incoming-k", "trot", "tvib", "maxb", "fixed-b", "impact-phi", "rz", "beam-angle", "wl-ff", "wl-flatness", "wl-wn-factor", "wl-tol", "audit-initial-energy-tol", "audit-initial-angular-tol"):
             _ensure_numeric(vals[0], key, as_int=False)
 
     if len(mol_entries) < 2:
@@ -183,6 +188,9 @@ Tvib = 500.0
 Trot = 500.0
 # Tvel = 500.0
 # Tvel = -500.0 50.0
+# relative-velocity = 1000.0
+# collision-energy = 0.050
+# incoming-k = 12.0
 
 # Geometry / beam
 Rz = 15

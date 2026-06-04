@@ -146,7 +146,7 @@ These options appear inside each molecule file referenced by `mol`.
 | `w` | `w = freq.txt` | Frequency-file reference used by templates/validation; current normal-mode sampling is driven by `hess`. |
 | `trot` | `trot = 50.0` | Molecule-level rotational temperature override. |
 | `tvib` | `tvib = 50.0` | Molecule-level vibrational temperature override. |
-| `vel` | `vel = 1000 100 3` | Molecule beam-speed distribution: centre, FWHM, and velocity power. |
+| `vel` | `vel = 1000 100 3` | Molecule beam-speed distribution: centre speed in m/s, FWHM in m/s, and velocity-power weight. |
 | `nfreeze` | `nfreeze = 1 2 3` | Normal-mode indices to leave at zero during vibrational sampling. |
 | `ordist` | `ordist = read file function ...` | Read a molecule orientation distribution from a user-supplied function. |
 | `ordist` | `ordist = fixed` | Fixed-orientation mode. |
@@ -186,10 +186,70 @@ files and increase to a few cores only after the setup is known to be correct.
 | `Trot` | `Trot = 50.0` | System rotational temperature. |
 | `Tvib` | `Tvib = 50.0` | System vibrational temperature. |
 | `Tvel` | `Tvel = 300.0` | Intermolecular velocity temperature. |
-| `Tvel` | `Tvel = -500.0 50.0` | Explicit beam-centred velocity form: centre and optional FWHM in m/s. |
+| `Tvel` | `Tvel = -500.0 50.0` | Legacy direct relative-speed form: centre and optional FWHM in m/s. |
+| `relative-velocity` | `relative-velocity = 1000.0` | Fixed direct relative speed in m/s. |
+| `relative-velocity` | `relative-velocity = 1000.0 50.0` | Direct relative-speed distribution with centre and FWHM in m/s. |
+| `relative-velocity-fwhm` | `relative-velocity-fwhm = 50.0` | Optional FWHM for a direct relative-speed input, in m/s. |
+| `collision-energy` | `collision-energy = 0.050` | Fixed direct collision energy in eV. |
+| `incoming-p0` | `incoming-p0 = 12.0` | Fixed direct relative momentum in atomic units. |
+| `incoming-k` | `incoming-k = 12.0` | Fixed direct incoming wave number in bohr^-1. In atomic units this is numerically the same as `p0`. |
 
 The top-level `Trot` and `Tvib` are copied into molecules unless molecule-level
 values override them. Atom-only systems force both to zero.
+
+There are two physically different ways to set the incoming translational
+motion.
+
+**Crossed-beam mode** uses the molecule-file `vel` entries. Each beam speed is
+sampled independently, and `beam-angle` determines the relative speed:
+
+```text
+# molecule A file
+vel = 600.0 100.0 3
+
+# molecule B file
+vel = 800.0 100.0 3
+
+# top-level scattering input
+beam-angle = 90.0
+```
+
+This is the closest model of a crossed-beam experiment. The third number in
+`vel` is the velocity-power weight; `3` corresponds to the flux-weighted form
+often used for effusive or supersonic molecular beams.
+
+**Direct relative-channel mode** bypasses separate beam speeds and sets the
+Jacobi relative speed directly. Use this for idealised fixed-energy scattering
+or when thinking in partial-wave variables:
+
+```text
+relative-velocity = 1000.0
+```
+
+or equivalently:
+
+```text
+collision-energy = 0.050
+```
+
+or:
+
+```text
+incoming-k = 12.0
+```
+
+For direct-channel inputs ICATS converts internally between
+
+```text
+E_coll = 1/2 * mu * v_rel^2
+p0 = mu * v_rel
+k = p0 / hbar
+```
+
+where `hbar = 1` in atomic units. Do not combine molecule-file `vel`
+distributions with direct-channel inputs in the same production run unless you
+are intentionally testing precedence; the top-level direct-channel input takes
+over the intermolecular relative speed.
 
 ### Intermolecular Geometry and Angular Momentum
 
