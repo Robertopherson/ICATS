@@ -1275,7 +1275,7 @@ class icats:
           debug and print('Sample HOVib... ')  
           if ip.vib_mode == "rigid":
             sa.slog += info_section("vibration")
-            sa.slog += ["vib-mode              = rigid; harmonic oscillator sampling skipped\n"]
+            sa.slog += [f"{'vib-mode':<{INFO_LABEL_WIDTH}} = rigid; harmonic oscillator sampling skipped\n"]
           else:
             self.SampleHOVibrState(sa)
           # sample intermolecular DOF
@@ -1598,11 +1598,12 @@ class icats:
             stage = "generation"
         sa.slog += info_section("energy summary")
         sa.slog.append(
-            "{0:<16s} {1:>14s} {2:>14s} {3:>14s}\n".format(
+            "{0:<{w}} = {1:<16s} {2:>14s} {3:>14s}\n".format(
                 "component",
                 self.mol[0].ip.name + "/eV",
                 self.mol[1].ip.name + "/eV",
                 "total/eV",
+                w=INFO_LABEL_WIDTH,
             )
         )
         rows = [
@@ -1612,7 +1613,7 @@ class icats:
             ("total", ken1 + ven1 + ren1, ken2 + ven2 + ren2, ken1 + ken2 + ven1 + ven2 + ren1 + ren2),
         ]
         for name, v1, v2, vt in rows:
-            sa.slog.append("{0:<16s} {1:14.4f} {2:14.4f} {3:14.4f}\n".format(name, v1, v2, vt))
+            sa.slog.append("{0:<{w}} = {1:16.4f} {2:14.4f} {3:14.4f}\n".format(name, v1, v2, vt, w=INFO_LABEL_WIDTH))
         summary = {
             "vib": ven1 + ven2,
             "rot": ren1 + ren2,

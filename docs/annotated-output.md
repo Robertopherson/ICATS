@@ -225,11 +225,11 @@ Generation and analysis both print the same table shape:
 
 ```text
 [energy summary]
-component             ammonia_dat/eV     h2o_dat/eV       total/eV
-vibrational                 1.0268         0.3820         1.4088
-rotational                  0.0082         0.0498         0.0580
-velocity                    0.0492         0.0465         0.0957
-total                       1.0842         0.4783         1.5625
+component              = ammonia_dat/eV     h2o_dat/eV       total/eV
+vibrational            =           1.0268         0.3820         1.4088
+rotational             =           0.0082         0.0498         0.0580
+velocity               =           0.0492         0.0465         0.0957
+total                  =           1.0842         0.4783         1.5625
 ```
 
 Read the generation table as:
@@ -348,11 +348,11 @@ impact parameter follows from `L = mu v_rel b`.
 
 ```text
 [energy summary]
-component        ammonia_dat/eV     h2o_dat/eV       total/eV
-vibrational              0.2478         0.3656         0.6135
-rotational               0.1293         0.0215         0.1508
-velocity                 0.0481         0.0454         0.0935
-total                    0.4252         0.4326         0.8578
+component              = ammonia_dat/eV     h2o_dat/eV       total/eV
+vibrational            =           0.2478         0.3656         0.6135
+rotational             =           0.1293         0.0215         0.1508
+velocity               =           0.0481         0.0454         0.0935
+total                  =           0.4252         0.4326         0.8578
 ```
 
 Read this as the sampled model budget: harmonic vibration, vector-model
@@ -411,11 +411,11 @@ frame choices; start by comparing magnitudes and energies.
 
 ```text
 [energy summary]
-component        ammonia_dat/eV     h2o_dat/eV       total/eV
-vibrational              0.2500         0.3643         0.6143
-rotational               0.1376         0.0205         0.1581
-velocity                 0.0480         0.0454         0.0933
-total                    0.4356         0.4302         0.8658
+component              = ammonia_dat/eV     h2o_dat/eV       total/eV
+vibrational            =           0.2500         0.3643         0.6143
+rotational             =           0.1376         0.0205         0.1581
+velocity               =           0.0480         0.0454         0.0933
+total                  =           0.4356         0.4302         0.8658
 ```
 
 This is the final round-trip check. The generation total was `0.8578 eV`; the
