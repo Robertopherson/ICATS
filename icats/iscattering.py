@@ -1936,12 +1936,15 @@ class icats:
           # gen spherica polar coordinate angles between L and Jab (should be isotropic)
           _, R = rot_match_vec(reshape(cL,(1,3)),reshape(z,(1,3))) 
           _,LJab_be,LJab_al =  xyz2polar(matmul(R,Jab))
-        sa.slog += [info_vec("Ja, full", iJa, "au", "Ja", niJa, qiJa)]
-        sa.slog += [info_vec("Jb, full", iJb, "au", "Jb", niJb, qiJb)]
-        sa.slog += [info_vec("Jab, full", iJab, "au", "Jab", niJab, qiJab)]
-        sa.slog += [info_vec("Ja, vector model", Ja, "au", "Ja", nJa, qJa)]
-        sa.slog += [info_vec("Jb, vector model", Jb, "au", "Jb", nJb, qJb)]
-        sa.slog += [info_vec("Jab, vector model", Jab, "au", "Jab", nJab, qJab)]
+        if max(niJa, niJb, niJab, nJa, nJb, nJab) < 1.0e-10:
+          sa.slog += [f"{'molecular J':<{INFO_LABEL_WIDTH}} = Ja, Jb, and Jab are zero in full and vector-model generation\n"]
+        else:
+          sa.slog += [info_vec("Ja, full", iJa, "au", "Ja", niJa, qiJa)]
+          sa.slog += [info_vec("Jb, full", iJb, "au", "Jb", niJb, qiJb)]
+          sa.slog += [info_vec("Jab, full", iJab, "au", "Jab", niJab, qiJab)]
+          sa.slog += [info_vec("Ja, vector model", Ja, "au", "Ja", nJa, qJa)]
+          sa.slog += [info_vec("Jb, vector model", Jb, "au", "Jb", nJb, qJb)]
+          sa.slog += [info_vec("Jab, vector model", Jab, "au", "Jab", nJab, qJab)]
         sa.slog += [info_vec("L", cL, "au", "L", ncL, qL)]
         sa.slog += [info_vec("J = L + Jab", cJ, "au", "J", ncJ, qJ)]
         # semiclassical mapping

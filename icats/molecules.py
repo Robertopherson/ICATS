@@ -787,6 +787,9 @@ class imolecule:
         J = abs(sa.sJ)
         qJ = 0.5 * (-1 + sqrt(1 + 4.0 * norm(cJ) ** 2) )
         log = [f"{ip.name:<{INFO_LABEL_WIDTH}} = angular velocity from sampled rotor\n"]
+        if J == 0 and norm(cJ) < 1.0e-10 and abs(sa.sren) < 1.0e-14 and abs(sa.svren) < 1.0e-14:
+            log += [f"{'rotor state':<{INFO_LABEL_WIDTH}} = J = 0; angular momentum fixed at zero\n"]
+            return log
         log += [info_scalar("quantum J", J, "", "{:14.1f}")]
         log += [info_scalar("quantum J_" + ax[-1], jz, "au", "{:14.3f}")]
         log += [info_scalar("equilibrium energy", sa.sren * au2ev, "eV", "{:14.5f}")]
