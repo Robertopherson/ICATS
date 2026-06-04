@@ -154,14 +154,19 @@ oscillator information:
     0     652.3  1     1.075534  0.926277  0.046775  0.034693  0.081468
     1    1816.3  0     0.220889  0.101438  0.005494  0.001159  0.006652
     2    1819.8  0    -0.138505  0.519897  0.002164  0.030493  0.032657
+    ...
+    5    4005.3  0    -0.242543  0.227095  0.014607  0.012805  0.027412
 
   :h2o_dat :
     mode   freq  vstat    Q         P         QE        PE        EE (eV)
     0    1756.9  0     0.486248  0.110618  0.025751  0.001333  0.027084
     1    4009.6  0     0.752618 -0.399297  0.140794  0.039630  0.180424
+    2    4168.4  0    -0.267557  0.735079  0.018499  0.139629  0.158128
 ```
 
-The key columns are:
+The `...` indicates that the excerpt has skipped middle modes. A nonlinear
+four-atom molecule such as NH3 has `3N - 6 = 6` vibrational modes, while H2O
+has three. The key columns are:
 
 - `vstat`: sampled harmonic-oscillator state.
 - `Q`, `P`: sampled dimensionless normal coordinate and momentum.
