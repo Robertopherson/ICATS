@@ -5,253 +5,272 @@ title: Annotated First Output
 
 # Annotated First Output
 
-This page shows how to read the first useful ICATS output. It is meant to be
-read with a small tutorial run open in another terminal.
-
-For the most explicit first run, ask ICATS to write the generation log and the
-initial-sample audit:
+This page explains how to read `out_full.info` or a per-sample `.info` file.
+The `.info` file is deliberately split into two matched halves:
 
 ```text
-printout = 0 1 0 0
-audit-initial-sample = True
-audit-initial-energy-tol = 0.02
+===================================================================
+Sample 0 | generation
+===================================================================
+
+...
+
+===================================================================
+Sample 0 | analysis
+===================================================================
 ```
 
-Then run:
+`generation` is the model-side draw: the vibrational, rotational,
+orientational, velocity, and impact-parameter values ICATS intended to sample.
+`analysis` is the round-trip check: ICATS reconstructs the same kinds of
+quantities from the Cartesian coordinates and velocities it just wrote. The
+sections are ordered and named so that corresponding information can be
+compared directly.
 
-```bash
-icats.init tutorial_input.txt
-```
+## Output Conventions
 
-The generation log is written as:
+Scalar lines use:
 
 ```text
-out_full.info
+label                  =          value  unit
 ```
 
-If the tutorial suppresses `out_full.info`, either enable the second `printout`
-flag as above or read the later trajectory-analysis files:
+Vector lines use:
 
 ```text
-rd_<run-tag>/outputs/dynamics*.analinfo
+label                  = [          x,          y,          z ]  unit, |name| =      value
 ```
 
-The numbers below are representative excerpts. The exact values change with
-the molecule, random seed, temperature, and angular-momentum range.
+This spacing is intentional. The commas prevent negative signs from merging
+with the previous number, and the explicit unit keeps text parsing simple.
 
-## 1. Sample Header
-
-Each generated initial condition starts with a sample number:
+Angles in Euler triples are printed in units of `pi rad`:
 
 ```text
-###################################################
-############## Sample Number 0
-###################################################
- - Orbital Angular Q.N. L = : 113.58
+system Euler           = [    -0.0000,     0.0246,     0.0000 ]  pi rad   # phi, beta, chi
+alpha,beta,gamma       = [     0.6287,     0.3324,     0.0000 ]  pi rad   # molecular Euler
 ```
 
-This is the model-side draw before ICATS converts the sampled variables into
-Cartesian atom positions and velocities. `L` is the orbital angular-momentum
-quantum number associated with the incoming collision geometry.
+## 1. Generation Header
 
-If Wang-Landau is enabled, the program may try many trial angular momenta before
-one sample is accepted. That rejection step happens before the final Cartesian
-sample is written.
-
-## 2. Molecular Rotor State
-
-A molecular rotational block looks like:
+A generated sample begins with:
 
 ```text
- :h2o_dat :
-    Quantum    J   :       4, J_z :  3.847, Equilib. Energy : 0.02879 eV
-    Classical |J|  :    4.47, J_z :  1.259, Energy : 0.04977 eV
-    Cartesian Vec. : -2.6489804  3.3759998  1.2591777
+===================================================================
+Sample 0 | generation
+===================================================================
 ```
 
-The first line names the sampled rotor state. The second line is the
-quasi-classical vector-model angular momentum used to build the rotational
-velocity field. The Cartesian vector is the same angular momentum expressed in
-the molecular frame used at that point in the setup.
+Everything under this header is sampled-model information. It is not a later
+dynamics result and it is not read from a potential-energy surface.
 
-For checking the initial-condition sampler, the important later comparison is
-not the full instantaneous rotational energy. It is:
+## 2. Intermolecular Setup
+
+The intermolecular block gives the relative incoming speed, collision energy,
+and later the angular-momentum geometry:
 
 ```text
-Vector Model Rotational (ev)
+[intermolecular]
+relative velocity      =    953.5976463  m/s
+collision energy       =      0.0807475  eV
+ar_dat z velocity      =    409.0352371  m/s
+no_dat z velocity      =   -544.5624092  m/s
+ar_dat kinetic         =      0.0346357  eV
+no_dat kinetic         =      0.0461117  eV
+
+fixed b                =        4.50000  Ang
+implied L              =         115.28
+total J                =         115.28
 ```
 
-That line is reconstructed from the final Cartesian coordinates and velocities
-using the same reference-geometry vector model.
+For direct-channel runs, `relative velocity`, `collision energy`, or
+`incoming-k` determines the incoming two-body channel. For crossed-beam runs,
+the molecule-level beam velocities are first converted into this relative
+channel.
 
-## 3. Vibrational State
+## 3. Orientation
 
-A vibrational generation block looks like:
+For a diatom with sampled orientation and zero rotational angular momentum:
 
 ```text
-mode   freq  vstat    Q         P         QE        PE        EE (eV)
-0     652.3  1     0.308314 -1.653056  0.003844  0.110494  0.114338
+[orientation]
+ar_dat                 = no orientational state
+no_dat                 = sampled orientation
+alpha,beta,gamma       = [  0.6287488,  0.3323750,  0.0000000 ]  pi rad   # molecular Euler
+wx,wy,wz               = [ -0.3205039, -0.1105013,  0.0000000 ]  pi rad   # XYZ rotation angles
 ```
 
-The columns mean:
+For a linear molecule, `gamma` is an arbitrary spin about the molecular axis.
+ICATS reports it as zero. The physical bond direction is carried by
+`alpha,beta`.
 
-- `vstat`: harmonic-oscillator state chosen from the Boltzmann population.
-- `Q`, `P`: sampled normal-mode phase-space coordinate and momentum.
-- `QE`, `PE`: coordinate and momentum contributions to the harmonic energy.
-- `EE`: `QE + PE`, in eV.
+## 4. Rotation
 
-The sampled Husimi phase point does not have to have exactly the energy
-`omega(v + 1/2)` in every single draw. The ensemble, not one row, is what should
-represent the chosen vibrational temperature.
-
-## 4. Intermolecular Geometry
-
-The intermolecular setup contains the collision separation, velocity, angular
-momenta, and impact parameter:
+Generation shows the sampled rotor model. Analysis reconstructs several
+rotational diagnostics from the Cartesian coordinates:
 
 ```text
--Z coordinate distance (Ang)      :   15.00000
--Z Inter-mol Velocity Sample (m/s):    746.5005542   -705.7184817 = 1452.2190359
--Orbital Angular mometnum         :    0.00000 114.07766 0.00000, |L| = 114.07766
--Total   Angular mometnum         :   -2.40033 111.44411 3.24126, |J| = 111.51707
--InterM. Cylindrical Coor         :    5.69860 Ang, 1.00000 pi rad
+[rotation]
+no_dat                 = linear, symmetry constant =  -1.00
+full J, space          = [      0.00000,      0.00000,      0.00000 ]  au, |J| =      0.00000  (QM:   0.00)
+full J, Eckart         = [      0.00000,      0.00000,      0.00000 ]  au, |J| =      0.00000  (QM:   0.00)
+vector J, space        = [      0.00000,      0.00000,      0.00000 ]  au, |J| =      0.00000  (QM:   0.00)
+vector J, Eckart       = [      0.00000,      0.00000,      0.00000 ]  au, |J| =      0.00000  (QM:   0.00)
+vibrational J          = [      0.00000,      0.00000,      0.00000 ]  au, |J| =      0.00000  (QM:   0.00)
+vector rot. energy     = [      0.00000,      0.00000,      0.00000 ]  eV, |E| =      0.00000
+full rot. energy       = [      0.00000,      0.00000,      0.00000 ]  eV, |E| =      0.00000
 ```
 
-These are the quantities to inspect when asking whether `Rz`, `maxb`, `maxl`,
-`maxj`, and the velocity settings are physically sensible.
+The most important comparison for sampler validation is the generated
+rigid-rotor energy against `vector rot. energy`. `full rot. energy` uses the
+instantaneous realised geometry, so for vibrating polyatomics it is a useful
+diagnostic but not always the exact sampled model energy.
 
-In molecular scattering, `J` is not just `L`. ICATS forms:
+## 5. Vibration
 
-$$
-\vec{J}=\vec{L}+\vec{J}_A+\vec{J}_B.
-$$
-
-This is why a clean impact-parameter distribution does not automatically give a
-clean total-`J` distribution for polyatomic systems.
-
-## 5. Generation Energy Summary
-
-The generation-side energy block is bookkeeping from the sampled model
-variables:
+If `vib-mode = rigid`, generation says so directly:
 
 ```text
-########## Energy Decomposition (From Generation) ##############
-                       ammonia_dat               h2o_dat               Total (eV)
-Vibrational  :              1.0268               0.3820               1.4088
-Rotational   :              0.0082               0.0498               0.0580
-Velocity     :              0.0492               0.0465               0.0957
-Total Energy :              1.0842               0.4783               1.5625
+[vibration]
+vib-mode              = rigid; harmonic oscillator sampling skipped
 ```
 
-This block answers:
+For a vibrationally active molecule, ICATS prints mode-by-mode harmonic
+oscillator information. The key columns are:
+
+- `vstat`: sampled harmonic-oscillator state.
+- `Q`, `P`: sampled dimensionless normal coordinate and momentum.
+- `QE`, `PE`: coordinate and momentum energy contributions.
+- `EE`: total harmonic energy for that mode, in eV.
+
+In analysis, ICATS projects the Cartesian coordinates and velocities back onto
+the same normal-mode coordinates. That reconstructed table should agree with
+the generated one within the accuracy expected from the model and numerical
+projection.
+
+## 6. Intermolecular Analysis
+
+The analysis-side intermolecular block reconstructs the two-body Jacobi
+quantities from the Cartesian sample:
+
+```text
+[intermolecular]
+molecules              = ar_dat x no_dat
+angular energy         =    4.79710e-04  eV
+radial energy          =    8.02678e-02  eV
+total energy           =        0.08075  eV
+Jab, vector model      = [      0.00000,      0.00000,      0.00000 ]  au, |Jab| =      0.00000  (QM:   0.00)
+L                      = [      0.00000,    115.78237,      0.00000 ]  au, |L| =    115.78237  (QM: 115.28)
+P_R                    = [      1.04631,     -0.00000,     13.53450 ]  au, |P_R| =     13.57489  (QM:  13.08)
+J = L + Jab            = [      0.00000,    115.78237,      0.00000 ]  au, |J| =    115.78237  (QM: 115.28)
+b                      =        4.50000  Ang
+phi                    =        1.00000  pi rad
+COM 1                  = [      1.93023,      0.00000,     24.96832 ]  Ang
+COM 2                  = [     -2.56977,      0.00000,    -33.24117 ]  Ang
+```
+
+The sign of a vector component may differ between generation and analysis if
+the coordinate convention or equivalent body-frame representation has changed.
+For initial-condition sanity checks, compare the magnitudes and the energy
+summary first, then inspect signs and frames if the system is anisotropic.
+
+## 7. System Angles
+
+The system-angle block is the two-vector embedding reconstruction:
+
+```text
+[system angles]
+system Euler           = [    -0.0000,     0.0246,     0.0000 ]  pi rad   # phi, beta, chi
+mol 1 BF Euler         = [     0.0000,     0.0000,     0.0000 ]  pi rad   # alpha, beta, gamma
+mol 2 BF Euler         = [     0.6413,     0.3425,    -0.5382 ]  pi rad   # alpha, beta, gamma
+v1-v2 dihedral         =         0.0000  pi rad
+Jacobi R               =       58.38317  Ang
+```
+
+Do not confuse `impact-phi` in the input with the reconstructed system Euler
+`phi`. The input fixes the lab impact-parameter azimuth. The system Euler
+triple is reconstructed later from the full Cartesian geometry.
+
+## 8. Energy Summary
+
+Generation and analysis both print the same table shape:
+
+```text
+[energy summary]
+component             ammonia_dat/eV     h2o_dat/eV       total/eV
+vibrational                 1.0268         0.3820         1.4088
+rotational                  0.0082         0.0498         0.0580
+velocity                    0.0492         0.0465         0.0957
+total                       1.0842         0.4783         1.5625
+```
+
+Read the generation table as:
 
 ```text
 What did ICATS intend to sample?
 ```
 
-It is the cleanest statement of the model energy before any dynamics code or
-potential-energy surface has acted on the sample.
-
-## 6. Reconstructed Rotational Analysis
-
-After ICATS has built Cartesian coordinates and velocities, it analyses those
-same coordinates:
+Read the analysis table as:
 
 ```text
-Full Ang. Mom. (space)      :    1.79275 -0.43980  1.61681, |J| = 2.45387
-Full Ang. Mom. (Eckart)     :    2.12232 -1.18324 -0.34230, |J| = 2.45387
-Vector Model. Ang. (Eckart) :    1.89920 -1.54788  0.00001, |J| = 2.45008
-Vibr. Ang. Mom. (Eckart)    :    0.22312  0.36464 -0.34231, |J| = 0.54765
-Vector Model Rotational (ev):    0.00495  0.00329  0.00000, Sum = 0.00823 eV
-Full Rotational Energy (ev) :    0.00187  0.00629  0.00008, Sum = 0.00823 eV
+What do the final Cartesian coordinates and velocities contain when analysed back?
 ```
 
-Read these lines as different projections of the same Cartesian snapshot:
+For a first check, the generation and analysis totals should be close. For a
+strict initial-condition round trip, enable `audit-initial-sample = True`,
+which compares the correct vector-model terms directly.
 
-- `Full Ang. Mom.` uses the realised instantaneous geometry.
-- `Vector Model. Ang.` uses the reference geometry used by the sampler.
-- `Vibr. Ang. Mom.` is the residual difference between those two angular
-  momenta in the Eckart frame.
-- `Vector Model Rotational (ev)` is the right comparison to the sampled
-  rigid-rotor energy.
-- `Full Rotational Energy (ev)` is useful, but it is not the quantity sampled
-  by the rigid-rotor vector model for a vibrating molecule.
+## Worked Example: NH3 + H2O
 
-For atoms, there is no molecular rotational space. For linear molecules, some
-principal-axis components are zero or nearly zero by construction.
-
-## 7. Reconstructed Vibrational Analysis
-
-The reconstructed vibrational table should resemble the generated `Q`, `P`,
-and energy values:
+For a polyatomic pair such as ammonia + water, the `.info` file is most useful
+when read section by section rather than top to bottom. A representative
+generation energy summary might look like:
 
 ```text
-mode    freq     ~vstat       Q         P         QE        PE       EE (eV)
-0      652.3     0.9138  0.308314 -1.653030  0.003844  0.110491  0.114334
+[energy summary]
+component             ammonia_dat/eV     h2o_dat/eV       total/eV
+vibrational                 1.0268         0.3820         1.4088
+rotational                  0.0082         0.0498         0.0580
+velocity                    0.0492         0.0465         0.0957
+total                       1.0842         0.4783         1.5625
 ```
 
-This block answers:
+Start with the `velocity` row. It tells you the incoming translational energy
+assigned to the two molecular centres of mass. This should match the beam or
+direct-channel setup you intended.
+
+Next read the `rotational` row. For water and ammonia, the sampled rotor energy
+comes from the rigid-rotor/vector-model state selected for each molecule. In
+the analysis block, compare this to `vector rot. energy`, not blindly to
+`full rot. energy`, because the full instantaneous line uses the realised
+vibrationally distorted geometry.
+
+Then read the `vibrational` row and the mode tables. If the vibrational
+temperature is high, a single sample can carry substantial oscillator energy.
+The ensemble should reproduce the intended Husimi/harmonic-oscillator
+population, while one sample is just one phase-space point.
+
+Finally check the intermolecular block:
 
 ```text
-Can the Cartesian coordinates and velocities be projected back onto the
-normal-mode variables that ICATS intended to sample?
+Jab, vector model      = [     -1.43210,      0.28744,      2.91013 ]  au, |Jab| =      3.25660  (QM:   2.81)
+L                      = [      0.00000,    114.07766,      0.00000 ]  au, |L| =    114.07766  (QM: 113.58)
+J = L + Jab            = [     -1.43210,    114.36510,      2.91013 ]  au, |J| =    114.41125  (QM: 113.91)
+b                      =        5.69860  Ang
 ```
 
-Small differences are normal because the code is doing a finite-precision
-coordinate transformation, Eckart alignment, and projection. Large differences
-mean the molecule setup, normal modes, frame reconstruction, or initial
-condition may need attention.
+This is the part to inspect for Wang-Landau or angular-momentum-window
+questions. In a molecular collision, `J` is not simply `L`; the rotor vector
+contribution `Jab = JA + JB` shifts the total angular momentum. Wang-Landau
+sampling is useful when you want the accepted ensemble to balance the intended
+total-`J` window with a physically broad impact-parameter/orbital-`L`
+distribution.
 
-## 8. Reconstructed Intermolecular Analysis
+## Audit Block
 
-The intermolecular analysis reconstructs the Jacobi two-body quantities:
-
-```text
-Init. Angular Energy   : 1.20012e-02
-Init. Radial  Energy   : 8.37188e-02
-Tot Ang.   Momentum au :   -2.15919 -116.39845 3.33320, |J| = 116.46618
-Cylindrical Coords     :    5.68170 Ang    0.00067 pi rad
-Jacobi R (Ang)         :   16.04600
-```
-
-This block is the place to check:
-
-- whether the impact parameter is in the intended range,
-- whether the initial separation is still large enough,
-- whether `L` and `J` are in sensible windows,
-- whether the relative velocity is plausible for the intended collision.
-
-## 9. Sample Energy Summary
-
-The sample-side energy block is reconstructed from the Cartesian sample:
+With `audit-initial-sample = True`, ICATS also prints a compact check:
 
 ```text
-########## Energy Decomposition (From Sample) ################
-                       ammonia_dat               h2o_dat               Total (eV)
-Vibrational  :              1.0280               0.3822               1.4102
-Rotational   :              0.0082               0.0496               0.0578
-Velocity     :              0.0492               0.0465               0.0957
-Total Energy :              1.0854               0.4784               1.5638
-```
-
-This block answers:
-
-```text
-What does the final Cartesian sample contain when ICATS analyses it back?
-```
-
-For a first check, compare this block to `From Generation`. For the strict
-sampler check, rely on the audit block because it compares rotational energy to
-the vector-model reconstruction rather than to the full instantaneous rotor
-diagnostic.
-
-## 10. Initial-Sample Audit
-
-The audit is the fastest way to decide whether the initial-condition round trip
-is behaving:
-
-```text
-########## Initial Sample Audit ###############################
 Audit energy   vib: generation 1.408804 eV, analysis 1.410228 eV, diff 1.424e-03 eV [OK]
 Audit energy   rot: generation 0.058004 eV, analysis 0.058009 eV, diff 4.764e-06 eV [OK]
 Audit energy   vel: generation 0.095675 eV, analysis 0.095720 eV, diff 4.514e-05 eV [OK]
@@ -259,68 +278,22 @@ Audit energy total: generation 1.562482 eV, analysis 1.563956 eV, diff 1.474e-03
 Initial sample audit: OK
 ```
 
-If this passes, ICATS has generated Cartesian initial conditions that are
-consistent with its own harmonic-oscillator, rigid-rotor, and Jacobi model. It
-does not prove that a later dynamics method conserves energy or that the
-potential-energy surface is appropriate.
+If this passes, ICATS has generated Cartesian initial conditions consistent
+with its own harmonic-oscillator, rigid-rotor, and Jacobi model. It does not
+prove that a later dynamics method conserves energy or that the potential
+energy surface is appropriate.
 
-If this fails, reduce the problem:
+## Ensemble Histograms
 
-1. set `Nsamp = 1`,
-2. set `workers = 1`,
-3. keep `audit-initial-sample = True`,
-4. inspect the first failing component: `vib`, `rot`, `vel`, or `total`.
-
-## 11. Ensemble Histograms
-
-A single sample can look reasonable while the ensemble is wrong. For any real
-calculation, inspect histograms:
+A single `.info` block checks one sample. For any production calculation,
+inspect histograms as well:
 
 ```bash
 ./rd_tutorial_input/histograms/plot_initial.sh
 ./rd_tutorial_input/histograms/plot_sampled.sh
+./rd_tutorial_input/histograms/compare_initial_sampled.py --render-unmatched
 ```
 
-For Wang-Landau runs also inspect:
-
-```bash
-cd rd_tutorial_input/histograms/wl
-python wl_td_plot.py
-python wl_wl_plot.py
-```
-
-The most important first plots are:
-
-- sampled `J`,
-- sampled `L`,
-- impact parameter `b`,
-- intermolecular velocity,
-- Wang-Landau weights, if `wang = True`.
-
-## Wang-Landau Runtime
-
-Wang-Landau is often the expensive part of an ICATS setup. When `wang = True`
-and `rd_<run-tag>/wang.pkl` is absent, ICATS must first estimate the
-total-`J` density of states before it can generate the final accepted samples.
-
-For small atom-diatom examples this can be quick. For polyatomic systems, large
-`maxj`, strict `wlmode` settings, or many WL bins, the first umbrella build can
-take many minutes and can plausibly take an hour or more. Using a few workers,
-for example:
-
-```text
-workers = 4
-```
-
-can help, but the scaling is not perfect. Use one or two workers while
-debugging input files, then use four or more only once the setup is known to be
-correct.
-
-Once a compatible `wang.pkl` exists, later runs reuse it and skip the expensive
-umbrella build. If you need to rebuild it, move the old file aside rather than
-overwriting it:
-
-```bash
-mv rd_tutorial_input/wang.pkl rd_tutorial_input/wang_previous.pkl
-icats.init tutorial_input.txt
-```
+For Wang-Landau runs, inspect both the Wang-Landau umbrella and the sampled
+`L`/`J` distributions. A good-looking single sample does not prove that the
+ensemble populated the intended angular-momentum range.

@@ -97,10 +97,10 @@ rd_tutorial_input/outputs/dynamics0.analinfo
 Search for:
 
 ```text
-Energy Decomposition
-Rotational Analysis
-Vibrational Analysis
-InterMolecular Analysis
+[energy summary]
+[rotation]
+[vibration]
+[intermolecular]
 ```
 
 These blocks are the fastest way to understand what ICATS sampled and what the

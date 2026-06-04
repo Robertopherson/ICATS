@@ -7,6 +7,29 @@ from spherical import Wigner
 import quaternionic as quat
 from .mc import MCsample, ICDFsample, InitMC, InitICDF
 
+INFO_LABEL_WIDTH = 22
+
+def info_vec(label, vec, unit="", mag_label=None, mag=None, qm=None, fmt="{:12.5f}"):
+    vals = ", ".join(fmt.format(float(v)) for v in vec)
+    line = "{0:<{w}} = [ {1} ]".format(label, vals, w=INFO_LABEL_WIDTH)
+    if unit:
+        line += "  " + unit
+    if mag_label is not None:
+        if mag is None:
+            mag = norm(vec)
+        line += ", |{0}| = {1:12.5f}".format(mag_label, float(mag))
+    if qm is not None:
+        line += "  (QM: {0:6.2f})".format(float(qm))
+    return line + "\n"
+
+def info_scalar(label, value, unit="", fmt="{:14.7f}"):
+    unit_txt = ("  " + unit) if unit else ""
+    return "{0:<{w}} = {1}{2}\n".format(label, fmt.format(float(value)), unit_txt, w=INFO_LABEL_WIDTH)
+
+def info_angle_vec(label, vec, comment):
+    vals = ", ".join("{:10.7f}".format(float(v) / pi) for v in vec)
+    return "{0:<{w}} = [ {1} ]  pi rad   # {2}\n".format(label, vals, comment, w=INFO_LABEL_WIDTH)
+
 
  
 
@@ -247,7 +270,7 @@ class imolecule:
         """
         sp = self.sp 
         ip = self.ip 
-        log = [" :" + ip.name + " : \n"]
+        log = [f"{ip.name:<{INFO_LABEL_WIDTH}} = reconstructed orientation\n"]
         if sp.na > 1:
             R = EckartFrameTrans(sp.xxe, sa.sxx, sp.mass).T 
             alpha, beta, gamma = iR2q(R)
@@ -265,13 +288,10 @@ class imolecule:
             sa.SampInfo['ori']["sphi"] = alpha
             sa.SampInfo['ori']["stheta"] = beta
             sa.SampInfo['ori']["schi"] = gamma
-            log += ["   Orientation, Euler Angles (alpha,beta,gamma): " + "".join(["{0:10.7f}".format(a / pi) +
-                          " " for a in [alpha, beta, gamma]])
-                + " * pi rad \n", "   Orientation,  XYZ  Angles: "
-                + "".join(["{0:10.7f}".format(a / pi) + " " for a in [wx, wy, wz]])
-                + " * pi rad \n"]
+            log += [info_angle_vec("alpha,beta,gamma", [alpha, beta, gamma], "molecular Euler")]
+            log += [info_angle_vec("wx,wy,wz", [wx, wy, wz], "XYZ rotation angles")]
         else:
-            log += ["  No orientation space \n" ]
+            log += [f"{'orientation space':<{INFO_LABEL_WIDTH}} = none\n"]
         return log
 
     def CalcInterEner(self,sa):
@@ -283,10 +303,10 @@ class imolecule:
         """
         sp = self.sp 
         ip = self.ip 
-        log = [" :" + ip.name + " : \n"]
+        log = [f"{ip.name:<{INFO_LABEL_WIDTH}} = vibrational analysis\n"]
         if sp.na == 1 or sp.nm == 0:
-         log += ["   No vibrational space  \n"]
-         return log
+          log += [f"{'vibrational space':<{INFO_LABEL_WIDTH}} = none\n"]
+          return log
         debug = True
         debug = False
         xx, vv = (
@@ -615,7 +635,7 @@ class imolecule:
         if debug:
           log += ["    Jvec is                     : "+ "".join(["{0:10.7f}".format(a) + " " for a in sa.srpar[-1] ]) + " \n"]
         if 'printlog' in dic.keys(): 
-          log = ["  :" + ip.name + " : \n"]
+          log = [f"{ip.name:<{INFO_LABEL_WIDTH}} = sampled orientation\n"]
           if 'ori' not in sa.SampInfo.keys():
              sa.SampInfo['ori'] = {}
           xyz = list(iR2ang(sa.soR,'xyz'))
@@ -632,10 +652,8 @@ class imolecule:
           sa.SampInfo['ori']["phi"] = sa.SampInfo['ori']['eul'][0]
           sa.SampInfo['ori']["theta"] = sa.SampInfo['ori']['eul'][1]
           sa.SampInfo['ori']["chi"] = sa.SampInfo['ori']['eul'][2]
-          log += ["    Orientations (alpha,beta,gamma): "
-              + "".join(["{0:10.7f}".format(a / pi) + " " for a in eul]) + " * pi rad \n"]
-          log += ["    Orientations (wx,wy,wz)     : "
-                + "".join(["{0:10.7f}".format(a / pi) + " " for a in xyz]) + " * pi rad \n"]
+          log += [info_angle_vec("alpha,beta,gamma", eul, "molecular Euler")]
+          log += [info_angle_vec("wx,wy,wz", xyz, "XYZ rotation angles")]
         return log
 
     def InertiaFrameTransform(self,sa):
@@ -768,14 +786,19 @@ class imolecule:
         aax = {'x':0, 'y':1 ,'z':2, 'A':2}
         J = abs(sa.sJ)
         qJ = 0.5 * (-1 + sqrt(1 + 4.0 * norm(cJ) ** 2) )
-        log = []
-        log += ["  :" + ip.name + " : \n"] 
-        log += ["    " + "Quantum    J   :" + str(J).rjust(8) + ", J_"+ax[-1]+" : " + "{0:6.3f}".format(jz) + ", Equilib. Energy : " + "{0:7.5f}".format(sa.sren * au2ev) + " eV\n"]
-        log += ["    " + "Classical |J|  : "+ "{0:5.2f}".format(norm(cJ)).rjust(7) + ", J_"+ax[-1]+" : " + "{0:6.3f}".format(cJ[aax[ax[-1]]]) + ", Energy : " + "{0:7.5f}".format(sa.svren * au2ev) + " eV  (qJ:  "+ str(qJ)  + ' ) \n']
-        log += ["    " + "Cartesian Vec. : "+  "".join(["{0:10.7f}".format(j) + " " for j in cJ]) + '\n']
-        log += ['    ' + "Spherical Polar: " + "{0:8.6f}".format(norm(cJ)).rjust(9) + "{0:8.6f}".format(bet/pi).rjust(9) + " pi " + "{0:8.6f}".format(gamm/pi).rjust(9) + " pi \n"] 
-        log += ["    " + "Inst. Ang. Mom.: "+  "".join(["{0:10.7f}".format(j) + " " for j in cJ]) +  ", Instant. Energy : " + "{0:7.5f}".format(sa.scren * au2ev) + " eV "+ '\n']
-        log += ["    " + "Instant.  I^-1 : "+  "".join(["{0:6.3e}".format(j) + " " for j in  iIs[np.triu_indices_from(iIs)] ]) + '\n']
+        log = [f"{ip.name:<{INFO_LABEL_WIDTH}} = angular velocity from sampled rotor\n"]
+        log += [info_scalar("quantum J", J, "", "{:14.1f}")]
+        log += [info_scalar("quantum J_" + ax[-1], jz, "au", "{:14.3f}")]
+        log += [info_scalar("equilibrium energy", sa.sren * au2ev, "eV", "{:14.5f}")]
+        log += [info_vec("classical J", cJ, "au", "J", norm(cJ), qJ, "{:12.7f}")]
+        log += [info_scalar("classical J_" + ax[-1], cJ[aax[ax[-1]]], "au", "{:14.3f}")]
+        log += [info_scalar("classical energy", sa.svren * au2ev, "eV", "{:14.5f}")]
+        log += [info_scalar("polar |J|", norm(cJ), "au", "{:14.6f}")]
+        log += [info_scalar("polar beta", bet / pi, "pi rad", "{:14.6f}")]
+        log += [info_scalar("polar gamma", gamm / pi, "pi rad", "{:14.6f}")]
+        log += [info_vec("instantaneous J", cJ, "au", "J", norm(cJ), qJ, "{:12.7f}")]
+        log += [info_scalar("instant. energy", sa.scren * au2ev, "eV", "{:14.5f}")]
+        log += [info_vec("instant. I^-1", iIs[np.triu_indices_from(iIs)], "au", fmt="{:12.3e}")]
         return log   
  
 
@@ -790,11 +813,10 @@ class imolecule:
         """
         sp = self.sp 
         ip = self.ip 
-        log = [" :" + ip.name + " \n"]
+        log = [f"{ip.name:<{INFO_LABEL_WIDTH}} = {sp.rsym}, symmetry constant = {getattr(sp, 'asymk', 0.0):6.2f}\n"]
         asymk = getattr(sp, 'asymk', 0.0)
-        log += [" : " + sp.rsym + ", symmetry constant : " +"{0:4.2f}".format(asymk) +" \n"]
         if sp.na == 1:
-         log += ["   No rotational space  \n"]
+         log += [f"{'rotational space':<{INFO_LABEL_WIDTH}} = none\n"]
          return log
         def inertia_tensor(r, masses):
            I = np.zeros((3,3))
@@ -881,15 +903,17 @@ class imolecule:
         qL0  = 0.5*(-1+sqrt(1+4*nL0**2))
         qL0s = 0.5*(-1+sqrt(1+4*nL0s**2))
 
-        log += [" Full Ang. Mom. (space)      : " + "".join(["{0:10.5f}".format(p      ) for p in Ls] ) + ", |J| = " + "{0:10.5f}".format(nLs) + " (QM: " + "{0:4.2f}".format(qLs)+ ")\n"]
-        log += [" Full Ang. Mom. (Eckart)     : " + "".join(["{0:10.5f}".format(p      ) for p in Lm] ) + ", |J| = " + "{0:10.5f}".format(nLm) + " (QM: " + "{0:4.2f}".format(qLm)+ ")\n"]
-        log += [" Vector Model. Ang.  (space) : " + "".join(["{0:10.5f}".format(p      ) for p in L0s]) + ", |J| = " + "{0:10.5f}".format(nL0s) + " (QM: " + "{0:4.2f}".format(qL0s)+ ")\n"]
-        log += [" Vector Model. Ang.  (Eckart): " + "".join(["{0:10.5f}".format(p      ) for p in L0] ) + ", |J| = " + "{0:10.5f}".format(nL0) + " (QM: " + "{0:4.2f}".format(qL0)+ ")\n"]
-        log += [" Vibr. Ang. Mom. (Eckart)    : " + "".join(["{0:10.5f}".format(p      ) for p in Lc] ) + ", |J| = " + "{0:10.5f}".format(nLc) + " (QM: " + "{0:4.2f}".format(qLc)+ ")\n"]
-        log += [" Vector Model Rotational (ev): " + "".join(["{0:10.5f}".format(p*au2ev) for p in E0] ) + ", Sum = " + "{0:10.5f}".format(sum(E0) * au2ev) + " eV \n" ]
-        log += [" Full Rotational Energy (ev) : " + "".join(["{0:10.5f}".format(p*au2ev) for p in ee] ) + ", Sum = " + "{0:10.5f}".format(EE * au2ev) + " eV \n" ]
-        log += [" Vec. Mod. spherical polar   : "  +"{0:10.5f}".format(norm(L0)) +  "{0:10.5f}".format(bet/pi)+' pi '
-        +  "{0:10.5f}".format(gamm/pi) + ' pi rad (axis: ' +  axx[ax]+ '), J'+axx[ax]+': '+ "{0:6.3f}".format(jz)  + "  \n" ]
+        log += [info_vec("full J, space", Ls, "au", "J", nLs, qLs)]
+        log += [info_vec("full J, Eckart", Lm, "au", "J", nLm, qLm)]
+        log += [info_vec("vector J, space", L0s, "au", "J", nL0s, qL0s)]
+        log += [info_vec("vector J, Eckart", L0, "au", "J", nL0, qL0)]
+        log += [info_vec("vibrational J", Lc, "au", "J", nLc, qLc)]
+        log += [info_vec("vector rot. energy", np.array(E0) * au2ev, "eV", "E", sum(E0) * au2ev)]
+        log += [info_vec("full rot. energy", np.array(ee) * au2ev, "eV", "E", EE * au2ev)]
+        log += [info_scalar("vector |J|", norm(L0), "au", "{:14.5f}")]
+        log += [info_scalar("vector beta", bet / pi, "pi rad", "{:14.5f}")]
+        log += [info_scalar("vector gamma", gamm / pi, "pi rad", "{:14.5f}")]
+        log += [info_scalar("vector axis J" + axx[ax], jz, "au", "{:14.5f}")]
         return log
 
 

@@ -469,7 +469,7 @@ instead of requiring the user to hand-code a separate sampler for each top.
 one molecule. It removes the molecular COM and calculates several related but
 not identical angular momenta.
 
-### `Full Ang. Mom. (space)`
+### `full J, space`
 
 This is the total instantaneous molecular angular momentum in the space-fixed
 frame:
@@ -487,7 +487,7 @@ $$
 
 where `r_i` and `v_i` are measured after removing the molecular COM.
 
-### `Full Ang. Mom. (Eckart)`
+### `full J, Eckart`
 
 The same instantaneous molecule is rotated into the Eckart frame and the
 angular momentum is recomputed:
@@ -506,7 +506,7 @@ $$
 The magnitude should match the space-frame value apart from numerical noise,
 but the components are expressed in the Eckart molecular frame.
 
-### `Vector Model. Ang. (Eckart)`
+### `vector J, Eckart`
 
 This is the reference-geometry rotor component extracted from the same Eckart
 velocities:
@@ -526,13 +526,13 @@ The key difference is that the cross product uses the reference geometry
 `x_ref`, not the realised distorted geometry `r_i^E`. This is the analysis-side
 version of the rotor angular momentum assumed by the sampler.
 
-### `Vector Model. Ang. (space)`
+### `vector J, space`
 
 This is the same vector-model angular momentum rotated back to the space-fixed
 frame. It is useful when comparing molecular rotor vectors to the
 intermolecular `L` and total `J` vectors.
 
-### `Vibr. Ang. Mom. (Eckart)`
+### `vibrational J`
 
 The code defines this residual as:
 
@@ -563,7 +563,7 @@ Do not read this residual as implying a simple scalar energy identity such as
 but the energy expressions use different inertia tensors and can contain
 cross/higher-order geometry effects.
 
-### `Vector Model Rotational (ev)`
+### `vector rot. energy`
 
 This is computed from `J_vector_eckart` and the reference principal moments of
 inertia:
@@ -582,7 +582,7 @@ $$
 The printed line gives the three principal-axis contributions and their sum.
 This is the correct comparison to the sampled rotor energy at `t = 0`.
 
-### `Full Rotational Energy (ev)`
+### `full rot. energy`
 
 For this quantity, the code diagonalises the inertia tensor of the realised
 instantaneous geometry. It then computes a rigid-body rotational energy from
@@ -716,8 +716,8 @@ $$
 E_R = \frac{|\vec{P}_R|^2}{2\mu}.
 $$
 
-The line `Cylindrical Coords` reports the reconstructed impact parameter and
-azimuthal angle:
+The lines `b` and `phi` in the `[intermolecular]` block report the reconstructed
+impact parameter and azimuthal angle:
 
 ```text
 b = |L| / (mu |v_rel|)
@@ -739,13 +739,13 @@ sampled total angular momentum distribution, the vector-model `Jab` is usually
 the more relevant quantity, because it corresponds to how the sample was
 generated.
 
-## Energy Decomposition Blocks
+## Energy Summary Blocks
 
-The analysis file contains two energy decomposition blocks during generation
-and one block when analysing existing trajectory files. Their names are easy to
-misread.
+The analysis file contains matched `[energy summary]` blocks during generation
+and analysis. Their position in the file tells you whether the values came from
+the sampled model variables or from the reconstructed Cartesian sample.
 
-### `Energy Decomposition (From Generation)`
+### `Sample N | generation`
 
 This block is the bookkeeping from the sampled model variables. It uses:
 
@@ -756,7 +756,7 @@ This block is the bookkeeping from the sampled model variables. It uses:
 This is the intended model energy before a dynamics code has acted on the
 sample. It does not include a later trajectory-code potential energy.
 
-### `Energy Decomposition (From Sample)`
+### `Sample N | analysis`
 
 This block is reconstructed from the Cartesian coordinates and velocities. It
 uses:
@@ -768,8 +768,8 @@ uses:
 At present, the printed rotational total in this summary follows the full
 instantaneous rotational-energy analysis. For vibrating polyatomics, this means
 it may not be identical to the sampled vector-model rotor energy. To check the
-sampler itself, compare the sampled rotor energy to the explicit `Vector Model
-Rotational (ev)` line, not to the full instantaneous rotational energy.
+sampler itself, compare the sampled rotor energy to the explicit
+`vector rot. energy` line, not to the full instantaneous rotational energy.
 
 The `Velocity` row in these summaries is the translational/intermolecular COM
 kinetic contribution split between the two molecular partners. It is not a
@@ -793,28 +793,28 @@ the initial-condition conversion itself.
 
 ## What To Use For Which Question
 
-Use `Vector Model Rotational (ev)` when asking:
+Use `vector rot. energy` when asking:
 
 ```text
 Did ICATS recover the rigid-rotor energy it sampled?
 ```
 
-Use `Full Rotational Energy (ev)` when asking:
+Use `full rot. energy` when asking:
 
 ```text
 What is the instantaneous rigid-body rotational energy of this Cartesian
 snapshot if I use the realised distorted geometry?
 ```
 
-Use `Vibr. Ang. Mom. (Eckart)` when asking:
+Use `vibrational J` when asking:
 
 ```text
 How much molecular angular momentum is not described by the reference-geometry
 vector-model component in this snapshot?
 ```
 
-Use `Init. Angular Energy`, `Init. Radial Energy`, `Init. Ang. Momentum`, and
-`Tot Ang. Momentum` when asking:
+Use `angular energy`, `radial energy`, `L`, `P_R`, and `J = L + Jab` in the
+`[intermolecular]` block when asking:
 
 ```text
 Is the collision geometry and total angular momentum range sensible?

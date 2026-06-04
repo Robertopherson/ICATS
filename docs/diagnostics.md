@@ -60,11 +60,11 @@ The `dynamics*.analinfo` files contain:
 - rotational analysis,
 - vibrational analysis,
 - intermolecular analysis,
-- energy decomposition.
+- energy summary.
 
 For vibrating polyatomics, compare sampled rigid-rotor energy with the analysis
-`Vector Model Rotational (ev)` line. The `Full Rotational Energy (ev)` line is a
-different decomposition that includes the realised instantaneous geometry.
+`vector rot. energy` line. The `full rot. energy` line is a different
+decomposition that includes the realised instantaneous geometry.
 
 ## Reading Rotational Analysis
 
@@ -72,40 +72,40 @@ A typical polyatomic rotational block contains several related angular momenta.
 They are all useful, but they are not interchangeable:
 
 ```text
-Full Ang. Mom. (Eckart)
-Vector Model. Ang.  (Eckart)
-Vibr. Ang. Mom. (Eckart)
-Vector Model Rotational (ev)
-Full Rotational Energy (ev)
+full J, Eckart
+vector J, Eckart
+vibrational J
+vector rot. energy
+full rot. energy
 ```
 
-`Full Ang. Mom. (space)` is the total instantaneous angular momentum of the
+`full J, space` is the total instantaneous angular momentum of the
 molecule after removing its centre-of-mass motion, expressed in the external
 Cartesian frame.
 
-`Full Ang. Mom. (Eckart)` is the same instantaneous angular momentum after the
+`full J, Eckart` is the same instantaneous angular momentum after the
 molecule has been rotated into the Eckart frame. The magnitude should be the
 same as the space-frame value, but the components are now molecular-frame
 components.
 
-`Vector Model. Ang. (Eckart)` is reconstructed with the reference geometry
+`vector J, Eckart` is reconstructed with the reference geometry
 rather than the distorted instantaneous geometry. This is the component that
 corresponds most directly to the rigid-rotor vector sampled by ICATS.
 
-`Vibr. Ang. Mom. (Eckart)` is the residual:
+`vibrational J` is the residual:
 
 ```text
-Full Ang. Mom. (Eckart) - Vector Model. Ang. (Eckart)
+full J, Eckart - vector J, Eckart
 ```
 
 It is an instantaneous diagnostic of vibrational angular momentum and
 higher-order geometry effects. It is not a separately sampled rotor state.
 
-`Vector Model Rotational (ev)` uses the reference moments of inertia and the
+`vector rot. energy` uses the reference moments of inertia and the
 vector-model angular momentum. Use this line when checking the sampled rigid
 rotor.
 
-`Full Rotational Energy (ev)` uses the realised instantaneous geometry and its
+`full rot. energy` uses the realised instantaneous geometry and its
 instantaneous inertia tensor. This can differ from the vector-model energy in
 vibrating polyatomics.
 
@@ -138,11 +138,11 @@ The columns mean:
 The intermolecular block reports:
 
 ```text
-Init. Angular Energy
-Init. Radial Energy
-Init. Ang. Momentum
-Init. Rad. Momentum
-Tot Ang. Momentum
+angular energy
+radial energy
+L
+P_R
+J = L + Jab
 Jacobi R
 ```
 
@@ -150,50 +150,53 @@ These quantities describe the collision geometry and relative motion. They are
 especially useful when checking whether `maxl`, `maxb`, and the velocity
 settings are physically plausible.
 
-`Init. Angular Energy` is the centrifugal/orbital part of the two-body Jacobi
+`angular energy` is the centrifugal/orbital part of the two-body Jacobi
 motion, computed as `L^2 / (2 mu R^2)`.
 
-`Init. Radial Energy` is the radial relative-motion part, computed as
+`radial energy` is the radial relative-motion part, computed as
 `P_R^2 / (2 mu)`.
 
-`Init. Ang. Momentum` is the reconstructed orbital angular momentum `L`.
+`L` is the reconstructed orbital angular momentum.
 
-`Tot Ang. Momentum` is formed from the orbital angular momentum plus the
+`J = L + Jab` is formed from the orbital angular momentum plus the
 molecular vector-model angular momenta:
 
 ```text
 J = L + J_a + J_b
 ```
 
-The `Tot. Mol Ja/Jb/Jab` lines use the full molecular angular momenta from the
-Cartesian analysis. The `Vec Model Ja/Jb/Jab` lines use the reference-geometry
-vector-model molecular angular momenta and are usually the better comparison
+The `Ja/Jb/Jab, full` lines use the full molecular angular momenta from the
+Cartesian analysis. The `Ja/Jb/Jab, vector model` lines use the
+reference-geometry vector-model molecular angular momenta and are usually the
+better comparison
 for the sampled total-`J` distribution.
 
-## Reading Energy Decomposition
+## Reading Energy Summary
 
 During initial-condition generation, `out_full.info` can contain both:
 
 ```text
-Energy Decomposition (From Generation)
-Energy Decomposition (From Sample)
+Sample N | generation
+Sample N | analysis
 ```
 
-`From Generation` is the bookkeeping of the model variables ICATS sampled:
+The `[energy summary]` block under `generation` is the bookkeeping of the model
+variables ICATS sampled:
 harmonic vibrational energy, vector-model rotor energy, and sampled
 intermolecular velocity energy.
 
-`From Sample` is reconstructed from the Cartesian coordinates and velocities.
-Its rotational row follows the full instantaneous rotational-energy analysis.
-For vibrating polyatomics this row can differ from the sampled rotor energy
-because the realised geometry can carry vibrational angular momentum.
+The `[energy summary]` block under `analysis` is reconstructed from the
+Cartesian coordinates and velocities. Its rotational row follows the full
+instantaneous rotational-energy analysis. For vibrating polyatomics this row
+can differ from the sampled rotor energy because the realised geometry can
+carry vibrational angular momentum.
 
 The `Velocity` row is the intermolecular centre-of-mass kinetic contribution.
 It is not the momentum part of the normal-mode vibrational energy; that is the
 `PE` column in the vibrational table.
 
 For the cleanest t=0 sampler check, use the initial-sample audit. It compares
-generated rotor energy to `Vector Model Rotational (ev)`, not to the full
+generated rotor energy to `vector rot. energy`, not to the full
 instantaneous rotational-energy row.
 
 ## Histogram Checks

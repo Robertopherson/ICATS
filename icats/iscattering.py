@@ -12,6 +12,45 @@ from joblib import Parallel, delayed
 from tqdm import tqdm
 import time
 
+INFO_RULE = "=" * 67
+INFO_LABEL_WIDTH = 22
+
+def info_header(sample_id, stage):
+    return [
+        INFO_RULE + "\n",
+        "Sample {0} | {1}\n".format(sample_id, stage),
+        INFO_RULE + "\n",
+    ]
+
+def info_section(title):
+    return ["\n[" + title + "]\n"]
+
+def info_scalar(label, value, unit="", fmt="{:14.7f}"):
+    unit_txt = ("  " + unit) if unit else ""
+    return "{0:<{w}} = {1}{2}\n".format(label, fmt.format(float(value)), unit_txt, w=INFO_LABEL_WIDTH)
+
+def info_vec(label, vec, unit="", mag_label=None, mag=None, qm=None, fmt="{:12.5f}"):
+    vals = ", ".join(fmt.format(float(v)) for v in vec)
+    line = "{0:<{w}} = [ {1} ]".format(label, vals, w=INFO_LABEL_WIDTH)
+    if unit:
+        line += "  " + unit
+    if mag_label is not None:
+        if mag is None:
+            mag = norm(vec)
+        line += ", |{0}| = {1:12.5f}".format(mag_label, float(mag))
+    if qm is not None:
+        line += "  (QM: {0:6.2f})".format(float(qm))
+    return line + "\n"
+
+def info_angle_vec(label, vec, comment):
+    vals = ", ".join("{:10.4f}".format(float(v) / pi) for v in vec)
+    return "{0:<{w}} = [ {1} ]  pi rad   # {2}\n".format(label, vals, comment, w=INFO_LABEL_WIDTH)
+
+def info_matrix(label, mat, unit=""):
+    rows = ["[ " + ", ".join("{:9.4f}".format(float(v)) for v in row) + " ]" for row in np.asarray(mat)]
+    unit_txt = ("  " + unit) if unit else ""
+    return "{0:<{w}} = {1}{2}\n".format(label, "; ".join(rows), unit_txt, w=INFO_LABEL_WIDTH)
+
 class icats:
     """A class for simulating molecular scattering events."""
     class sample:   
@@ -959,9 +998,8 @@ class icats:
         mol = self.mol 
         msa = sa.mol
         msp = [mol[0].sp,mol[1].sp]
-        sa.slog.append(".........................................\n")
-        sa.slog.append(" InterMolecular Analysis : \n")
-        sa.slog.append("  :" + mol[0].ip.name + " x " + mol[1].ip.name + "\n")
+        sa.slog += info_section("intermolecular")
+        sa.slog.append("{0:<{w}} = {1} x {2}\n".format("molecules", mol[0].ip.name, mol[1].ip.name, w=INFO_LABEL_WIDTH))
         #self.Mol2Image()
         com, vcom = COM(sa.sxx, sp.mass), COM(sa.svv, sp.mass)
         xx, vv = zeros((2, 3)), zeros((2, 3))
@@ -1044,22 +1082,23 @@ class icats:
         sa.SampInfo['orb']["sb"] = b
         sa.SampInfo['orb']["sphi"] = phi
  
-        sa.slog += ["Init. Angular Energy   : " + "{0:10.5e}".format(RotE * au2ev) + "\n"]
-        sa.slog += ["Init. Radial  Energy   : " + "{0:10.5e}".format(RadE * au2ev) + "\n"]
-        sa.slog += ["Total           (eV)   : " + "{0:10.5f}".format((RotE + RadE) * au2ev) + "\n"]
-        sa.slog += ["Tot. Mol Ja  =         : " + ''.join(["{0:10.5f}".format(iJa[i]) for i in range(3)]) + ', |Ja|  = ' + "{0:10.5f}".format(niJa)+' (QM: '+"{0:4.2f}".format(qiJa)+')\n']
-        sa.slog += ["Tot. Mol Jb  =         : " + ''.join(["{0:10.5f}".format(iJb[i]) for i in range(3)]) + ', |Jb|  = ' + "{0:10.5f}".format(niJb)+' (QM: '+"{0:4.2f}".format(qiJb )+')\n']
-        sa.slog += ["Tot. Mol Jab = Ja + Jb : " + ''.join(["{0:10.5f}".format(iJab[i]) for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(niJab)+' (QM: '+"{0:4.2f}".format(qiJab )+')\n']
-        sa.slog += ["Vec Model Ja  =        : " + ''.join(["{0:10.5f}".format(Ja[i]) for i in range(3)]) + ', |Ja|  = ' + "{0:10.5f}".format(norm(Ja))+' (QM: '+"{0:4.2f}".format(qJa)+')\n']
-        sa.slog += ["Vec Model Jb  =        : " + ''.join(["{0:10.5f}".format(Jb[i]) for i in range(3)]) + ', |Jb|  = ' + "{0:10.5f}".format(norm(Jb))+' (QM: '+"{0:4.2f}".format(qJb )+')\n']
-        sa.slog += ["Vec Model Jab = Ja + Jb: " + ''.join(["{0:10.5f}".format(Jab[i]) for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(nJab)+' (QM: '+"{0:4.2f}".format(qJab )+')\n']
-        sa.slog += ["Init. Ang. Momentum au : " + "".join(["{0:10.5f}".format(p) + " " for p in LL]) + ', |L|   = '+ "{0:10.5f}".format(norm(LL)) +' (QM: '+"{0:4.2f}".format(qL  )+')\n' ]
-        sa.slog += ["Init. Rad. Momentum au : " + "".join(["{0:10.5f}".format(p) + " " for p in PP]) + ", |P_R| = "+ "{0:10.5f}".format(norm(PP))+' (QM: '+"{0:4.2f}".format(qR )+')\n'  ]
-        sa.slog += ["Tot Ang.   Momentum au : " + "".join(["{0:10.5f}".format(p) + " " for p in cJ]) + ", |J|   = "+ "{0:10.5f}".format(norm(cJ))+' (QM: '+"{0:4.2f}".format(qJ )+')\n'  ]
-        sa.slog += ["Moment Of Inertia   au : " + "{0:10.3e}".format(II) + "\n"]
-        sa.slog += ["Cylindrical Coords     : " + "{0:10.5f}".format(float(b)*au2ang) + ' Ang ' + "{0:10.5f}".format(float(phi/pi)) + " pi rad \n"]
-        sa.slog += ["Molecule 1 COM   (Ang) : " + ''.join(["{0:10.5f}".format(i*au2ang)+' ' for i in mol[0].MolecularPosition(msa[0]).flatten().tolist()]) + " \n"]
-        sa.slog += ["Molecule 2 COM   (Ang) : " + ''.join(["{0:10.5f}".format(i*au2ang)+' ' for i in mol[1].MolecularPosition(msa[1]).flatten().tolist()]) + " \n"]
+        sa.slog += [info_scalar("angular energy", RotE * au2ev, "eV", "{:14.5e}")]
+        sa.slog += [info_scalar("radial energy", RadE * au2ev, "eV", "{:14.5e}")]
+        sa.slog += [info_scalar("total energy", (RotE + RadE) * au2ev, "eV", "{:14.5f}")]
+        sa.slog += [info_vec("Ja, full", iJa, "au", "Ja", niJa, qiJa)]
+        sa.slog += [info_vec("Jb, full", iJb, "au", "Jb", niJb, qiJb)]
+        sa.slog += [info_vec("Jab, full", iJab, "au", "Jab", niJab, qiJab)]
+        sa.slog += [info_vec("Ja, vector model", Ja, "au", "Ja", norm(Ja), qJa)]
+        sa.slog += [info_vec("Jb, vector model", Jb, "au", "Jb", norm(Jb), qJb)]
+        sa.slog += [info_vec("Jab, vector model", Jab, "au", "Jab", nJab, qJab)]
+        sa.slog += [info_vec("L", LL, "au", "L", norm(LL), qL)]
+        sa.slog += [info_vec("P_R", PP, "au", "P_R", norm(PP), qR)]
+        sa.slog += [info_vec("J = L + Jab", cJ, "au", "J", norm(cJ), qJ)]
+        sa.slog += [info_scalar("moment of inertia", II, "au", "{:14.3e}")]
+        sa.slog += [info_scalar("b", float(b) * au2ang, "Ang", "{:14.5f}")]
+        sa.slog += [info_scalar("phi", float(phi / pi), "pi rad", "{:14.5f}")]
+        sa.slog += [info_vec("COM 1", mol[0].MolecularPosition(msa[0]).flatten() * au2ang, "Ang")]
+        sa.slog += [info_vec("COM 2", mol[1].MolecularPosition(msa[1]).flatten() * au2ang, "Ang")]
         return 
    
          
@@ -1132,15 +1171,15 @@ class icats:
           dphi = np.arctan2(np.dot(u2,ucc12c23),norm(u2)*udc12c23)
         else:
           dphi = 0.0
-        sa.slog += [" -Body-Fixed Angles           :   Alpha    Beta   Gamma \n"]
-        sa.slog += ['   System Euler (phi,beta,chi): ' + ''.join(["{0:6.4f}".format(a/pi).rjust(8) for a in [phi,beta,chi] ]).rjust(24)  +' pi rad\n']
-        sa.slog += ['   Molecule (1) BF Euler      : ' + ''.join(["{0:6.4f}".format(a/pi).rjust(8) for a in sBFa1]).rjust(24)  +' pi rad\n']
-        sa.slog += ['   Molecule (2) BF Euler      : ' + ''.join(["{0:6.4f}".format(a/pi).rjust(8) for a in sBFa2]).rjust(24)  +' pi rad\n']
-        sa.slog += ['   v1 v2 dihedral       Angles: ' + "{0:6.4f}".format(dphi/pi).rjust(8) + ' pi rad\n']
-        sa.slog += ["   Jacobi R (Ang)             : " +"{0:10.5f}".format(float(norm(r))*au2ang) + " \n"]
-        sa.slog += ["   Body-Fixed Frame for J     : " +''.join([''.join(["{0:6.4f}".format(a).rjust(8) for a in RJ[:,i].tolist()]).rjust(24) + ' ,' for i in range(3)])[:-2] + " \n"]
-        sa.slog += ["   Body-Fixed Frame for Mol 1 : " +''.join([''.join(["{0:6.4f}".format(a).rjust(8) for a in Ra1[:,i].tolist()]).rjust(24) + ' ,' for i in range(3)])[:-2] + " \n"]
-        sa.slog += ["   Body-Fixed Frame for Mol 2 : " +''.join([''.join(["{0:6.4f}".format(a).rjust(8) for a in Ra2[:,i].tolist()]).rjust(24) + ' ,' for i in range(3)])[:-2] + " \n"]
+        sa.slog += info_section("system angles")
+        sa.slog += [info_angle_vec("system Euler", [phi, beta, chi], "phi, beta, chi")]
+        sa.slog += [info_angle_vec("mol 1 BF Euler", sBFa1, "alpha, beta, gamma")]
+        sa.slog += [info_angle_vec("mol 2 BF Euler", sBFa2, "alpha, beta, gamma")]
+        sa.slog += [info_scalar("v1-v2 dihedral", dphi / pi, "pi rad", "{:14.4f}")]
+        sa.slog += [info_scalar("Jacobi R", float(norm(r)) * au2ang, "Ang", "{:14.5f}")]
+        sa.slog += [info_matrix("BF frame J", RJ.T)]
+        sa.slog += [info_matrix("BF frame mol 1", Ra1.T)]
+        sa.slog += [info_matrix("BF frame mol 2", Ra2.T)]
         sa.SampInfo['2bJac'] = {} 
         sa.SampInfo["2bJac"]['R'] = r
         sa.SampInfo['2bJac']['dphi'] = dphi 
@@ -1162,9 +1201,7 @@ class icats:
         """
         sp = self.sp
         sa.sii = ii 
-        sa.slog  = ["###################################################\n"]
-        sa.slog += ["############## Sample Number " + str(ii) + "\n"]
-        sa.slog += ["###################################################\n"]
+        sa.slog = info_header(ii, "generation")
         sa.SampInfo = {}
         sa.svv = zeros(sp.shape)  
         sa.sxx = zeros(sp.shape)
@@ -1232,7 +1269,8 @@ class icats:
            self.SetStandardOrientation(sa)
           debug and print('Sample HOVib... ')  
           if ip.vib_mode == "rigid":
-            sa.slog += [" -HO Vibrational State Sample: skipped (vib-mode = rigid)\n"]
+            sa.slog += info_section("vibration")
+            sa.slog += ["vib-mode              = rigid; harmonic oscillator sampling skipped\n"]
           else:
             self.SampleHOVibrState(sa)
           # sample intermolecular DOF
@@ -1288,7 +1326,7 @@ class icats:
         nJ = norm(cJ) 
         sa.snJ =  nJ
         sa.sJ = 0.5 * (-1 + sqrt(1 + 4.0 * norm(nJ) ** 2) )
-        log = [" -Total angular momentum Q.N. J = : " + "{0:3.2f}".format(sa.sJ)+"\n"]
+        log = [info_scalar("total J", sa.sJ, "", "{:14.2f}")]
         sa.SampInfo['orb']['iJ'] = sa.sJ
         sa.SampInfo['orb']['inJ'] = sa.snJ
         sa.SampInfo['orb']['icJ'] = sa.scJ
@@ -1539,7 +1577,7 @@ class icats:
             if 'senergy' in sa.SampInfo['orb'].keys():
                 ken1 = sa.SampInfo['orb']['senergy'][0] * au2ev
                 ken2 = sa.SampInfo['orb']['senergy'][1] * au2ev
-            sa.slog.append("########## Energy Decomposition (From Sample) ################ \n")
+            stage = "analysis"
         else:
             if hasattr(msa[0], "sven"):
                 ven1 = sum(msa[0].sven) * au2ev
@@ -1552,27 +1590,24 @@ class icats:
             if hasattr(sa, "smkin"):
                 ken1 = sa.smkin[0] * au2ev
                 ken2 = sa.smkin[1] * au2ev
-            sa.slog.append("########## Energy Decomposition (From Generation) ############## \n")
-        sa.slog.append("              "
-            + self.mol[0].ip.name.rjust(20) + "  "
-            + self.mol[1].ip.name.rjust(20) + "               Total (eV) \n")
-        sa.slog.append("Vibrational  :"
-            + "{0:8.4f}".format(ven1).rjust(20) + " "
-            + "{0:8.4f}".format(ven2).rjust(20) + " "
-            + "{0:8.4f}".format(ven1 + ven2).rjust(20)+ "\n")
-        sa.slog.append("Rotational   :"
-            + "{0:8.4f}".format(ren1).rjust(20) + " "
-            + "{0:8.4f}".format(ren2).rjust(20) + " "
-            + "{0:8.4f}".format(ren1 + ren2).rjust(20) + "\n")
-        sa.slog.append("Velocity     :"
-            + "{0:8.4f}".format(ken1).rjust(20) + " "
-            + "{0:8.4f}".format(ken2).rjust(20) + " "
-            + "{0:8.4f}".format(ken1 + ken2).rjust(20) + "\n")
-        sa.slog.append("Total Energy :"
-            + "{0:8.4f}".format(ken1 + ven1 + ren1).rjust(20)+ " "
-            + "{0:8.4f}".format(ken2 + ven2 + ren2).rjust(20)+ " "
-            + "{0:8.4f}".format(ken1 + ken2 + ven1 +
-                                ven2 + ren1 + ren2).rjust(20)+ "\n")
+            stage = "generation"
+        sa.slog += info_section("energy summary")
+        sa.slog.append(
+            "{0:<16s} {1:>14s} {2:>14s} {3:>14s}\n".format(
+                "component",
+                self.mol[0].ip.name + "/eV",
+                self.mol[1].ip.name + "/eV",
+                "total/eV",
+            )
+        )
+        rows = [
+            ("vibrational", ven1, ven2, ven1 + ven2),
+            ("rotational", ren1, ren2, ren1 + ren2),
+            ("velocity", ken1, ken2, ken1 + ken2),
+            ("total", ken1 + ven1 + ren1, ken2 + ven2 + ren2, ken1 + ken2 + ven1 + ven2 + ren1 + ren2),
+        ]
+        for name, v1, v2, vt in rows:
+            sa.slog.append("{0:<16s} {1:14.4f} {2:14.4f} {3:14.4f}\n".format(name, v1, v2, vt))
         summary = {
             "vib": ven1 + ven2,
             "rot": ren1 + ren2,
@@ -1771,14 +1806,13 @@ class icats:
             sa.SampInfo['vel'] = {}
         sa.SampInfo['vel']['ivel'] = sa.sV*au2mps 
         sa.SampInfo['vel']['velen'] = [k*au2ev for k in sa.smkin]
-        sa.slog += ["                                     " + mol[0].ip.name.rjust(15) + mol[1].ip.name.rjust(15) +'\n']
-        sa.slog += [" -Z Inter-mol Velocity Sample (m/s): "
-            + "{0:14.7f}".format(vv[0, 2]*au2mps) + " "  + "{0:14.7f}".format(vv[1, 2]*au2mps) + " = "
-            + "{0:14.7f}".format(sa.sV * au2mps)  + "\n" ]
-        sa.slog += [" -                           Energy: "
-            + "{0:14.7f}".format(sa.smkin[0] * au2ev) + " "
-            + "{0:14.7f}".format(sa.smkin[1] * au2ev) + " = "
-            + "{0:14.7f}".format(sum(sa.smkin) * au2ev) + " eV \n" ]
+        sa.slog += info_section("intermolecular")
+        sa.slog += [info_scalar("relative velocity", sa.sV * au2mps, "m/s")]
+        sa.slog += [info_scalar("collision energy", sum(sa.smkin) * au2ev, "eV")]
+        sa.slog += [info_scalar(mol[0].ip.name + " z velocity", vv[0, 2] * au2mps, "m/s")]
+        sa.slog += [info_scalar(mol[1].ip.name + " z velocity", vv[1, 2] * au2mps, "m/s")]
+        sa.slog += [info_scalar(mol[0].ip.name + " kinetic", sa.smkin[0] * au2ev, "eV")]
+        sa.slog += [info_scalar(mol[1].ip.name + " kinetic", sa.smkin[1] * au2ev, "eV")]
         return
 
 
@@ -1832,10 +1866,11 @@ class icats:
         sa.SampInfo['orb']['inL'] = sa.snL
         sa.SampInfo['orb']['icL'] = sa.scL
         sa.SampInfo['orb']['fixed_b'] = b
-        return [" - Fixed impact parameter b = : "
-                + "{0:10.5f}".format(b * au2ang)
-                + " Ang; implied L = "
-                + "{0:3.2f}".format(L) + "\n"]
+        return [
+            *info_section("intermolecular"),
+            info_scalar("fixed b", b * au2ang, "Ang", "{:14.5f}"),
+            info_scalar("implied L", L, "", "{:14.2f}"),
+        ]
 
     def SetStandardOrientation(self,sa):
          msa = sa.mol
@@ -1901,14 +1936,14 @@ class icats:
           # gen spherica polar coordinate angles between L and Jab (should be isotropic)
           _, R = rot_match_vec(reshape(cL,(1,3)),reshape(z,(1,3))) 
           _,LJab_be,LJab_al =  xyz2polar(matmul(R,Jab))
-        sa.slog += [" -Total Mol  Ja            : " + ''.join(["{0:10.5f}".format(iJa[i])  for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(niJa)  +' (QM: '+"{0:4.2f}".format(qiJa ) +')\n']
-        sa.slog += [" -Total Mol  Jb            : " + ''.join(["{0:10.5f}".format(iJb[i])  for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(niJb)  +' (QM: '+"{0:4.2f}".format(qiJb ) +')\n']
-        sa.slog += [" -Total Mol  Jab = Ja + Jb : " + ''.join(["{0:10.5f}".format(iJab[i]) for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(niJab) +' (QM: '+"{0:4.2f}".format(qiJab )+')\n']
-        sa.slog += [" -Vector Model  Ja         : " + ''.join(["{0:10.5f}".format(Ja[i])   for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(nJa)   +' (QM: '+"{0:4.2f}".format(qJa )  +')\n']
-        sa.slog += [" -Vector Model  Jb         : " + ''.join(["{0:10.5f}".format(Jb[i])   for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(nJb)   +' (QM: '+"{0:4.2f}".format(qJb )  +')\n']
-        sa.slog += [" -Vector Model  Jab        : " + ''.join(["{0:10.5f}".format(Jab[i])  for i in range(3)]) + ', |Jab| = ' + "{0:10.5f}".format(nJab)  +' (QM: '+"{0:4.2f}".format(qJab ) +')\n']
-        sa.slog += [" -Orbital Angular mometnum : " + ''.join(["{0:10.5f}".format(cL[i])   for i in range(3)]) + ', |L|   = ' + "{0:10.5f}".format(ncL)   +' (QM: '+"{0:4.2f}".format(qL )   +')\n']
-        sa.slog += [" -Total   Angular mometnum : " + ''.join(["{0:10.5f}".format(cJ[i])   for i in range(3)]) + ', |J|   = ' + "{0:10.5f}".format(ncJ)   +' (QM: '+"{0:4.2f}".format(qJ )   +')\n']
+        sa.slog += [info_vec("Ja, full", iJa, "au", "Ja", niJa, qiJa)]
+        sa.slog += [info_vec("Jb, full", iJb, "au", "Jb", niJb, qiJb)]
+        sa.slog += [info_vec("Jab, full", iJab, "au", "Jab", niJab, qiJab)]
+        sa.slog += [info_vec("Ja, vector model", Ja, "au", "Ja", nJa, qJa)]
+        sa.slog += [info_vec("Jb, vector model", Jb, "au", "Jb", nJb, qJb)]
+        sa.slog += [info_vec("Jab, vector model", Jab, "au", "Jab", nJab, qJab)]
+        sa.slog += [info_vec("L", cL, "au", "L", ncL, qL)]
+        sa.slog += [info_vec("J = L + Jab", cJ, "au", "J", ncJ, qJ)]
         # semiclassical mapping
         b = nL/(sp.rmass*sa.sV)
         phi = np.arctan2(cL[0],-cL[1])
@@ -1928,7 +1963,8 @@ class icats:
         sa.SampInfo['orb']['phi'] = phi
         sa.sb = b 
         sa.sphi = phi
-        sa.slog += [" -InterM. Cylindrical Coor : " + "{0:10.5f}".format(float(b)*au2ang) + " Ang, " + "{0:10.5f}".format(phi/pi) + " pi rad \n"]
+        sa.slog += [info_scalar("b", float(b) * au2ang, "Ang", "{:14.5f}")]
+        sa.slog += [info_scalar("impact phi", phi / pi, "pi rad", "{:14.5f}")]
         return   
 
     # in comes lab fixed z-velocity magnitude, out goes z-velocity
@@ -1979,8 +2015,8 @@ class icats:
         sp = self.sp 
         mol[0].sxx += (z * Rz) * sp.w1
         mol[1].sxx -= (z * Rz) * sp.w0
-        sa.slog += [" -Z coordinate distance (Ang)      : " +
-                      "{0:10.5f}".format(Rz*au2ang) + "\n"]
+        sa.slog += info_section("intermolecular")
+        sa.slog += [info_scalar("Rz", Rz * au2ang, "Ang", "{:14.5f}")]
 
     def SetImpactParam(self,sa, b, phi):
         """Set the impact parameter for scattering.
@@ -2003,7 +2039,7 @@ class icats:
         This method samples the rigid rotor state for each molecule, considering their respective temperatures.
         """
         debug = False
-        log = [" -Rigid Rotor State Sample: \n"]
+        log = info_section("rotation")
         mol = self.mol
         msa = sa.mol 
         for i in range(2):
@@ -2011,12 +2047,12 @@ class icats:
                 mol[i].SampleTotMolAngMom(msa[i])
                 log += mol[i].SampleRigidRotorState(msa[i])
             else:
-                log += [f"    {mol[i].ip.name}: no rotational state\n"]
+                log += [f"{mol[i].ip.name:<{INFO_LABEL_WIDTH}} = no rotational state\n"]
         return log
 
     # sets angular velocity from angular momentum once :
     def SetAngularVelocity(self,sa,**dic):
-        slog = [" -Setting Angular velocities \n"]
+        slog = []
         mol = self.mol
         msa = sa.mol
         for i in range(2):
@@ -2034,13 +2070,13 @@ class icats:
         debug = False
         mol = self.mol
         msa = sa.mol 
-        log = [" -Orientational Sample: \n"]
+        log = info_section("orientation")
         for i in range(2):
             if mol[i].sp.na > 1 and 'ori' in msa[i].dist:
                 mol[i].SampleRotation(msa[i])
             else:
                 msa[i].soR = np.eye(3)
-                log += [f"    {mol[i].ip.name}: no orientational state\n"]
+                log += [f"{mol[i].ip.name:<{INFO_LABEL_WIDTH}} = no orientational state\n"]
         j0, j1 = matmul(msa[0].soR,msa[0].srpar[-1]), matmul(msa[1].soR,msa[1].srpar[-1])
         jab = j0+j1 
         log += self.SetAngularVelocity(sa,printlog=True)
@@ -2048,7 +2084,7 @@ class icats:
             if mol[i].sp.na > 1:
                 log += mol[i].SetOrientat(msa[i],printlog=True)
             else:
-                log += [f"    {mol[i].ip.name}: orientation unchanged for atom\n"]
+                log += [f"{mol[i].ip.name:<{INFO_LABEL_WIDTH}} = orientation unchanged for atom\n"]
         sa.sjab = jab
         sa.snjab = norm(jab)
         return log
@@ -2058,7 +2094,7 @@ class icats:
 
         This method samples the harmonic oscillator vibrational states for each molecule.
         """
-        sa.slog += [" -HO Vibrational State Sample: \n"]
+        sa.slog += info_section("vibration")
         mol = self.mol
         msa = sa.mol 
         sa.slog += mol[0].SampleHOVibrState(msa[0])
@@ -2070,8 +2106,7 @@ class icats:
         This method calculates rotational energies for each molecule and the overall system.
         """
         debug = False
-        sa.slog.append(".........................................\n")
-        sa.slog.append(" Rotational Analysis : \n")
+        sa.slog += info_section("rotation")
         mol = self.mol
         msa = sa.mol 
         sa.slog += mol[0].CalcRotEner(msa[0])
@@ -2091,8 +2126,7 @@ class icats:
 
         This method calculates vibrational energies for each molecule and the overall system.
         """
-        sa.slog.append(".........................................\n")
-        sa.slog.append(" Vibrational Analysis : \n")
+        sa.slog += info_section("vibration")
         mol = self.mol
         msa = sa.mol 
         sa.slog += mol[0].CalcInterEner(msa[0])
@@ -2107,8 +2141,7 @@ class icats:
 
         This method calculates the molecular orientation and Euler angles for each molecule.
         """
-        sa.slog.append(".........................................\n")
-        sa.slog.append(" Orientation Analysis (Space-to-Eckart) : \n")
+        sa.slog += info_section("orientation")
         mol = self.mol
         msa = sa.mol 
         sa.slog += mol[0].CalcOrient(msa[0])
@@ -2455,9 +2488,7 @@ class icats:
         """
         ip = self.ip
         sp = self.sp
-        sa.slog.append("###################################################################\n")
-        sa.slog.append("####################### Sample " +str(sa.sii) + " Final Analysis:\n")
-        sa.slog.append("###################################################################\n")
+        sa.slog += info_header(sa.sii, "analysis")
         # Calculates Euler orientation of molecular frame from xx and vv
         self.CalcOrient(sa)
         # Calculates Rotational information from xx and vv
@@ -2471,7 +2502,7 @@ class icats:
         # write up some energy information
         self.SummarizeLogEnergy(sa,True)
         # generate output
-        sa.slog.append("####################### Sample "+ str(sa.sii)+ " Final Coordinates/Velocity:\n")
+        sa.slog += info_section("coordinates and velocities")
         if ip.KeepInfo:
           self.sampls['cv'].append([sa.sxx.copy(), sa.svv.copy()])
           self.sampls['info'].append(sa.SampInfo.copy())

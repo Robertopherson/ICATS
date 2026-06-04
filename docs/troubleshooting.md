@@ -94,5 +94,5 @@ from the immediate Cartesian analysis. If it fails:
 3. Inspect `out_full.info` for the failed sample.
 4. Compare generated energies with the `Audit energy ...` lines.
 
-For vibrating polyatomics, compare sampled rotor energy with `Vector Model
-Rotational (ev)`, not `Full Rotational Energy (ev)`.
+For vibrating polyatomics, compare sampled rotor energy with
+`vector rot. energy`, not `full rot. energy`.
