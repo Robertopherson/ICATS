@@ -632,3 +632,12 @@ inspect histograms as well:
 For Wang-Landau runs, inspect both the Wang-Landau umbrella and the sampled
 `L`/`J` distributions. A good-looking single sample does not prove that the
 ensemble populated the intended angular-momentum range.
+
+For the focused system angular-momentum check, use:
+
+```bash
+./rd_tutorial_input/histograms/plot_orbital_jljab.sh
+```
+
+This writes sampled `L`, `J`, and `Jab` plots without rendering every internal
+molecular histogram.

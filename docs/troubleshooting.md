@@ -84,6 +84,12 @@ Then run:
 ./rd_tutorial_input/histograms/plot_sampled.sh
 ```
 
+For only the sampled system `L`, `J`, and `Jab` plots, use:
+
+```bash
+./rd_tutorial_input/histograms/plot_orbital_jljab.sh
+```
+
 ## Audit fails
 
 The initial-sample audit checks whether generated model energies are recovered

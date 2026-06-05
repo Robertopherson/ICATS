@@ -174,11 +174,18 @@ internal rotor or vibrational degrees of freedom.
 
 For normal use, prefer `run-mode` over the older `continue` flag.
 
+To write starter files from the command line, use `icats.init
+--write-templates`. Add `--overwrite-templates` only when replacing existing
+template files intentionally.
+
 When `wang = True`, the first run may spend most of its time building
 `rd_<run-tag>/wang.pkl`. This Wang-Landau umbrella build can take many minutes,
 and for larger polyatomic/high-`maxj` cases it can take an hour or more.
 Increasing `workers` can help, but use `workers = 1` while debugging input
 files and increase to a few cores only after the setup is known to be correct.
+During production sampling, Wang-Landau acceptance/rejection counters are
+appended to `<input-file>.logfile` so that long runs can be monitored with
+`tail -f`.
 
 ### Temperatures and Velocity
 
