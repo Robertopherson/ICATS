@@ -2547,8 +2547,10 @@ class icats:
       sdat[ky]['LJab_be'], sdat[ky]['LJab_al'], sdat[ky]["cosLJab_thet"] = [], [], []
       # plot orbital cylibdrical coordinates 
       sdat[ky]['sb'], sdat[ky]['sphi'] = [], [] 
-      # plot rotational energy 
-      sdat[ky]['senergy'] = [] 
+      # plot intermolecular COM kinetic-energy shares separately; the raw
+      # senergy record is a two-component vector and should not be flattened
+      # into one mixed histogram.
+      sdat[ky]['senergy_m0_ev'], sdat[ky]['senergy_m1_ev'], sdat[ky]['senergy_total_ev'] = [], [], []
       #plot rotational body-fixed coordinates: 
       ky = '2bJac'
       sdat[ky] = {}
@@ -2646,6 +2648,14 @@ class icats:
               for k in info[kys][ky].keys():
                 if k in sdat[kys][ky].keys():
                   sdat[kys][ky][k].append(info[kys][ky][k])
+          elif kys == 'orb' and ky == 'senergy':
+            vals = np.asarray(info[kys][ky], dtype=float).ravel()
+            if len(vals) > 0:
+              sdat[kys]['senergy_m0_ev'].append(float(vals[0] * au2ev))
+            if len(vals) > 1:
+              sdat[kys]['senergy_m1_ev'].append(float(vals[1] * au2ev))
+            if len(vals) > 0:
+              sdat[kys]['senergy_total_ev'].append(float(np.sum(vals) * au2ev))
           elif ky in sdat[kys].keys():
             sdat[kys][ky].append(info[kys][ky]) 
       return 
