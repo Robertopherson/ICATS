@@ -1301,12 +1301,19 @@ class icats:
         else:
           hidebar = True
         ff = 1.0
-        for ii in tqdm(range(rang[0],rang[1]),disable=hidebar):
+        ntrial = 0
+        naccepted = 0
+        nreject_jcap = 0
+        nreject_wl = 0
+        nreject_wl_range = 0
+        pbar = tqdm(range(rang[0],rang[1]), disable=hidebar, dynamic_ncols=True)
+        for ii in pbar:
           log = []
           log.append("Generating Sample number " + str(ii + 1) + "\n")
           # Initialize sample
           debug and print('Initialize...',ii)  
           while True:
+            ntrial += 1
             self.InitializeSample(sa,ii)
             log = []
             if ip.FixedB is not None:
@@ -1323,6 +1330,7 @@ class icats:
               log += self.SampleJ(sa)
               # Old-style gate: cap very large J before WL acceptance.
               if ip.MaxL > 0 and sa.sJ >= ip.MaxL*ff:
+                nreject_jcap += 1
                 continue
               if len(sp.td) == 0:
                 break
@@ -1330,8 +1338,17 @@ class icats:
               if iiL < len(sp.td):
                 if np.random.rand() <= sp.td[iiL]:
                   break
+                nreject_wl += 1
               else:
+                nreject_wl_range += 1
                 continue
+          naccepted += 1
+          if not hidebar and ip.progress == "normal" and (naccepted == 1 or naccepted % 50 == 0):
+            acc_rate = float(naccepted) / max(1.0, float(ntrial))
+            pbar.set_postfix_str(
+                f"trial_acc={acc_rate:.3f} "
+                f"jcap={nreject_jcap} wl={nreject_wl} wl_range={nreject_wl_range}"
+            )
           sa.slog += log
           if ip.isotropic and ip.ostandard and ip.ImpactPhi is None:
            self.SetStandardOrientation(sa)
@@ -1383,6 +1400,17 @@ class icats:
             cnam = ip.dirout + "/" + ip.fileout + "_checkpoint_w" + str(sa.id) + "_n" + str(ii+1) + ".pkl"
             with open(cnam, "wb") as cf:
               pickle.dump(sa.sdat, cf)
+        if ntrial > 0:
+          acc_rate = float(naccepted) / float(ntrial)
+          slog += [
+              "\n[sampling diagnostics]\n",
+              info_scalar("accepted samples", naccepted, "", "{:14.0f}"),
+              info_scalar("total trials", ntrial, "", "{:14.0f}"),
+              info_scalar("trial acceptance", acc_rate, "", "{:14.5f}"),
+              info_scalar("J-cap rejects", nreject_jcap, "", "{:14.0f}"),
+              info_scalar("WL rejects", nreject_wl, "", "{:14.0f}"),
+              info_scalar("WL range rejects", nreject_wl_range, "", "{:14.0f}"),
+          ]
         sa.slog = slog 
         return sa
 
