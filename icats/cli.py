@@ -235,6 +235,7 @@ TUTORIALS = {
             "Uses the same one-dimensional WL-on-J machinery, but proposes L uniformly.",
             "Uses wl-target = flat-j so WL does not add the linear 2J+1 target factor.",
             "Useful for checking whether flat-L proposals improve low-L coverage before reweighting.",
+            "The final L and J marginals can be only approximately flat because the one-dimensional WL acceptance still couples L, J, and Jab.",
             "Uses wl-j-range, wl-j-bins, and wl-l-cap to make the WL diagnostic range explicit.",
             "Inspect the WL umbrella plus sampled L, J, and Jab histograms before trusting production settings.",
         ],
@@ -339,6 +340,27 @@ def _write_histogram_helpers(out_dir: Path, run_tag: str = "tutorial_input") -> 
         "  python \"$f\" --no-show --outfile \"$HROOT/plots/sampled/${stem}\"\n"
         "done\n"
         "echo \"Sampled histogram plots written to $HROOT/plots/sampled/\"\n",
+        executable=True,
+    )
+
+    _write_file(
+        hist_dir / "plot_orbital_jljab.sh",
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n"
+        "HROOT=\"${HIST_ROOT:-$SCRIPT_DIR}\"\n"
+        "export MPLCONFIGDIR=\"${MPLCONFIGDIR:-/tmp/mpl_cache_${USER:-user}}\"\n"
+        "mkdir -p \"$MPLCONFIGDIR\"\n"
+        "mkdir -p \"$HROOT/plots/sampled\"\n"
+        "for metric in sl sj sjab; do\n"
+        "  f=\"$HROOT/sampled/system/hist_sam_sys_orb_${metric}.py\"\n"
+        "  if [ ! -f \"$f\" ]; then\n"
+        "    echo \"Missing $f. Run icats.init with hist_sampled = True first.\" >&2\n"
+        "    exit 1\n"
+        "  fi\n"
+        "  python \"$f\" --no-show --outfile \"$HROOT/plots/sampled/hist_sam_sys_orb_${metric}\"\n"
+        "done\n"
+        "echo \"Orbital J/L/Jab plots written to $HROOT/plots/sampled/\"\n",
         executable=True,
     )
 
@@ -893,10 +915,7 @@ def _generate_tutorial(
             "  ./rd_tutorial_input/histograms/plot_sampled.sh\n"
             "  ./rd_tutorial_input/histograms/plot_compare_pairs.sh\n\n"
             "- For a quick intermolecular check, plot only system L, J, and Jab:\n"
-            "  mkdir -p rd_tutorial_input/histograms/plots/sampled\n"
-            "  python rd_tutorial_input/histograms/sampled/system/hist_sam_sys_orb_sl.py --no-show --outfile rd_tutorial_input/histograms/plots/sampled/hist_sam_sys_orb_sl\n"
-            "  python rd_tutorial_input/histograms/sampled/system/hist_sam_sys_orb_sj.py --no-show --outfile rd_tutorial_input/histograms/plots/sampled/hist_sam_sys_orb_sj\n"
-            "  python rd_tutorial_input/histograms/sampled/system/hist_sam_sys_orb_sjab.py --no-show --outfile rd_tutorial_input/histograms/plots/sampled/hist_sam_sys_orb_sjab\n\n"
+            "  ./rd_tutorial_input/histograms/plot_orbital_jljab.sh\n\n"
             "- Open the resulting PNGs in:\n"
             "  rd_tutorial_input/histograms/plots/sampled/\n\n"
         )
