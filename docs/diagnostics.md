@@ -16,7 +16,9 @@ Enable the generation-time audit with:
 ```text
 audit-initial-sample = True
 audit-initial-energy-tol = 0.02
-audit-initial-angular-tol = 0.0
+audit-initial-angular-tol = 2.0
+audit-initial-vib-tol = 2.0
+audit-initial-velocity-tol = 5.0
 ```
 
 This compares generated sample bookkeeping against the immediate coordinate and
@@ -30,12 +32,24 @@ The audit compares:
 - vibrational energy,
 - vector-model rotational energy,
 - intermolecular velocity energy,
-- total sampled model energy.
+- total sampled model energy,
+- orbital and total angular momenta `L`, `Jab`, and `J`,
+- per-molecule vector-model angular momenta,
+- impact parameter and relative velocity,
+- vibrational normal coordinates where they are defined,
+- angular variables using circular angle differences.
+
+Not every printed value is a fair generation-vs-analysis pair. For example,
+linear-molecule spin about the molecular axis is gauge-like, atom Euler angles
+are arbitrary, and the full instantaneous molecular angular momentum includes
+vibrational angular momentum that was not directly sampled as a rigid-rotor
+vector. Those quantities remain useful diagnostics, but they are not all strict
+pass/fail checks.
 
 Run the audit over every bundled tutorial with:
 
 ```bash
-icats.audit-tutorials
+icats.audit-tutorials --nsamp 3 --keep-going
 ```
 
 By default this creates:
@@ -44,13 +58,11 @@ By default this creates:
 smoke_results/initial_audit_<timestamp>/
 ```
 
-and writes a `summary.tsv` table with the pass/fail status and largest
-generation-vs-analysis energy difference for each tutorial.
-
-Angular quantities are currently captured but not enforced by default. The
-analysis already reports vibrational angular momentum, but a pass/fail angular
-criterion should be defined carefully because frame conventions matter for atoms
-and linear/symmetric molecules.
+and writes a `summary.tsv` table with the pass/fail status, largest energy
+difference, and largest audited state residual for each tutorial. Wang-Landau is
+disabled in this sweep by default so the command checks the initial-condition
+round trip quickly. Add `--include-wl` only when you deliberately want the
+tutorials that request Wang-Landau to build or use their umbrella.
 
 ## Analysis Output
 

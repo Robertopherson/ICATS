@@ -789,7 +789,12 @@ The optional audit exists because of this distinction. When
 - generated rotor energy against reconstructed vector-model rotational energy,
 - generated intermolecular velocity energy against reconstructed velocity
   energy,
-- the corresponding model total.
+- the corresponding model total,
+- generated and reconstructed `L`, `Jab`, and `J` vectors where those are
+  directly comparable,
+- per-molecule vector-model angular momenta,
+- impact parameter, relative velocity, and defined vibrational `Q/P`
+  coordinates.
 
 This is a test of the initial-condition round trip, not a test of a later
 dynamics method. If the audit passes and a trajectory later drifts in energy,

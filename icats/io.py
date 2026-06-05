@@ -82,11 +82,16 @@ KNOWN_KEYS = {
     "wl-flatness",
     "wl-wn-factor",
     "wl-wn",
+    "wl-j-bins",
+    "wl-j-range",
+    "wl-l-cap",
     "wl-angular-sampler",
     "wl-audit-angular-sampler",
     "audit-initial-sample",
     "audit-initial-energy-tol",
     "audit-initial-angular-tol",
+    "audit-initial-vib-tol",
+    "audit-initial-velocity-tol",
     "seed-mode",
     "run-mode",
     "run-tag",
@@ -138,9 +143,9 @@ def load_and_validate(input_file: str) -> Dict[str, object]:
             continue
         if key in ("wang", "keepinfo", "continue", "plothist", "phisample", "dry-run", "check-input", "hist_initial", "hist_sampled", "wl-audit-angular-sampler", "audit-initial-sample"):
             _parse_bool(vals[0], key)
-        if key in ("workers", "seed", "maxj", "maxl", "maxv", "wl-nstep", "wl-wn", "wl-max-iter", "wl-log-every", "save-frequency"):
+        if key in ("workers", "seed", "maxj", "maxl", "maxv", "wl-nstep", "wl-wn", "wl-j-bins", "wl-max-iter", "wl-log-every", "save-frequency"):
             _ensure_numeric(vals[0], key, as_int=True)
-        if key in ("tvel", "relative-velocity", "relative-velocity-fwhm", "collision-energy", "incoming-p0", "incoming-k", "trot", "tvib", "maxb", "fixed-b", "impact-phi", "rz", "beam-angle", "wl-ff", "wl-flatness", "wl-wn-factor", "wl-tol", "audit-initial-energy-tol", "audit-initial-angular-tol"):
+        if key in ("tvel", "relative-velocity", "relative-velocity-fwhm", "collision-energy", "incoming-p0", "incoming-k", "trot", "tvib", "maxb", "fixed-b", "impact-phi", "rz", "beam-angle", "wl-ff", "wl-flatness", "wl-wn-factor", "wl-j-range", "wl-l-cap", "wl-tol", "audit-initial-energy-tol", "audit-initial-angular-tol", "audit-initial-vib-tol", "audit-initial-velocity-tol"):
             _ensure_numeric(vals[0], key, as_int=False)
 
     if len(mol_entries) < 2:
@@ -220,6 +225,9 @@ wlmode = default
 # wl-flatness = 0.90
 # wl-wn-factor = 4.0
 # wl-wn = 80
+# wl-j-bins = 80
+# wl-j-range = 60
+# wl-l-cap = 60
 # wl-tol = 1.000001
 # wl-max-iter = 0
 # wl-log-every = 1
@@ -228,6 +236,8 @@ wlmode = default
 # audit-initial-sample = False
 # audit-initial-energy-tol = 0.02
 # audit-initial-angular-tol = 0.0
+# audit-initial-vib-tol = 0.0
+# audit-initial-velocity-tol = 0.0
 
 # User-friendly run behavior
 run-mode = fresh

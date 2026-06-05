@@ -1103,6 +1103,7 @@ def plot_wl_weights(weights,
                     #is_log=True,
                     normalize=True,
                     title="",
+                    ylabel="target weight (2J+1)/Omega(J)",
                     #title="Wang–Landau weights vs. J",
                     outfile="wl_weights.png"):
 
@@ -1123,11 +1124,11 @@ def plot_wl_weights(weights,
         If True, rescale so the tallest bar is 1.
     title : str
         Plot title.
+    ylabel : str
+        Label for the plotted WL quantity.
     outfile : str
         Filename (with path) where the figure is saved.
     """
-    weights = weights[:30] 
-    J_range = (0,30)
     w = np.asarray(weights, dtype=float)
     n = w.size
 
@@ -1145,7 +1146,7 @@ def plot_wl_weights(weights,
     centers = 0.5 * (edges[:-1] + edges[1:])
     widths  = np.diff(edges)
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(7.2, 4.8))
     ax.bar(centers, y, width=widths, align="center",
     color="tab:blue",   # fill color
     alpha=0.6,          # transparency
@@ -1160,16 +1161,16 @@ def plot_wl_weights(weights,
         ax.set_xticklabels([r"$0$", r"$\tfrac{\pi}{2}$", r"$\pi$",
                             r"$\tfrac{3\pi}{2}$", r"$2\pi$"])
 
-    font = {'size'   : 22}
+    font = {'size'   : 12}
     plt.rc('font', **font)
-    ax.tick_params(axis='both', which='major', labelsize=18)    
-    ax.set_xlabel("Total Angular Momentum / J",fontsize=18)
-    ax.set_ylabel(r"$(2J+1) \Omega^{-1}(J)$",fontsize=18)
+    ax.tick_params(axis='both', which='major', labelsize=11)
+    ax.set_xlabel("Total angular momentum J",fontsize=12)
+    ax.set_ylabel(ylabel,fontsize=11)
     #ax.set_ylabel("weight" + (" (normalized)" if normalize else ""))
     ax.set_title("")
     #ax.set_title(title)
     ax.grid(True, axis="y", alpha=0.3)
-    fig.tight_layout()
+    fig.tight_layout(pad=1.2)
     #plt.show()
     fig.savefig(outfile, dpi=300)
     plt.close(fig)
@@ -1183,6 +1184,7 @@ def write_wl_plot_script(weights,
                          is_log=False,
                          normalize=True,
                          title="Wang–Landau weights vs. J",
+                         ylabel="target weight (2J+1)/Omega(J)",
                          outfile="wl_weights.png",
                          script_path="make_wl_plot.py"):
   
@@ -1206,6 +1208,7 @@ def write_wl_plot_script(weights,
         f"is_log={is_log}",
         f"normalize={normalize}",
         f"title={title!r}",
+        f"ylabel={ylabel!r}",
         f"outfile={outfile!r}"
     ]
     call_string = ", ".join(arg_lines)

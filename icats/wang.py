@@ -22,6 +22,8 @@ def metadata_from_input(ip) -> Dict[str, Any]:
         "wl_flatness": float(ip.wl_flatness),
         "wl_wn_factor": float(ip.wl_wn_factor),
         "wl_wn": None if ip.wl_wn is None else int(ip.wl_wn),
+        "wl_j_range": None if getattr(ip, "wl_j_range", None) is None else float(ip.wl_j_range),
+        "wl_l_cap": None if getattr(ip, "wl_l_cap", None) is None else float(ip.wl_l_cap),
         "wl_tol": float(ip.wl_tol),
     }
 
@@ -115,8 +117,19 @@ def validate(path: str, uu, iwld, td, metadata, expected_metadata: Dict[str, Any
                 + str(expected_metadata.get(key))
             )
 
-    for key in ("wl_ff", "wl_flatness", "wl_wn_factor", "wl_tol"):
-        if key not in metadata or not np.isclose(float(metadata.get(key)), float(expected_metadata.get(key)), rtol=1e-10, atol=1e-12):
+    for key in ("wl_ff", "wl_flatness", "wl_wn_factor", "wl_j_range", "wl_l_cap", "wl_tol"):
+        if metadata.get(key) is None and expected_metadata.get(key) is None:
+            continue
+        if key not in metadata:
+            mismatches.append(
+                key
+                + " stored="
+                + str(metadata.get(key))
+                + " requested="
+                + str(expected_metadata.get(key))
+            )
+            continue
+        if not np.isclose(float(metadata.get(key)), float(expected_metadata.get(key)), rtol=1e-10, atol=1e-12):
             mismatches.append(
                 key
                 + " stored="

@@ -21,6 +21,7 @@ This installs the command-line tools:
 icats
 icats.init
 icats.analyse
+icats.audit-tutorials
 ```
 
 ## Basic Use
@@ -47,7 +48,7 @@ icats.analyse tutorial_input.txt --dir rd_tutorial_input/outputs --prefix out
 Run the tutorial initial-condition audit without dynamics:
 
 ```bash
-icats.audit-tutorials
+icats.audit-tutorials --nsamp 3 --keep-going
 ```
 
 ## Manual

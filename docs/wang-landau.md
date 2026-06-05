@@ -190,7 +190,17 @@ This avoids accidentally overwriting a useful precomputed umbrella.
 | `wl-audit-angular-sampler` | Compare fast and legacy WL angular samplers | Use only for debugging |
 | `wl-flatness` | Histogram flatness target | Higher is stricter |
 | `wl-tol` | Stopping tolerance for modification factor | Lower tolerance takes longer |
-| `wl-wn` | Number of bins, if set directly | Leave unset at first |
+| `wl-j-range` | Upper `J` range for the explicit WL density estimate | Increase if `Jab` has a useful tail beyond the default range |
+| `wl-j-bins` | Number of explicit WL density bins | Increase to resolve the selected WL range more finely |
+| `wl-l-cap` | Orbital `L` cap used while building the WL umbrella | Match the production `maxl` when testing broad `J` ranges |
+| `wl-wn` | Old alias for `wl-j-bins` | Kept for existing inputs |
+
+`PeakJab` is an internal guide to the molecular-rotor angular-momentum scale.
+It is useful, but it is not the same as the largest meaningful `Jab` value.
+`wl-j-bins` changes the number of bins over the selected WL range. `wl-j-range`
+changes the selected upper range itself. If the sampled `Jab` histogram has a
+long tail, inspect the WL and `Jab` histograms before relying on the flattened
+high-`J` correction.
 
 ## Plotting Checks
 
@@ -201,6 +211,12 @@ cd rd_tutorial_input/histograms/wl
 python wl_td_plot.py
 python wl_wl_plot.py
 ```
+
+These write `wl_td_plot.png` and `wl_wl_plot.png` in the same directory.
+The `wl_wl_plot` figure is the estimated natural sampled density `Omega(J)`,
+shown in normalized plotting units. It is not an absolute density of states.
+The `wl_td_plot` figure is the normalized sampling correction
+`(2J+1)/Omega(J)` used to target the desired total-`J` distribution.
 
 Initial and sampled angular-momentum histograms can be generated with:
 

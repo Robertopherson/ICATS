@@ -87,7 +87,7 @@ The initial-condition stage is independent of the cheap dynamics backend.
 For a quick check of all bundled tutorials:
 
 ```bash
-icats.audit-tutorials
+icats.audit-tutorials --nsamp 3 --keep-going
 ```
 
 For a single tutorial, add the following lines to `tutorial_input.txt` before
@@ -96,11 +96,16 @@ running `icats.init`:
 ```text
 audit-initial-sample = True
 audit-initial-energy-tol = 0.02
-audit-initial-angular-tol = 0.0
+audit-initial-angular-tol = 2.0
+audit-initial-vib-tol = 2.0
+audit-initial-velocity-tol = 5.0
 ```
 
-The audit verifies that sampled model energies are recovered from the immediate
-Cartesian-coordinate analysis at `t = 0`.
+The audit verifies that sampled model energies, angular momenta, impact
+parameter, relative velocity, and defined normal coordinates are recovered from
+the immediate Cartesian-coordinate analysis at `t = 0`. The tutorial sweep keeps
+Wang-Landau off by default, so it is meant as a quick regression check after
+code changes rather than as a full umbrella-convergence test.
 
 To understand the first generated log, read
 [Annotated First Output](annotated-output.md) with `out_full.info` or

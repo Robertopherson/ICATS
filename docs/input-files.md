@@ -364,7 +364,10 @@ width, so it is not a rigid-bond setting.
 | `wl-nstep` | `wl-nstep = 500` | Number of steps per WL bin multiplier. |
 | `wl-flatness` | `wl-flatness = 0.90` | Histogram flatness criterion. Larger is stricter. |
 | `wl-wn-factor` | `wl-wn-factor = 4.0` | Sets WL bins from `PeakJab * factor`. |
-| `wl-wn` | `wl-wn = 80` | Directly sets the number of WL bins. |
+| `wl-j-range` | `wl-j-range = 60` | Upper `J` range for the explicit WL density estimate. |
+| `wl-j-bins` | `wl-j-bins = 80` | Directly sets the number of WL bins. |
+| `wl-l-cap` | `wl-l-cap = 60` | Orbital `L` proposal cap during WL construction. |
+| `wl-wn` | `wl-wn = 80` | Old alias for `wl-j-bins`. |
 | `wl-tol` | `wl-tol = 1.000001` | Stopping tolerance for the modification factor. |
 | `wl-max-iter` | `wl-max-iter = 0` | Maximum WL iterations; `0` means no explicit cap. |
 | `wl-log-every` | `wl-log-every = 1` | WL status print period. |
@@ -410,10 +413,14 @@ combined-file setting `printout = 1 0 0 0` writes the same samples into
 | `audit-initial-sample` | `True` or `False` | Run generation-vs-analysis audit at `t = 0`. |
 | `audit-initial-energy-tol` | `audit-initial-energy-tol = 0.02` | Energy tolerance in eV for the initial audit. |
 | `audit-initial-angular-tol` | `audit-initial-angular-tol = 0.0` | Angular-momentum tolerance; `0` disables angular pass/fail checks. |
+| `audit-initial-vib-tol` | `audit-initial-vib-tol = 0.0` | Normal-coordinate `Q/P` RMS-per-component tolerance; `0` records diagnostics without failing. |
+| `audit-initial-velocity-tol` | `audit-initial-velocity-tol = 0.0` | Relative-velocity tolerance in m/s. |
 
 For development and tutorials, `audit-initial-sample = True` is often the most
-important safety check. For production ensembles, histograms are the quickest
-way to catch accidental boundary effects or inappropriate `J`/`L` ranges.
+important safety check. It compares the generated bookkeeping with the immediate
+Cartesian-coordinate analysis before any dynamics are run. For production
+ensembles, histograms are the quickest way to catch accidental boundary effects
+or inappropriate `J`/`L` ranges.
 
 ## Choosing `maxb`, `maxl`, and `J`
 

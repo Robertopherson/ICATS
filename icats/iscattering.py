@@ -138,16 +138,22 @@ class icats:
               self.wl_flatness = 0.90
               self.wl_wn_factor = 4.0
               self.wl_wn = None
+              self.wl_j_range = None
+              self.wl_l_cap = None
               self.wl_angular_sampler = "fast"
               self.wl_audit_angular_sampler = False
               self.audit_initial_sample = False
               self.audit_initial_energy_tol = 2.0e-2
               self.audit_initial_angular_tol = 0.0
+              self.audit_initial_vib_tol = 0.0
+              self.audit_initial_velocity_tol = 0.0
               self.wl_ff_user = None
               self.wl_nstep_user = None
               self.wl_flatness_user = None
               self.wl_wn_factor_user = None
               self.wl_wn_user = None
+              self.wl_j_range_user = None
+              self.wl_l_cap_user = None
               self.wl_tol = 1.000001
               self.wl_tol_user = None
               self.wl_max_iter = 0
@@ -480,6 +486,15 @@ class icats:
             if ky == "wl-wn":
                 ip.wl_wn_user = int(val[0])
                 self.log += ["Wang-Landau wn bins: " + val[0] + "\n"]
+            if ky == "wl-j-bins":
+                ip.wl_wn_user = int(val[0])
+                self.log += ["Wang-Landau J bins: " + val[0] + "\n"]
+            if ky == "wl-j-range":
+                ip.wl_j_range_user = float(val[0])
+                self.log += ["Wang-Landau explicit J range: " + val[0] + "\n"]
+            if ky == "wl-l-cap":
+                ip.wl_l_cap_user = float(val[0])
+                self.log += ["Wang-Landau orbital L cap: " + val[0] + "\n"]
             if ky == "wl-angular-sampler":
                 ip.wl_angular_sampler = val[0].lower()
                 if ip.wl_angular_sampler not in ("fast", "legacy"):
@@ -497,6 +512,12 @@ class icats:
             if ky == "audit-initial-angular-tol":
                 ip.audit_initial_angular_tol = float(val[0])
                 self.log += ["Audit initial angular tolerance: " + val[0] + "\n"]
+            if ky == "audit-initial-vib-tol":
+                ip.audit_initial_vib_tol = float(val[0])
+                self.log += ["Audit initial vibrational coordinate tolerance: " + val[0] + "\n"]
+            if ky == "audit-initial-velocity-tol":
+                ip.audit_initial_velocity_tol = float(val[0])
+                self.log += ["Audit initial relative-velocity tolerance (m/s): " + val[0] + "\n"]
             if ky == "keepinfo":
                 self.log += ["Keeping Sample Info:" + val[0] + "\n"]
                 ip.KeepInfo = bool(val[0]=='True') 
@@ -575,6 +596,10 @@ class icats:
           ip.wl_wn_factor = ip.wl_wn_factor_user
         if ip.wl_wn_user is not None:
           ip.wl_wn = ip.wl_wn_user
+        if ip.wl_j_range_user is not None:
+          ip.wl_j_range = ip.wl_j_range_user
+        if ip.wl_l_cap_user is not None:
+          ip.wl_l_cap = ip.wl_l_cap_user
         if ip.wl_tol_user is not None:
           ip.wl_tol = ip.wl_tol_user
 
@@ -596,7 +621,9 @@ class icats:
                      + " nstep_mult=" + str(ip.wl_nstep_mult)
                      + " flatness=" + str(ip.wl_flatness)
                      + " wn_factor=" + str(ip.wl_wn_factor)
-                     + " wn=" + str(ip.wl_wn) + "\n"]
+                     + " wn=" + str(ip.wl_wn)
+                     + " j_range=" + str(ip.wl_j_range)
+                     + " l_cap=" + str(ip.wl_l_cap) + "\n"]
  
         sp.na = mol[0].sp.na + mol[1].sp.na
         sp.el = mol[0].sp.el + mol[1].sp.el
@@ -1434,8 +1461,8 @@ class icats:
         log_denom = np.log(max(ff_init, ff_tol + 1e-15)) - np.log(max(ff_tol, 1e-15))
         if abs(log_denom) < 1.0e-15:
           log_denom = 1.0
-        wg.maxr = ip.PeakJab*4
-        cap = ip.PeakJab*5
+        wg.maxr = float(ip.wl_j_range) if ip.wl_j_range is not None else float(ip.PeakJab*4)
+        cap = float(ip.wl_l_cap) if ip.wl_l_cap is not None else float(ip.PeakJab*5)
         while wg.ff > ip.wl_tol: 
           if ip.wl_max_iter > 0 and n >= ip.wl_max_iter:
             break
@@ -1541,12 +1568,14 @@ class icats:
           sp.td = np.array([1+2*J for J in range(ip.MaxJ)])/sp.iwld 
           sp.td = sp.td/sp.td.max()
         else:
-          sp.iwld = np.array([wg.iwl(j) for j in range(ip.PeakJab*4)])
+          wl_range = int(np.ceil(wg.maxr))
+          sp.iwld = np.array([wg.iwl(j) for j in range(wl_range)])
           if ip.progress == "verbose":
             print('IWLD = ', sp.iwld)
-          sp.td = np.array([1+2*J for J in range(ip.PeakJab*4)])/sp.iwld 
-          mntd = np.mean(sp.td[int(wg.wn*0.75):])
-          td2 = [mntd for _ in range(ip.PeakJab*4,ip.MaxJ)]
+          sp.td = np.array([1+2*J for J in range(wl_range)])/sp.iwld
+          tail0 = min(len(sp.td) - 1, max(0, int(len(sp.td)*0.75)))
+          mntd = np.mean(sp.td[tail0:])
+          td2 = [mntd for _ in range(wl_range,ip.MaxJ)]
           sp.td = np.array(sp.td.tolist() +td2)
           sp.td = sp.td/sp.td.max()
 
@@ -1561,13 +1590,17 @@ class icats:
             sp.td,
             J_range=(0, ip.MaxJ),
             script_path=os.path.join(wl_dir, "wl_td_plot.py"),
-            title="Wang–Landau weights vs. J",
+            outfile="wl_td_plot.png",
+            title="WL sampling correction vs. J",
+            ylabel="target weight (2J+1)/Omega(J)",
         )
         write_wl_plot_script(
             sp.iwld,
-            J_range=(0, ip.MaxJ),
+            J_range=(0, len(sp.iwld)),
             script_path=os.path.join(wl_dir, "wl_wl_plot.py"),
-            title="Wang–Landau weights vs. J",
+            outfile="wl_wl_plot.png",
+            title="Estimated sampled J density",
+            ylabel="Omega(J), normalized",
         )
 
 
@@ -1640,12 +1673,53 @@ class icats:
     def CaptureInitialAuditState(self, sa, stage):
         """Store scalar generation/analysis quantities for the optional t=0 audit."""
         orb = sa.SampInfo.get("orb", {})
+        def _arr(value):
+            if value is None:
+                return None
+            return np.asarray(value, dtype=float).copy()
+
+        def _scalar(value):
+            if value is None:
+                return None
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        def _relative_velocity_mps():
+            try:
+                v0 = self.mol[0].MolecularVeloc(sa.mol[0]).flatten()
+                v1 = self.mol[1].MolecularVeloc(sa.mol[1]).flatten()
+                return float(norm(v0 - v1) * au2mps)
+            except Exception:
+                return None
+
+        vectors = {}
+        scalars = {}
+        angles = {}
+        molecule_vectors = {}
+        molecule_scalars = {}
+        vibrational = {}
+
+        jac = sa.SampInfo.get("2bJac", {})
+        if "R" in jac:
+            scalars["Jacobi_R"] = float(norm(jac["R"]))
+        for key in ("phi", "beta", "theta", "chi", "dphi"):
+            if key in jac:
+                angles["Jacobi_" + key] = float(jac[key])
+
         if stage == "generation":
             angular = {
                 "L": orb.get("ncL"),
                 "J": orb.get("ncJ"),
                 "Jab": orb.get("nJab"),
             }
+            vectors["L"] = _arr(orb.get("cL"))
+            vectors["J"] = _arr(orb.get("cJ"))
+            vectors["Jab"] = _arr(orb.get("Jab"))
+            scalars["b"] = _scalar(orb.get("b"))
+            angles["impact_phi"] = _scalar(orb.get("phi"))
+            scalars["relative_velocity_mps"] = _scalar(sa.SampInfo.get("vel", {}).get("ivel"))
             energy = getattr(sa, "audit_energy_generation", {})
         else:
             angular = {
@@ -1653,6 +1727,13 @@ class icats:
                 "J": orb.get("sncJ"),
                 "Jab": orb.get("snJab"),
             }
+            vectors["L"] = _arr(orb.get("scL"))
+            vectors["J"] = _arr(orb.get("scJ"))
+            if vectors["L"] is not None and vectors["J"] is not None:
+                vectors["Jab"] = vectors["J"] - vectors["L"]
+            scalars["b"] = _scalar(orb.get("sb"))
+            angles["impact_phi"] = _scalar(orb.get("sphi"))
+            scalars["relative_velocity_mps"] = _relative_velocity_mps()
             energy = dict(getattr(sa, "audit_energy_analysis", {}))
             vec_rot = []
             for msa in sa.mol:
@@ -1666,7 +1747,43 @@ class icats:
             if energy:
                 energy["rot"] = sum(vec_rot)
                 energy["total"] = energy.get("vib", 0.0) + energy["rot"] + energy.get("vel", 0.0)
-        setattr(sa, "audit_initial_" + stage, {"energy": energy, "angular": angular})
+
+        for idx, msa in enumerate(sa.mol):
+            label = "m" + str(idx)
+            rot = msa.SampInfo.get("rot", {})
+            vib = msa.SampInfo.get("vib", {})
+            if stage == "generation":
+                molecule_vectors[label + "_J_vector"] = _arr(msa.srpar[-1])
+                molecule_scalars[label + "_J"] = _scalar(norm(msa.srpar[-1]))
+            else:
+                molecule_vectors[label + "_J_vector"] = _arr(rot.get("svecJ0s"))
+                if rot.get("svecJ0s") is not None:
+                    molecule_scalars[label + "_J"] = _scalar(norm(rot.get("svecJ0s")))
+            if stage == "generation":
+                if "Q" in vib:
+                    vibrational[label + "_Q"] = _arr(vib.get("Q"))
+                if "P" in vib:
+                    vibrational[label + "_P"] = _arr(vib.get("P"))
+            else:
+                if "sQ" in vib:
+                    vibrational[label + "_Q"] = _arr(vib.get("sQ"))
+                if "sP" in vib:
+                    vibrational[label + "_P"] = _arr(vib.get("sP"))
+
+        setattr(
+            sa,
+            "audit_initial_" + stage,
+            {
+                "energy": energy,
+                "angular": angular,
+                "vectors": vectors,
+                "scalars": scalars,
+                "angles": angles,
+                "molecule_vectors": molecule_vectors,
+                "molecule_scalars": molecule_scalars,
+                "vibrational": vibrational,
+            },
+        )
 
     def AuditInitialSample(self, sa):
         """Check that generated sample bookkeeping survives analysis of its coordinates."""
@@ -1679,6 +1796,76 @@ class icats:
             raise ValueError("Initial sample audit requested, but audit state is incomplete.")
 
         failures = []
+        def _angle_diff(a, b):
+            return abs(float(np.arctan2(np.sin(float(a) - float(b)), np.cos(float(a) - float(b)))))
+
+        def _vec_diff(a, b):
+            aa = np.asarray(a, dtype=float)
+            bb = np.asarray(b, dtype=float)
+            if aa.shape != bb.shape:
+                return None
+            return float(norm(aa - bb))
+
+        def _audit_scalar(group_name, key, gv, av, tol, unit="", enforce=True):
+            if gv is None or av is None:
+                return
+            diff = abs(float(gv) - float(av))
+            status = "OK" if diff <= tol else ("FAIL" if enforce else "INFO")
+            if status == "FAIL":
+                failures.append(f"{group_name} {key}: generation={float(gv):.8g}, analysis={float(av):.8g}, diff={diff:.3g}")
+            unit_txt = (" " + unit) if unit else ""
+            sa.slog.append(
+                "Audit {0:<10s} {1:>18s}: generation {2:13.6g}, analysis {3:13.6g}, diff {4:10.3e}{5} [{6}]\n".format(
+                    group_name, key, float(gv), float(av), diff, unit_txt, status
+                )
+            )
+
+        def _audit_vector(group_name, key, gv, av, tol, unit="", enforce=True):
+            if gv is None or av is None:
+                return
+            diff = _vec_diff(gv, av)
+            if diff is None:
+                if enforce:
+                    failures.append(f"{group_name} {key}: vector shapes differ")
+                status = "FAIL" if enforce else "INFO"
+                sa.slog.append("Audit {0:<10s} {1:>18s}: vector shapes differ [{2}]\n".format(group_name, key, status))
+                return
+            status = "OK" if diff <= tol else ("FAIL" if enforce else "INFO")
+            if status == "FAIL":
+                failures.append(f"{group_name} {key}: vector norm diff={diff:.3g}")
+            unit_txt = (" " + unit) if unit else ""
+            sa.slog.append(
+                "Audit {0:<10s} {1:>18s}: vector-norm diff {2:10.3e}{3} [{4}]\n".format(
+                    group_name, key, diff, unit_txt, status
+                )
+            )
+
+        def _audit_component_vector(group_name, key, gv, av, tol, unit="", enforce=True):
+            if gv is None or av is None:
+                return
+            aa = np.asarray(gv, dtype=float)
+            bb = np.asarray(av, dtype=float)
+            if aa.shape != bb.shape:
+                if enforce:
+                    failures.append(f"{group_name} {key}: vector shapes differ")
+                status = "FAIL" if enforce else "INFO"
+                sa.slog.append("Audit {0:<10s} {1:>18s}: vector shapes differ [{2}]\n".format(group_name, key, status))
+                return
+            if aa.size == 0:
+                return
+            delta = aa - bb
+            rms = float(np.sqrt(np.mean(delta * delta)))
+            max_abs = float(np.max(np.abs(delta)))
+            status = "OK" if rms <= tol else ("FAIL" if enforce else "INFO")
+            if status == "FAIL":
+                failures.append(f"{group_name} {key}: component rms diff={rms:.3g}")
+            unit_txt = (" " + unit) if unit else ""
+            sa.slog.append(
+                "Audit {0:<10s} {1:>18s}: component-rms diff {2:10.3e}{3}, max {4:10.3e}{3}, ndof {5:d} [{6}]\n".format(
+                    group_name, key, rms, unit_txt, max_abs, int(aa.size), status
+                )
+            )
+
         sa.slog.append("########## Initial Sample Audit ############################### \n")
         for key in ("vib", "rot", "vel", "total"):
             gv = gen["energy"].get(key)
@@ -1695,21 +1882,42 @@ class icats:
                 )
             )
 
-        if ip.audit_initial_angular_tol > 0.0:
-            for key in ("L", "Jab", "J"):
-                gv = gen["angular"].get(key)
-                av = ana["angular"].get(key)
-                if gv is None or av is None:
-                    continue
-                diff = abs(float(gv) - float(av))
-                status = "OK" if diff <= ip.audit_initial_angular_tol else "FAIL"
-                if status == "FAIL":
-                    failures.append(f"angular {key}: generation={gv:.8g}, analysis={av:.8g}, diff={diff:.3g}")
-                sa.slog.append(
-                    "Audit angular {0:>3s}: generation {1:12.6f}, analysis {2:12.6f}, diff {3:10.3e} [{4}]\n".format(
-                        key, float(gv), float(av), diff, status
-                    )
+        angular_tol = getattr(ip, "audit_initial_angular_tol", 0.0)
+        angular_enforce = angular_tol > 0.0
+        for key in ("L", "Jab", "J"):
+            _audit_scalar("angular", key, gen["angular"].get(key), ana["angular"].get(key), angular_tol, "au", enforce=angular_enforce)
+            _audit_vector("vector", key, gen["vectors"].get(key), ana["vectors"].get(key), angular_tol, "au", enforce=angular_enforce)
+        for key in sorted(set(gen["molecule_scalars"]) & set(ana["molecule_scalars"])):
+            _audit_scalar("mol scalar", key, gen["molecule_scalars"].get(key), ana["molecule_scalars"].get(key), angular_tol, "au", enforce=angular_enforce)
+        for key in sorted(set(gen["molecule_vectors"]) & set(ana["molecule_vectors"])):
+            _audit_vector("mol vector", key, gen["molecule_vectors"].get(key), ana["molecule_vectors"].get(key), angular_tol, "au", enforce=angular_enforce)
+        for key in sorted(set(gen["scalars"]) & set(ana["scalars"])):
+            if key == "relative_velocity_mps":
+                vel_tol = getattr(ip, "audit_initial_velocity_tol", 0.0)
+                _audit_scalar("scalar", key, gen["scalars"].get(key), ana["scalars"].get(key), vel_tol, "m/s", enforce=(vel_tol > 0.0))
+            else:
+                unit = "Ang" if key in ("b", "Jacobi_R") else "au"
+                _audit_scalar("scalar", key, gen["scalars"].get(key), ana["scalars"].get(key), angular_tol, unit, enforce=angular_enforce)
+        vib_tol = getattr(ip, "audit_initial_vib_tol", 0.0)
+        for key in sorted(set(gen["vibrational"]) & set(ana["vibrational"])):
+            _audit_component_vector(
+                "vib",
+                key,
+                gen["vibrational"].get(key),
+                ana["vibrational"].get(key),
+                vib_tol,
+                enforce=(vib_tol > 0.0),
+            )
+        for key in sorted(set(gen["angles"]) & set(ana["angles"])):
+            diff = _angle_diff(gen["angles"][key], ana["angles"][key])
+            status = "OK" if diff <= angular_tol else ("FAIL" if angular_enforce else "INFO")
+            if status == "FAIL":
+                failures.append(f"angle {key}: diff={diff:.3g} rad")
+            sa.slog.append(
+                "Audit {0:<10s} {1:>18s}: circular diff {2:10.3e} rad [{3}]\n".format(
+                    "angle", key, diff, status
                 )
+            )
         if failures:
             raise ValueError("Initial sample audit failed for sample " + str(sa.sii) + ": " + "; ".join(failures))
         sa.slog.append("Initial sample audit: OK\n")
@@ -1881,7 +2089,8 @@ class icats:
         phi = self.SampleImpactPhi(sa)
         nL = sp.rmass * sa.sV * b
         L = 0.5 * (-1.0 + sqrt(1.0 + 4.0 * nL ** 2))
-        cL = nL * np.array([sin(phi), -cos(phi), 0.0])
+        cL = matmul(Rabout(phi, 2), y)
+        cL = nL * cL / norm(cL)
         sa.sb = b
         sa.sphi = phi
         sa.sL = L
@@ -2061,7 +2270,7 @@ class icats:
         """
         mol = sa.mol
         sp = self.sp 
-        d = b * ( y * sin(phi) + x * cos(phi) )
+        d = -b * ( y * sin(phi) + x * cos(phi) )
         mol[0].sxx += d * sp.w1
         mol[1].sxx -= d * sp.w0
 

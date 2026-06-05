@@ -16,6 +16,7 @@ TUTORIAL_ORDER = [
     "fixed_plane_atom_diatom_ar_no",
     "flat_l_atom_diatom_ar_no",
     "single_atom_diatom_he_n2_wl",
+    "flat_l_atom_diatom_he_n2_wl",
     "wang_landau_nh3_h2o",
     "npz_output_co2_co2",
 ]
@@ -207,6 +208,35 @@ TUTORIALS = {
             "Use run_continue.sh with run-mode=continue for accumulation.",
         ],
     },
+    "flat_l_atom_diatom_he_n2_wl": {
+        "desc": "He + N2 Wang-Landau diagnostic with uniform L proposals",
+        "mol0": "he_dat.txt",
+        "mol1": "n2_dat.txt",
+        "nsamp": 40,
+        "ntraj": 3,
+        "steps": 150,
+        "maxl": 59,
+        "maxb": 16,
+        "extra": [
+            "wang = True",
+            "wlmode = default",
+            "wl-j-range = 60",
+            "wl-j-bins = 80",
+            "wl-l-cap = 59",
+            "wl-flatness = 0.90",
+            "wl-nstep = 500",
+            "run-mode = fresh",
+            "orbital-sampling = flat-l",
+            "phisample = True",
+        ],
+        "notes": [
+            "Diagnostic companion to single_atom_diatom_he_n2_wl.",
+            "Uses the same one-dimensional WL-on-J machinery, but proposes L uniformly.",
+            "Useful for checking whether flat-L proposals improve low-L coverage before reweighting.",
+            "Uses wl-j-range, wl-j-bins, and wl-l-cap to make the WL diagnostic range explicit.",
+            "Inspect the WL umbrella plus sampled L, J, and Jab histograms before trusting production settings.",
+        ],
+    },
     "wang_landau_nh3_h2o": {
         "desc": "NH3 + H2O with Wang-Landau weighting enabled",
         "mol0": "ammonia_dat.txt",
@@ -282,6 +312,8 @@ def _write_histogram_helpers(out_dir: Path, run_tag: str = "tutorial_input") -> 
         "set -euo pipefail\n"
         "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n"
         "HROOT=\"${HIST_ROOT:-$SCRIPT_DIR}\"\n"
+        "export MPLCONFIGDIR=\"${MPLCONFIGDIR:-/tmp/mpl_cache_${USER:-user}}\"\n"
+        "mkdir -p \"$MPLCONFIGDIR\"\n"
         "mkdir -p \"$HROOT/plots/initial\"\n"
         "find \"$HROOT/initial\" -type f -name 'hist_*.py' 2>/dev/null | sort | while read -r f; do\n"
         "  stem=\"$(basename \"${f%.py}\")\"\n"
@@ -297,6 +329,8 @@ def _write_histogram_helpers(out_dir: Path, run_tag: str = "tutorial_input") -> 
         "set -euo pipefail\n"
         "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n"
         "HROOT=\"${HIST_ROOT:-$SCRIPT_DIR}\"\n"
+        "export MPLCONFIGDIR=\"${MPLCONFIGDIR:-/tmp/mpl_cache_${USER:-user}}\"\n"
+        "mkdir -p \"$MPLCONFIGDIR\"\n"
         "mkdir -p \"$HROOT/plots/sampled\"\n"
         "find \"$HROOT/sampled\" -type f -name 'hist_*.py' 2>/dev/null | sort | while read -r f; do\n"
         "  stem=\"$(basename \"${f%.py}\")\"\n"
@@ -516,6 +550,8 @@ else:
         "set -euo pipefail\n"
         "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n"
         "export HIST_ROOT=\"${HIST_ROOT:-$SCRIPT_DIR}\"\n"
+        "export MPLCONFIGDIR=\"${MPLCONFIGDIR:-/tmp/mpl_cache_${USER:-user}}\"\n"
+        "mkdir -p \"$MPLCONFIGDIR\"\n"
         "python \"$SCRIPT_DIR/plot_compare_pairs.py\" \"$@\"\n",
         executable=True,
     )
@@ -635,6 +671,8 @@ def _generate_tutorial(
     cfg = TUTORIALS[name]
     nsamp = int(nsamp_override) if nsamp_override is not None else int(cfg["nsamp"])
     ntraj = int(ntraj_override) if ntraj_override is not None else int(cfg["ntraj"])
+    hist_enabled = hist_samples is not None and hist_samples > 0
+    is_wl = any(line.strip().lower() == "wang = true" for line in cfg.get("extra", []))
     ex_dir = _examples_dir()
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -699,9 +737,10 @@ def _generate_tutorial(
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         "cd \"$(dirname \"${BASH_SOURCE[0]}\")\"\n"
-        "# Cluster/sandbox compatibility: keep numba cache on a writable path.\n"
+        "# Cluster/sandbox compatibility: keep caches on writable paths.\n"
         "export NUMBA_CACHE_DIR=\"${NUMBA_CACHE_DIR:-/tmp/numba_cache_${USER:-user}}\"\n"
-        "mkdir -p \"$NUMBA_CACHE_DIR\"\n"
+        "export MPLCONFIGDIR=\"${MPLCONFIGDIR:-/tmp/mpl_cache_${USER:-user}}\"\n"
+        "mkdir -p \"$NUMBA_CACHE_DIR\" \"$MPLCONFIGDIR\"\n"
         "CHARGE=\"${CHARGE:-0}\"\n"
         "SPIN=\"${SPIN:-0}\"\n"
         f"./run_tutorial_dyn.py --outdir rd_tutorial_input/outputs --prefix out --ntraj {ntraj} --steps {cfg['steps']} --charge \"$CHARGE\" --spin \"$SPIN\"\n",
@@ -713,9 +752,10 @@ def _generate_tutorial(
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         "cd \"$(dirname \"${BASH_SOURCE[0]}\")\"\n"
-        "# Cluster/sandbox compatibility: keep numba cache on a writable path.\n"
+        "# Cluster/sandbox compatibility: keep caches on writable paths.\n"
         "export NUMBA_CACHE_DIR=\"${NUMBA_CACHE_DIR:-/tmp/numba_cache_${USER:-user}}\"\n"
-        "mkdir -p \"$NUMBA_CACHE_DIR\"\n"
+        "export MPLCONFIGDIR=\"${MPLCONFIGDIR:-/tmp/mpl_cache_${USER:-user}}\"\n"
+        "mkdir -p \"$NUMBA_CACHE_DIR\" \"$MPLCONFIGDIR\"\n"
         f"icats.analyse tutorial_input.txt --dir rd_tutorial_input/outputs --prefix out --ntraj {ntraj}\n",
         executable=True,
     )
@@ -725,9 +765,10 @@ def _generate_tutorial(
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         "cd \"$(dirname \"${BASH_SOURCE[0]}\")\"\n"
-        "# Cluster/sandbox compatibility: keep numba cache on a writable path.\n"
+        "# Cluster/sandbox compatibility: keep caches on writable paths.\n"
         "export NUMBA_CACHE_DIR=\"${NUMBA_CACHE_DIR:-/tmp/numba_cache_${USER:-user}}\"\n"
-        "mkdir -p \"$NUMBA_CACHE_DIR\"\n"
+        "export MPLCONFIGDIR=\"${MPLCONFIGDIR:-/tmp/mpl_cache_${USER:-user}}\"\n"
+        "mkdir -p \"$NUMBA_CACHE_DIR\" \"$MPLCONFIGDIR\"\n"
         "ADD_NSAMP=\"${1:-10}\"\n"
         "export ADD_NSAMP\n"
         "cp tutorial_input.txt tutorial_input.txt.bak\n"
@@ -790,36 +831,121 @@ def _generate_tutorial(
         executable=True,
     )
 
-    _write_file(
-        out_dir / "tutorial_README.txt",
+    notes_text = "".join(f"- {note}\n" for note in cfg["notes"])
+    inputs_text = (
+        "Input files copied into this tutorial:\n"
+        f"- tutorial_input.txt\n"
+        f"- {cfg['mol0']}\n"
+        f"- {cfg['mol1']}\n\n"
+    )
+
+    run_order = (
+        "Run sequence:\n"
+        "1) Read this file and inspect tutorial_input.txt.\n"
+        "2) Run initial-condition generation:\n"
+        "   icats.init tutorial_input.txt\n"
+    )
+    if is_wl:
+        run_order += (
+            "3) For Wang-Landau tutorials, the first run may mainly build rd_tutorial_input/wang.pkl.\n"
+            "   If sampled histogram scripts are missing after the first run, run the same command again:\n"
+            "   icats.init tutorial_input.txt\n"
+            "   The second run should reuse the compatible wang.pkl and generate sampled histograms.\n"
+        )
+    run_order += (
+        "4) Optional cheap dynamics demonstration:\n"
+        "   ./run_cheap_dynamics.sh\n"
+        "5) Optional trajectory analysis after cheap dynamics:\n"
+        "   ./run_analysis.sh\n\n"
+    )
+
+    expected_text = (
+        "Main outputs to expect:\n"
+        "- tutorial_input.txt.logfile\n"
+        "- rd_tutorial_input/\n"
+    )
+    if is_wl:
+        expected_text += (
+            "- rd_tutorial_input/wang.pkl\n"
+            "- rd_tutorial_input/histograms/wl/wl_td_plot.py\n"
+            "- rd_tutorial_input/histograms/wl/wl_wl_plot.py\n"
+        )
+    if hist_enabled:
+        expected_text += (
+            "- rd_tutorial_input/histograms/initial/\n"
+            "- rd_tutorial_input/histograms/sampled/\n"
+            "- rd_tutorial_input/histograms/plots/\n"
+        )
+    expected_text += (
+        "- rd_tutorial_input/outputs/out_*.xyz and out_*.vel when printout requests trajectory files\n"
+        "- rd_tutorial_input/outputs/dynamics*.analinfo after ./run_analysis.sh\n\n"
+    )
+
+    after_init_note = ""
+    if hist_enabled:
+        after_init_note += (
+            "After icats.init: histogram checks\n"
+            "- Histogram scripts live under rd_tutorial_input/histograms/.\n"
+            "- The broad helpers are available, but may plot many files:\n"
+            "  ./rd_tutorial_input/histograms/plot_initial.sh\n"
+            "  ./rd_tutorial_input/histograms/plot_sampled.sh\n"
+            "  ./rd_tutorial_input/histograms/plot_compare_pairs.sh\n\n"
+            "- For a quick intermolecular check, plot only system L, J, and Jab:\n"
+            "  mkdir -p rd_tutorial_input/histograms/plots/sampled\n"
+            "  python rd_tutorial_input/histograms/sampled/system/hist_sam_sys_orb_sl.py --no-show --outfile rd_tutorial_input/histograms/plots/sampled/hist_sam_sys_orb_sl\n"
+            "  python rd_tutorial_input/histograms/sampled/system/hist_sam_sys_orb_sj.py --no-show --outfile rd_tutorial_input/histograms/plots/sampled/hist_sam_sys_orb_sj\n"
+            "  python rd_tutorial_input/histograms/sampled/system/hist_sam_sys_orb_sjab.py --no-show --outfile rd_tutorial_input/histograms/plots/sampled/hist_sam_sys_orb_sjab\n\n"
+            "- Open the resulting PNGs in:\n"
+            "  rd_tutorial_input/histograms/plots/sampled/\n\n"
+        )
+    if is_wl:
+        after_init_note += (
+            "After icats.init: Wang-Landau checks\n"
+            "- Confirm the stored umbrella exists:\n"
+            "  rd_tutorial_input/wang.pkl\n"
+            "- List WL plotting helpers:\n"
+            "  find rd_tutorial_input/histograms/wl -maxdepth 1 -type f | sort\n"
+            "- Common WL plots, when present:\n"
+            "  cd rd_tutorial_input/histograms/wl\n"
+            "  python wl_td_plot.py\n"
+            "  python wl_wl_plot.py\n"
+            "  cd ../../..\n\n"
+        )
+
+    readme_text = (
         f"Tutorial: {name}\n"
         f"{cfg['desc']}\n\n"
-        "Quick environment setup:\n"
+        "This Tutorial\n"
+        "=============\n\n"
+        "Purpose:\n"
+        f"{notes_text}\n"
+        f"{inputs_text}"
+        f"{run_order}"
+        f"{wl_umbrella_note}"
+        f"{after_init_note}"
+        f"{expected_text}"
+        "General Advice\n"
+        "==============\n\n"
+        "Environment setup:\n"
         "1) ./setup_conda_env.sh icats_clean\n"
         "2) conda activate icats_clean\n\n"
-        "Run order:\n"
-        "1) icats.init tutorial_input.txt\n"
-        "2) ./run_cheap_dynamics.sh\n"
-        "3) ./run_analysis.sh\n\n"
         "Cluster/sandbox note:\n"
-        "- Tutorial scripts set NUMBA_CACHE_DIR to a writable /tmp path by default.\n"
-        "- This avoids numba cache locator errors on restricted/shared filesystems.\n\n"
+        "- ICATS entry points and tutorial scripts set writable /tmp cache paths by default.\n"
+        "- This avoids numba/matplotlib cache errors on restricted/shared filesystems.\n\n"
         "Spin/charge note for dynamics:\n"
         "- Defaults are CHARGE=0 and SPIN=0.\n"
         "- For open-shell systems set env vars, e.g.:\n"
         "- CHARGE=0 SPIN=1 ./run_cheap_dynamics.sh\n\n"
-        f"{wl_umbrella_note}"
         "Continue sampling (adds more initial conditions):\n"
         "- ./run_continue.sh 10\n\n"
-        "Optional histogram-heavy setup:\n"
-        "- Generate tutorial with --histograms [--hist-samples 10000]\n"
-        "- Then run icats.init to populate rd_tutorial_input/histograms/\n\n"
-        "Files generated:\n"
-        "- tutorial_input.txt\n"
-        "- rd_tutorial_input/outputs/out_*.xyz and out_*.vel\n"
-        "- rd_tutorial_input/outputs/out_*.md.xyz and out_*.md.vel\n"
-        "- rd_tutorial_input/outputs/dynamics*.analinfo\n",
     )
+    if not hist_enabled:
+        readme_text += (
+            "Optional histogram-heavy setup:\n"
+            "- Regenerate this tutorial with --histograms [--hist-samples 10000].\n"
+            "- Then run icats.init tutorial_input.txt to populate rd_tutorial_input/histograms/.\n\n"
+        )
+    _write_file(out_dir / "tutorial_README.txt", readme_text)
     _write_histogram_helpers(out_dir, run_tag="tutorial_input")
 
 

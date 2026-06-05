@@ -500,6 +500,12 @@ class imolecule:
            ax = 'A'
            jz, bet, gamm, eek = [0.0]*4
            bet0,bets,sig = [0.0]*3
+        elif sp.rsym == 'linear':
+           ax = 'z'
+           jz = 0.0
+           bet = hpi
+           gamm = ICDFsample(sa.dist['srotGam']['cont'])[0]
+           eek = 0.0
         elif 'asym' not in sp.rsym:  # symmetric top 
            ax = 'z'
            jz = ICDFsample(sa.dist['srotJz']['cont'],J)  
@@ -1671,7 +1677,18 @@ class imolecule:
                       vv = [v[i] for v in vvv]
                       hist_emit(vv, f"iarotJz_{aa[i]}", stage="initial", scope=f"molecule_m{ip.mi}")  
                     sa.dist['arotJz']['cont'] = InitICDF(1,IsotropicDistICDF,[ip.rotpar,rn1,rn2],seed=seed*431)
-                if 'asym' not in sp.rsym: #  symmetric tops 
+                if sp.rsym == 'linear':
+                   sa.dist['srotGam'] = {}
+                   sa.dist['srotGam']['cont'] = InitICDF(1,uniform,[-pi,pi],seed=seed*433)
+                   if nsamp != 0: 
+                     vv = [ICDFsample(sa.dist['srotGam']['cont']) for _ in range(nsamp)]
+                     hist, edg = np.histogram(vv, bins=20)
+                     hist_emit(vv, "linear_rot_gamma", stage="initial", scope=f"molecule_m{ip.mi}")
+                     log += ['Linear rotor transverse gamma histogram = \n']
+                     log += [str(hist) +'\n']
+                     log += [str(edg) + '\n']
+                     sa.dist['srotGam']['cont'] = InitICDF(1,uniform,[-pi,pi],seed=seed*677)
+                elif 'asym' not in sp.rsym: #  symmetric tops 
                    sa.dist['srotJz'] = {}
                    sa.dist['srotJz']['cont'] = InitICDF(1,SymRotorProjBoltzICDF,[T,sp.Jzc],par0=[0],seed=seed*73)
                    if nsamp != 0:

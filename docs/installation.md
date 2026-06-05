@@ -77,12 +77,13 @@ icats.init --show-input-options
 For a more complete check of the initial-condition pipeline, run:
 
 ```bash
-icats.audit-tutorials
+icats.audit-tutorials --nsamp 3 --keep-going
 ```
 
 This generates each bundled tutorial and verifies that the generated sample
-energies are recovered by the immediate Cartesian-coordinate analysis. It does
-not run the cheap dynamics backend.
+energies and comparable state variables are recovered by the immediate
+Cartesian-coordinate analysis. It does not run the cheap dynamics backend, and
+it keeps Wang-Landau disabled unless `--include-wl` is requested.
 
 ## Cache Directories
 

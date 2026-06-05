@@ -37,12 +37,14 @@ surface issue, not direct evidence that the initial-condition sampler is broken.
 For a quick regression check of the tutorial initial-condition pipeline:
 
 ```bash
-icats.audit-tutorials
+icats.audit-tutorials --nsamp 3 --keep-going
 ```
 
 This command does not call the cheap dynamics backend. It only generates each
-tutorial, runs `icats.init`, and checks that sampled model energies are
-recovered from the immediate Cartesian analysis.
+tutorial, runs `icats.init`, and checks that sampled model energies and
+comparable state variables are recovered from the immediate Cartesian analysis.
+Wang-Landau is kept off by default so the command remains a quick regression
+check after code changes.
 
 ## Files Produced By Each Stage
 
