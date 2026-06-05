@@ -156,7 +156,8 @@ TUTORIALS = {
             "Constrained diagnostic setup: rigid NO, zero initial rotor angular momentum.",
             "Fixes impact parameter and lab impact-plane azimuth while sampling NO orientation.",
             "Writes combined out_full.xyz, out_full.vel, and out_full.info for inspection.",
-            "Treat the cheap dynamics helper as optional; the main lesson is the initial condition.",
+            "PySCF MINDO/3 does not support Ar in this setup, so do not use run_cheap_dynamics.sh for this tutorial.",
+            "Use these files as initial conditions for inspection or for an external dynamics/QM code.",
         ],
     },
     "flat_l_atom_diatom_ar_no": {
@@ -186,6 +187,7 @@ TUTORIALS = {
             "Samples L uniformly instead of using the geometric P(L) proportional to L measure.",
             "With rigid NO and Trot=0, Jab=0 and J=L, so the histogram check is transparent.",
             "Reweight by L or b before using this ensemble for geometric cross-section averages.",
+            "PySCF MINDO/3 does not support Ar in this setup, so do not use run_cheap_dynamics.sh for this tutorial.",
         ],
     },
     "single_atom_diatom_he_n2_wl": {

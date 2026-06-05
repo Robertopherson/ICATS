@@ -163,6 +163,11 @@ rigid-rotor angular momentum, fixes the impact parameter and lab impact-plane
 azimuth, and still samples the NO bond orientation. Inspect `out_full.info`,
 `out_full.xyz`, and `out_full.vel` after `icats.init`.
 
+This tutorial is an initial-condition/export example, not a cheap-MINDO
+dynamics example. The PySCF MINDO/3 backend used by `run_cheap_dynamics.sh`
+does not support Ar for this setup, so use the generated files for inspection
+or pass them to an external dynamics/QM code.
+
 ## Flat-L Ar + NO Tutorial
 
 Use this tutorial when you want to oversample the small-impact-parameter region
@@ -192,6 +197,11 @@ orbital-sampling = flat-l
 wang = False
 printout = 0 1 0 0
 ```
+
+As above, this Ar + NO tutorial is not compatible with the bundled
+`run_cheap_dynamics.sh` MINDO helper, because PySCF MINDO/3 does not support Ar
+for this setup. It is intended for initial-condition diagnostics and histogram
+inspection.
 
 Here `orbital-sampling = flat-l` means ICATS proposes `L` uniformly between
 zero and the requested upper limit. It does not impose a flat physical

@@ -323,6 +323,10 @@ of this idea. It uses `Trot = 0.0`, `vib-mode = rigid`, `incoming-k`,
 `fixed-b`, and `impact-phi` to create a fixed-plane Ar + NO ensemble while
 still sampling the NO orientation.
 
+The generated Ar + NO files are suitable for inspection and export, but not for
+the bundled cheap-MINDO dynamics helper: PySCF MINDO/3 does not support Ar in
+this setup.
+
 ### Rotations and Orientations
 
 | Key | Form | Meaning |
