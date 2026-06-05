@@ -133,6 +133,8 @@ class icats:
               self.isotropic = True
               self.usewang = False
               self.wlmode = "default"
+              self.wl_target = "auto"
+              self.wl_target_user = None
               self.wl_ff = np.exp(0.10)
               self.wl_nstep_mult = 500
               self.wl_flatness = 0.90
@@ -471,6 +473,11 @@ class icats:
             if ky == "wlmode":
                 ip.wlmode = val[0].lower()
                 self.log += ["Wang-Landau mode: " + ip.wlmode + "\n"]
+            if ky == "wl-target":
+                ip.wl_target_user = val[0].lower()
+                if ip.wl_target_user not in ("linear-j", "flat-j"):
+                    raise ValueError("wl-target must be linear-j or flat-j")
+                self.log += ["Wang-Landau target: " + ip.wl_target_user + "\n"]
             if ky == "wl-ff":
                 ip.wl_ff_user = float(val[0])
                 self.log += ["Wang-Landau initial f: " + val[0] + "\n"]
@@ -557,6 +564,9 @@ class icats:
         if ip.FixedB is not None and ip.usewang:
           raise ValueError("fixed-b is currently supported only with wang = False")
 
+        if ip.wl_target_user is not None and not ip.usewang:
+          raise ValueError("wl-target is only meaningful with wang = True")
+
         if not any(str(k).lower() == "orbital-sampling" for k, _ in ip.inpd):
           mode_label = "fixed-b" if ip.FixedB is not None else "geometric"
           self.log += ["Orbital L sampling mode: " + mode_label + "\n"]
@@ -600,6 +610,17 @@ class icats:
           ip.wl_j_range = ip.wl_j_range_user
         if ip.wl_l_cap_user is not None:
           ip.wl_l_cap = ip.wl_l_cap_user
+
+        if ip.usewang:
+          if ip.wl_target_user is None:
+            ip.wl_target = "flat-j" if ip.orbital_sampling == "flat-l" else "linear-j"
+            self.log += ["Wang-Landau target: " + ip.wl_target + " (automatic)\n"]
+          else:
+            ip.wl_target = ip.wl_target_user
+          if ip.wl_target == "flat-j" and ip.orbital_sampling != "flat-l":
+            raise ValueError("wl-target = flat-j needs orbital-sampling = flat-l")
+          if ip.wl_target == "linear-j" and ip.orbital_sampling != "geometric":
+            raise ValueError("wl-target = linear-j needs orbital-sampling = geometric")
         if ip.wl_tol_user is not None:
           ip.wl_tol = ip.wl_tol_user
 
@@ -1576,7 +1597,13 @@ class icats:
           sp.iwld = np.array([wg.iwl(j) for j in range(wl_range)])
           if ip.progress == "verbose":
             print('IWLD = ', sp.iwld)
-          sp.td = np.array([1+2*J for J in range(wl_range)])/sp.iwld
+          if ip.wl_target == "linear-j":
+            target_j = np.array([1+2*J for J in range(wl_range)], dtype=float)
+          elif ip.wl_target == "flat-j":
+            target_j = np.ones(wl_range, dtype=float)
+          else:
+            raise ValueError("Unknown wl-target: " + str(ip.wl_target))
+          sp.td = target_j/sp.iwld
           tail0 = min(len(sp.td) - 1, max(0, int(len(sp.td)*0.75)))
           mntd = np.mean(sp.td[tail0:])
           td2 = [mntd for _ in range(wl_range,ip.MaxJ)]

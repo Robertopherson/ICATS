@@ -77,6 +77,7 @@ KNOWN_KEYS = {
     "plotinit",
     "continue",
     "wlmode",
+    "wl-target",
     "wl-ff",
     "wl-nstep",
     "wl-flatness",
@@ -218,6 +219,11 @@ continue = False
 # Wang-Landau (disabled by default)
 wang = False
 wlmode = default
+# wl-target is automatic by default:
+#   geometric orbital-sampling -> linear-j
+#   flat-l orbital-sampling    -> flat-j
+# wl-target = linear-j
+# wl-target = flat-j
 # wlmode = fast
 # wlmode = accurate
 # wl-ff = 1.05

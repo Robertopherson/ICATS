@@ -243,6 +243,7 @@ pair and cheap dynamics settings are the same, but the generated input adds
 orbital-sampling = flat-l
 wang = True
 wlmode = default
+wl-target = flat-j
 wl-j-range = 60
 wl-j-bins = 80
 wl-l-cap = 59
@@ -252,10 +253,11 @@ run-mode = fresh
 ```
 
 This is not a two-dimensional Wang-Landau calculation in `(L,J)`. ICATS still
-builds a one-dimensional WL profile for the sampled total `J`. The practical
-question is whether proposing `L` uniformly gives better coverage of the
-low-`L` region while the WL acceptance still produces a sensible total-`J`
-ensemble.
+builds a one-dimensional WL profile for the sampled total `J`. In this tutorial
+`wl-target = flat-j`, so the WL acceptance uses `1/Omega(J)` rather than the
+usual `(2J+1)/Omega(J)` target. The practical question is whether proposing `L`
+uniformly gives better coverage of the low-`L` region while the WL acceptance
+keeps the total-`J` ensemble from becoming badly concentrated.
 
 The WL controls are deliberately explicit in this tutorial. `wl-j-range = 60`
 sets the upper `J` range for the explicit WL density estimate, `wl-j-bins = 80`

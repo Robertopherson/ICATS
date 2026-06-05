@@ -220,6 +220,7 @@ TUTORIALS = {
         "extra": [
             "wang = True",
             "wlmode = default",
+            "wl-target = flat-j",
             "wl-j-range = 60",
             "wl-j-bins = 80",
             "wl-l-cap = 59",
@@ -232,6 +233,7 @@ TUTORIALS = {
         "notes": [
             "Diagnostic companion to single_atom_diatom_he_n2_wl.",
             "Uses the same one-dimensional WL-on-J machinery, but proposes L uniformly.",
+            "Uses wl-target = flat-j so WL does not add the linear 2J+1 target factor.",
             "Useful for checking whether flat-L proposals improve low-L coverage before reweighting.",
             "Uses wl-j-range, wl-j-bins, and wl-l-cap to make the WL diagnostic range explicit.",
             "Inspect the WL umbrella plus sampled L, J, and Jab histograms before trusting production settings.",

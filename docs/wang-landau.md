@@ -186,6 +186,7 @@ This avoids accidentally overwriting a useful precomputed umbrella.
 | --- | --- | --- |
 | `wang` | Enables Wang-Landau weighting | Use `True` only when needed |
 | `wlmode` | Parameter preset | Start with tutorial defaults |
+| `wl-target` | Final `J` target after WL correction | `linear-j` for geometric `L`; `flat-j` for flat-`L` proposal/reweighting runs |
 | `wl-angular-sampler` | Numerical implementation | Keep `fast` unless debugging |
 | `wl-audit-angular-sampler` | Compare fast and legacy WL angular samplers | Use only for debugging |
 | `wl-flatness` | Histogram flatness target | Higher is stricter |
@@ -201,6 +202,13 @@ It is useful, but it is not the same as the largest meaningful `Jab` value.
 changes the selected upper range itself. If the sampled `Jab` histogram has a
 long tail, inspect the WL and `Jab` histograms before relying on the flattened
 high-`J` correction.
+
+`wl-target = linear-j` uses the old target
+`(2J+1)/Omega(J)`, where `Omega(J)` is the WL-estimated sampled `J` density.
+This is intended for the usual geometric impact-parameter proposal. For
+flat-`L` trajectory-budgeting runs, use `wl-target = flat-j`; this uses
+`1/Omega(J)` and therefore does not add the extra `2J+1` factor. ICATS rejects
+the mixed combinations because they are easy to misinterpret.
 
 ## Plotting Checks
 

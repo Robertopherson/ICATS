@@ -50,6 +50,7 @@ OPTIONAL_INPUT_KEYS = [
     ("run-mode", "Run behavior: fresh or continue. Existing wang.pkl is reused only if compatible."),
     ("wang", "Enable Wang-Landau weighting (True/False)."),
     ("wlmode", "Wang-Landau profile: fast, default, accurate."),
+    ("wl-target", "Wang-Landau J target: linear-j for geometric L, flat-j for flat-L."),
     ("wl-ff", "Override Wang-Landau initial f (>1)."),
     ("wl-nstep", "Override Wang-Landau nstep multiplier per wn bin."),
     ("wl-flatness", "Override Wang-Landau flatness criterion."),

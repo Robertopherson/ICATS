@@ -360,6 +360,7 @@ width, so it is not a rigid-bond setting.
 | --- | --- | --- |
 | `wang` | `True` or `False` | Enables Wang-Landau rejection weighting. |
 | `wlmode` | `fast`, `default`, `accurate` | Preset for Wang-Landau convergence parameters. |
+| `wl-target` | `linear-j` or `flat-j` | Target distribution in total `J` after dividing by the WL density estimate. If omitted, ICATS uses `linear-j` with `orbital-sampling = geometric` and `flat-j` with `orbital-sampling = flat-l`. Mixed combinations are rejected. |
 | `wl-ff` | `wl-ff = 1.05` | Initial modification factor override. Must be greater than 1. |
 | `wl-nstep` | `wl-nstep = 500` | Number of steps per WL bin multiplier. |
 | `wl-flatness` | `wl-flatness = 0.90` | Histogram flatness criterion. Larger is stricter. |
