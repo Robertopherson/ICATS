@@ -938,7 +938,11 @@ class icats:
             sa.slog += ['IP Histogram  = \n']
             sa.slog += [str(edg) + '\n']
             sa.slog += [str(hist) +'\n']
-            vv = [ICDFsample(sa.dist['L']['cont']) for _ in range(nsamp)]
+            if getattr(ip, "orbital_sampling", "geometric") == "flat-l":
+              flat_l_cont = InitICDF(1, uniform, [0, 1.0], seed=seed * 73)
+              vv = [float(ICDFsample(flat_l_cont)) * ip.MaxL for _ in range(nsamp)]
+            else:
+              vv = [ICDFsample(sa.dist['L']['cont']) for _ in range(nsamp)]
             sa.dist['L']['samp'] = vv
             hist_emit(vv, "L", stage="initial", scope="system")
             hist, edg = np.histogram(vv, bins=ip.MaxL+1)
