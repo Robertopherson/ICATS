@@ -163,6 +163,7 @@ class icats:
               self.seed_mode = "fixed"
               self.run_mode = "fresh"
               self.run_tag = None
+              self.logfile_path = None
               self.progress = "normal"
               self.dry_run = False
               self.check_input = False
@@ -1306,6 +1307,31 @@ class icats:
         nreject_jcap = 0
         nreject_wl = 0
         nreject_wl_range = 0
+        live_log_path = getattr(ip, "logfile_path", None)
+        def append_live_sampling_log(force=False):
+          if live_log_path is None:
+            return
+          if not force and naccepted % 50 != 0:
+            return
+          acc_rate = float(naccepted) / max(1.0, float(ntrial))
+          line = (
+              "Sampling worker {wid}: accepted={acc} trials={tr} "
+              "trial_acceptance={ar:.5f} J_cap_rejects={jc} "
+              "WL_rejects={wr} WL_range_rejects={rr}\n"
+          ).format(
+              wid=sa.id,
+              acc=naccepted,
+              tr=ntrial,
+              ar=acc_rate,
+              jc=nreject_jcap,
+              wr=nreject_wl,
+              rr=nreject_wl_range,
+          )
+          try:
+            with open(live_log_path, "a") as lf:
+              lf.write(line)
+          except OSError:
+            pass
         pbar = tqdm(range(rang[0],rang[1]), disable=hidebar, dynamic_ncols=True)
         for ii in pbar:
           log = []
@@ -1349,6 +1375,7 @@ class icats:
                 f"trial_acc={acc_rate:.3f} "
                 f"jcap={nreject_jcap} wl={nreject_wl} wl_range={nreject_wl_range}"
             )
+          append_live_sampling_log()
           sa.slog += log
           if ip.isotropic and ip.ostandard and ip.ImpactPhi is None:
            self.SetStandardOrientation(sa)
@@ -1411,6 +1438,7 @@ class icats:
               info_scalar("WL rejects", nreject_wl, "", "{:14.0f}"),
               info_scalar("WL range rejects", nreject_wl_range, "", "{:14.0f}"),
           ]
+          append_live_sampling_log(force=True)
         sa.slog = slog 
         return sa
 

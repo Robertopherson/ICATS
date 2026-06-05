@@ -154,10 +154,23 @@ def main() -> int:
         print("WARNING:", w)
     sc = icats()
     sc.ReadInput(args.input_file)
+    logfile_path = args.input_file + ".logfile"
+    sc.ip.logfile_path = logfile_path
     # Flush parsed/setup information before sampling starts.
-    write_run_log(args.input_file + ".logfile", sc.log)
+    write_run_log(logfile_path, sc.log)
     sc.GenSamples()
-    write_run_log(args.input_file + ".logfile", sc.log)
+    live_lines = []
+    try:
+        live_lines = [
+            line for line in Path(logfile_path).read_text().splitlines(True)
+            if line.startswith("Sampling worker ")
+        ]
+    except OSError:
+        live_lines = []
+    final_log = list(sc.log)
+    if live_lines:
+        final_log += ["\n[live sampling diagnostics]\n"] + live_lines
+    write_run_log(logfile_path, final_log)
     return 0
 
 
