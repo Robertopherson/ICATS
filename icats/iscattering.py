@@ -1488,6 +1488,16 @@ class icats:
           log_denom = 1.0
         wg.maxr = float(ip.wl_j_range) if ip.wl_j_range is not None else float(ip.PeakJab*4)
         cap = float(ip.wl_l_cap) if ip.wl_l_cap is not None else float(ip.PeakJab*5)
+        wl_bar = None
+        wl_bar_total = 1000
+        if ip.progress == "normal":
+          wl_bar = tqdm(
+              total=wl_bar_total,
+              desc="WL",
+              unit="‰",
+              dynamic_ncols=True,
+              bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}] {postfix}",
+          )
         while wg.ff > ip.wl_tol: 
           if ip.wl_max_iter > 0 and n >= ip.wl_max_iter:
             break
@@ -1519,8 +1529,13 @@ class icats:
             if ip.progress == "verbose":
               print(n, 'Hmin = ', hmin, ' Criterion: ', hcrit, 'ac = ', acc_rate)
               print(f'   WL status: flat={flat_ratio:.4f} (>=1.0 target), ff={wg.ff:.8f}, progress={100.0*prog:.2f}%, log_gap={log_gap:.3e}, rem_log={100.0*log_rem:.2f}%')
-            else:
-              print(f'WL iter {n}: flat={flat_ratio:.4f} ff={wg.ff:.8f} acc={acc_rate:.3f} progress={100.0*prog:.2f}% log_gap={log_gap:.3e}')
+            elif wl_bar is not None:
+              new_n = int(round(prog * wl_bar_total))
+              wl_bar.update(max(0, new_n - wl_bar.n))
+              wl_bar.set_postfix_str(
+                  f"iter={n} flat={flat_ratio:.4f} ff={wg.ff:.8f} "
+                  f"acc={acc_rate:.3f} log_gap={log_gap:.3e}"
+              )
           if hmin > hcrit and n > wg.nburn: 
             wg.ff = np.sqrt(wg.ff) 
             if ip.progress != "quiet":
@@ -1529,7 +1544,11 @@ class icats:
               log_rem2 = float(np.clip(log_rem2, 0.0, 1.0))
               prog2 = 1.0 - log_rem2
               prog2 = float(np.clip(prog2, 0.0, 1.0))
-              print(f'   WL update: flatness reached, reducing ff -> {wg.ff:.8f} ({100.0*prog2:.2f}% to tol, rem_log={100.0*log_rem2:.2f}%)')
+              msg = f'WL update: flatness reached, reducing ff -> {wg.ff:.8f} ({100.0*prog2:.2f}% to tol, rem_log={100.0*log_rem2:.2f}%)'
+              if wl_bar is not None:
+                tqdm.write(msg)
+              else:
+                print('   ' + msg)
             if ip.progress == "verbose":
               print('UU = ') 
               print(wg.uu - wg.uu.min()) 
@@ -1545,6 +1564,13 @@ class icats:
           log_remf = float(np.clip(log_remf, 0.0, 1.0))
           progf = 1.0 - log_remf
           progf = float(np.clip(progf, 0.0, 1.0))
+          if wl_bar is not None:
+            wl_bar.update(max(0, wl_bar_total - wl_bar.n))
+            wl_bar.set_postfix_str(
+                f"iter={n} ff={wg.ff:.8f} tol={ip.wl_tol:.8f} "
+                f"log_gap={log_gapf:.3e}"
+            )
+            wl_bar.close()
           print(f'WL complete: iter={n}, ff={wg.ff:.8f}, tol={ip.wl_tol:.8f}, progress={100.0*progf:.2f}%, log_gap={log_gapf:.3e}, rem_log={100.0*log_remf:.2f}%')
         if ip.progress == "verbose":
           print('U = ', wg.uu)
