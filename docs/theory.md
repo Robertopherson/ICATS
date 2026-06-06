@@ -177,49 +177,69 @@ atomic units. This direct-channel setup is closest to the usual partial-wave
 language, where an incoming channel is labelled by \(k\) and semiclassically
 \(L \simeq k b\).
 
-## Code-Level Workflow
+## Generation-To-Analysis Workflow
 
-For each sample, `iscattering.GenerateSample` follows this order:
+For each accepted sample, ICATS follows a model-to-Cartesian-to-analysis
+workflow. The exact helper-function names are implementation details, but the
+physical order is:
 
-1. `InitializeSample`
-   Creates a fresh sample object containing two molecule sample objects.
+1. Create a fresh two-molecule sample.
 
-2. `SampleOrbitalL`
-   Samples the orbital angular momentum quantum number `L` and a classical
-   vector whose length is `sqrt(L(L+1))`.
+2. Sample the rotational state and orientation of each molecule.
 
-3. `SampleRigidRotorState0`
-   Samples the molecular rotor states for molecule 0 and molecule 1.
+3. Set the intermolecular angular-momentum trial.
+   In the usual geometric or flat-`L` modes, ICATS samples the orbital angular
+   momentum `L` first and then forms
 
-4. `SampleOrientat0`
-   Samples molecular orientations and sets molecular angular velocities.
+   $$
+   \vec{J} = \vec{L}+\vec{J}_{AB}.
+   $$
 
-5. `SampleJ`
-   Forms the total angular momentum vector from the orbital and molecular
-   rotor vectors.
+   In `fixed-b` mode, ICATS samples or sets the relative velocity first, then
+   constructs the impact displacement so that the requested `b` and
+   `impact-phi` give the corresponding orbital angular momentum.
 
-6. Optional Wang-Landau rejection
-   If `wang = True`, the trial is accepted or rejected using the stored or newly
-   calculated `wang.pkl` umbrella.
+4. Apply optional trial rejection.
+   Non-Wang-Landau runs accept the trial after the ordinary range checks.
+   Wang-Landau runs accept or reject the trial according to the stored or newly
+   constructed `wang.pkl` umbrella for the requested `wl-target`.
 
-7. `SampleHOVibrState`
-   Samples harmonic oscillator vibrational states and applies the normal-mode
-   displacements and velocities.
+5. Add intramolecular vibration.
+   With `vib-mode = sample`, ICATS samples harmonic normal-mode states and
+   phase-space coordinates. With `vib-mode = rigid`, this step is skipped and
+   the reference geometry is kept.
 
-8. `SetInterZDist`, `SampleInterMolZVeloc`, and `SetImpactParam`
-   Place the molecules at the requested initial separation, assign their
-   relative velocity, and shift them by the sampled impact parameter.
+6. Build the Cartesian sample.
+   ICATS places the molecular centres of mass at the requested initial
+   separation, applies the impact-parameter displacement, assigns the relative
+   velocity, and combines the molecular internal coordinates and velocities
+   into one Cartesian xyz/vel sample.
 
-9. `SummarizeLogEnergy(..., False)`
-   Prints the generation-side energy bookkeeping.
+7. Apply the requested output frame.
+   `output-frame = internal` leaves the historical ICATS convention unchanged.
+   `output-frame = incoming-k-plus-z` rotates the completed sample by `Rx(pi)`
+   before the generated diagnostics, immediate analysis, audit, and xyz/vel
+   export are written.
 
-10. `AnalyseSample`
-    Reconstructs orientation, rotational, vibrational, intermolecular, and
-    energy-decomposition quantities from the Cartesian sample.
+8. Write generation-side diagnostics.
+   The `generation` block records the sampled model quantities: rotor labels,
+   molecular orientations, vibrational state/phase-space values,
+   intermolecular velocity, `b`, `L`, `Jab`, and `J`.
+
+9. Analyse the Cartesian sample immediately.
+   The `analysis` block reconstructs the same categories from the Cartesian
+   coordinates and velocities: molecular Euler angles, Eckart-frame rotation,
+   vibrational mode coordinates where possible, Jacobi/system angles,
+   intermolecular angular momentum, and energy decomposition.
+
+10. Run the optional initial-condition audit.
+    When `audit-initial-sample = True`, ICATS compares generation and analysis
+    values before any dynamics are run.
 
 The generation and analysis blocks are intentionally both printed. When they
-disagree, the disagreement tells you where the model-to-Cartesian conversion or
-the analysis assumptions need attention.
+disagree beyond the expected tolerance, the disagreement tells you where the
+model-to-Cartesian conversion, output-frame choice, or analysis assumptions
+need attention.
 
 ## Frames Used By The Analysis
 
