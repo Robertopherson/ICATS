@@ -864,6 +864,11 @@ def _generate_tutorial(
         f"- tutorial_input.txt\n"
         f"- {cfg['mol0']}\n"
         f"- {cfg['mol1']}\n\n"
+        "Frame convention:\n"
+        "- tutorial_input.txt includes output-frame = internal by default.\n"
+        "- Keep this for the historical ICATS/tutorial convention.\n"
+        "- Change it to output-frame = incoming-k-plus-z before icats.init if an external scattering/QM code expects incoming k along space-fixed +Z.\n"
+        "- Changing the frame changes vector components, SF/BF Euler angles, and exported xyz/vel coordinates, so regenerate samples after changing it.\n\n"
     )
 
     run_order = (
@@ -879,10 +884,15 @@ def _generate_tutorial(
             "   icats.init tutorial_input.txt\n"
             "   The second run should reuse the compatible wang.pkl and generate sampled histograms.\n"
         )
+        dynamics_step = 4
+        analysis_step = 5
+    else:
+        dynamics_step = 3
+        analysis_step = 4
     run_order += (
-        "4) Optional cheap dynamics demonstration:\n"
+        f"{dynamics_step}) Optional cheap dynamics demonstration:\n"
         "   ./run_cheap_dynamics.sh\n"
-        "5) Optional trajectory analysis after cheap dynamics:\n"
+        f"{analysis_step}) Optional trajectory analysis after cheap dynamics:\n"
         "   ./run_analysis.sh\n\n"
     )
 

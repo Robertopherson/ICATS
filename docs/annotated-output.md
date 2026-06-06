@@ -51,6 +51,27 @@ system Euler           = [    -0.0000,     0.0246,     0.0000 ]  pi rad   # SFF 
 alpha,beta,gamma       = [     0.6287,     0.3324,     0.0000 ]  pi rad   # molecular Euler
 ```
 
+The frame convention is printed near the top of each generated sample. In the
+default tutorial convention it is:
+
+```text
+output frame           = internal
+```
+
+For external scattering or QM conventions that use incoming `k` along
+space-fixed `+Z`, the same file will instead say:
+
+```text
+output frame           = incoming-k-plus-z
+frame transform        = Rx(pi): x,y,z -> x,-y,-z
+frame note             = sampled vectors below are reported after the output-frame transform
+```
+
+Both `generation` and `analysis` are then printed in that requested output
+frame. If you change `output-frame`, expect vector components, signs, and
+SF/BF Euler angles to change. Do not expect scalar magnitudes, collision
+energy, `b`, `|L|`, or `|J|` to change.
+
 ## 1. Generation Header
 
 A generated sample begins with:
@@ -63,6 +84,12 @@ Sample 0 | generation
 
 Everything under this header is sampled-model information. It is not a later
 dynamics result and it is not read from a potential-energy surface.
+
+The generation header also tells you which space-fixed convention was used for
+the reported sample. This matters when comparing `out_full.info`,
+`out_full.xyz`, and `out_full.vel` with an external dynamics or scattering
+program. Always check the `output frame` line before interpreting the signs of
+`P_R`, `L`, Euler angles, or Cartesian coordinates.
 
 ## 2. Intermolecular Setup
 
@@ -110,6 +137,8 @@ Line meanings:
 - `b`: impact parameter corresponding to the sampled `L` and relative speed.
 - `impact phi`: lab-frame azimuth of the impact-parameter vector used during
   generation.
+- `output frame`: the space-fixed convention used for the generated vectors,
+  immediate analysis, audit, and Cartesian export.
 - `(QM: ...)`: the approximate quantum-number label inferred from a classical
   angular-momentum magnitude.
 

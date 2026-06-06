@@ -45,6 +45,7 @@ Useful constrained-sampling controls:
 vib-mode = rigid
 fixed-b = 3.5
 impact-phi = 0.0
+output-frame = internal
 wang = False
 ```
 
@@ -56,6 +57,7 @@ dirout = outputs
 printout = 0 0 1 0
 output-format = xyzvel
 units-out = ang-fs
+output-frame = internal
 ```
 
 `run-tag` controls the generated run directory name:
@@ -279,6 +281,21 @@ For non-Wang-Landau runs, `maxl` is usually the direct cap. For Wang-Landau
 runs, `maxj` is the important requested total-`J` range, but `L` still enters
 the actual Cartesian collision geometry.
 
+Choose `output-frame` before running `icats.init`. It changes the printed
+space-fixed vector components, SF/BF Euler angles, and exported xyz/vel files,
+so changing it after generation means regenerating the samples. Use
+`output-frame = internal` for the historical ICATS/tutorial convention. Use
+`output-frame = incoming-k-plus-z` when comparing with scattering or QM inputs
+that define the incoming relative wave vector along space-fixed `+Z`:
+
+```text
+output-frame = incoming-k-plus-z
+```
+
+Scalar quantities such as `|L|`, `|J|`, `b`, collision energy, and internal
+mode energies are unchanged by the frame transform. Cartesian components and
+Euler-angle labels are not.
+
 Use `orbital-sampling = flat-l` for diagnostic or trajectory-budgeting runs
 where the small-impact-parameter region should be sampled as heavily as the
 large-impact-parameter region. The resulting ensemble is not geometrically
@@ -302,6 +319,7 @@ vib-mode = rigid
 
 fixed-b = 3.5
 impact-phi = 0.0
+output-frame = internal
 wang = False
 ```
 
@@ -323,6 +341,15 @@ The packaged tutorial `fixed_plane_atom_diatom_ar_no` is the runnable version
 of this idea. It uses `Trot = 0.0`, `vib-mode = rigid`, `incoming-k`,
 `fixed-b`, and `impact-phi` to create a fixed-plane Ar + NO ensemble while
 still sampling the NO orientation.
+
+If the tutorial is being used to compare against a QM scattering setup, inspect
+or set the frame convention explicitly:
+
+```text
+output-frame = internal
+# or
+output-frame = incoming-k-plus-z
+```
 
 The generated Ar + NO files are suitable for inspection and export, but not for
 the bundled cheap-MINDO dynamics helper: PySCF MINDO/3 does not support Ar in
@@ -399,6 +426,7 @@ before reuse and refuses incompatible files.
 | `printout` | `printout = 0 0 1 0` | Four output flags: combined xyz/vel files, full info file, xyz/vel directory, info directory. |
 | `output-format` | `xyzvel`, `npz`, `both` | Coordinate/velocity output format. |
 | `units-out` | `ang-fs`, `au` | Output unit system. |
+| `output-frame` | `internal` or `incoming-k-plus-z` | Space-fixed frame convention used for printed vectors, generated analysis, audit, and xyz/vel export. |
 | `keepinfo` | `True` or `False` | Store extra per-sample information. |
 
 The `printout` line has four integer switches:
@@ -414,6 +442,21 @@ The common tutorial setting `printout = 0 0 1 0` writes a directory of Cartesian
 coordinate and velocity files suitable for the demonstration dynamics. The
 combined-file setting `printout = 1 0 0 0` writes the same samples into
 `out_full.xyz` and `out_full.vel`.
+
+Put the frame convention beside the output controls so it is visible before
+the sample is written:
+
+```text
+output-format = xyzvel
+units-out = ang-fs
+output-frame = internal
+```
+
+or, for the common QM/scattering convention with incoming `k` along `+Z`:
+
+```text
+output-frame = incoming-k-plus-z
+```
 
 ### Histograms and Diagnostics
 

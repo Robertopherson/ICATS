@@ -107,6 +107,25 @@ To generate fewer samples for a fast test:
 icats --tutorial quickstart --nsamp 2 --ntraj 1 --setup-only
 ```
 
+Before running `icats.init`, inspect the frame convention in
+`tutorial_input.txt`:
+
+```text
+output-frame = internal
+```
+
+This is the historical ICATS/tutorial convention. If the generated xyz/vel
+files must match a scattering or QM input convention where the incoming
+relative wave vector is along space-fixed `+Z`, change the line before
+generation:
+
+```text
+output-frame = incoming-k-plus-z
+```
+
+Changing `output-frame` changes Cartesian components and SF/BF Euler angles, so
+regenerate the samples after changing it. Magnitudes and energies are unchanged.
+
 ## What To Inspect
 
 After `icats.init`, inspect:
@@ -155,6 +174,7 @@ vib-mode = rigid
 incoming-k = 13.615392
 fixed-b = 4.5
 impact-phi = 0.0
+output-frame = internal
 printout = 1 1 0 0
 ```
 
@@ -193,6 +213,7 @@ vib-mode = rigid
 incoming-k = 13.615392
 maxb = 8.0
 impact-phi = 0.0
+output-frame = internal
 orbital-sampling = flat-l
 wang = False
 printout = 0 1 0 0

@@ -40,6 +40,24 @@ run_analysis.sh
 The file to inspect first is `tutorial_input.txt`. It contains the two molecule
 definitions and the sampling options.
 
+Before generating samples, check the output frame convention:
+
+```text
+output-frame = internal
+```
+
+Use the default `internal` convention for the bundled tutorial checks. Change
+it before running `icats.init` if a downstream scattering/QM code expects the
+incoming relative wave vector along space-fixed `+Z`:
+
+```text
+output-frame = incoming-k-plus-z
+```
+
+This choice changes printed vector components, SF/BF Euler angles, and the
+exported xyz/vel coordinates. Scalar quantities such as energies, `b`, `|L|`,
+and `|J|` are unchanged.
+
 ## 3. Generate Initial Conditions
 
 ```bash

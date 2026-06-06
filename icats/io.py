@@ -256,6 +256,7 @@ check-input = False
 save-frequency = 0
 output-format = xyzvel
 units-out = ang-fs
+output-frame = internal
 """
 
     h2o_txt = """# H2O molecule input template
