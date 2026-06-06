@@ -28,6 +28,16 @@ def info_section(title):
 def info_frame_marker(frame):
     return "{0:<{w}} = {1}\n".format("output frame", str(frame), w=INFO_LABEL_WIDTH)
 
+def info_frame_transform(frame):
+    if frame == "internal":
+        return []
+    if frame == "incoming-k-plus-z":
+        return [
+            "{0:<{w}} = {1}\n".format("frame transform", "Rx(pi): x,y,z -> x,-y,-z", w=INFO_LABEL_WIDTH),
+            "{0:<{w}} = {1}\n".format("frame note", "sampled vectors below are reported after the output-frame transform", w=INFO_LABEL_WIDTH),
+        ]
+    return []
+
 def info_scalar(label, value, unit="", fmt="{:14.7f}"):
     unit_txt = ("  " + unit) if unit else ""
     return "{0:<{w}} = {1}{2}\n".format(label, fmt.format(float(value)), unit_txt, w=INFO_LABEL_WIDTH)
@@ -379,11 +389,6 @@ class icats:
                 ip.output_frame = val[0].lower()
                 if ip.output_frame not in ("internal", "incoming-k-plus-z"):
                     raise ValueError("output-frame must be internal or incoming-k-plus-z")
-                if ip.output_frame == "incoming-k-plus-z":
-                    raise NotImplementedError(
-                        "output-frame = incoming-k-plus-z is reserved but not enabled yet; "
-                        "the current implemented frame is output-frame = internal."
-                    )
                 self.log += ["Output/reporting frame convention: " + ip.output_frame + "\n"]
             if ky == "orbital-sampling":
                 ip.orbital_sampling = val[0].lower()
@@ -1286,6 +1291,8 @@ class icats:
         sa.sii = ii 
         sa.slog = info_header(ii, "generation")
         sa.slog += [info_frame_marker(self.ip.output_frame)]
+        sa.slog += info_frame_transform(self.ip.output_frame)
+        sa._output_frame_applied = False
         sa.SampInfo = {}
         sa.svv = zeros(sp.shape)  
         sa.sxx = zeros(sp.shape)
@@ -1401,17 +1408,21 @@ class icats:
           else:
             self.SampleHOVibrState(sa)
           # sample intermolecular DOF
-          debug and print('Sample InterMolZ...')  
+          debug and print('Sample InterMolZ...')
           self.SetInterZDist(sa,sp.Rz) # set z distance ...
           if ip.FixedB is None:
             self.SampleInterMolZVeloc(sa) # need to get the magnitude of intermol v before getting impact parameter
-          self.StoreOrbitalInfoLog(sa)
           debug and print('Sample Impact Param...')  
+          if not hasattr(sa, "sb"):
+            sa.sb = sa.snL/(sp.rmass*sa.sV)
+            sa.sphi = np.arctan2(sa.scL[0],-sa.scL[1])
           self.SetImpactParam(sa,sa.sb, sa.sphi)
+          self.SetInterMolZVeloc(sa)
+          self.ApplyOutputFrameConvention(sa)
+          self.Mol2Image(sa)
+          self.StoreOrbitalInfoLog(sa)
           debug and print('Calc Jacobi ...')  
           self.CalcJacobiCoordinates(sa)
-          self.SetInterMolZVeloc(sa)
-          self.Mol2Image(sa)
           # summarize energy from generated sample
           self.SummarizeLogEnergy(sa,False)
           self.CaptureInitialAuditState(sa, "generation")
@@ -2264,6 +2275,66 @@ class icats:
           sa.slog += ['       delChi = '+"{0:10.5f}".format(0.0/pi)+' pi rad  \n']
         
 
+    def OutputFrameRotation(self):
+        frame = getattr(self.ip, "output_frame", "internal")
+        if frame == "internal":
+            return np.eye(3)
+        if frame == "incoming-k-plus-z":
+            return np.array([[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0]])
+        raise ValueError("Unknown output-frame convention: " + str(frame))
+
+    def ApplyOutputFrameConvention(self, sa):
+        """Rotate generated Cartesian/vector state into the requested output frame."""
+        frame = getattr(self.ip, "output_frame", "internal")
+        if frame == "internal" or getattr(sa, "_output_frame_applied", False):
+            return
+        R = self.OutputFrameRotation()
+
+        def rot_vec(v):
+            return matmul(R, np.asarray(v, dtype=float))
+
+        def rot_rows(a):
+            return matmul(np.asarray(a, dtype=float), R.T)
+
+        def rotate_dict_vectors(dic, keys):
+            if not isinstance(dic, dict):
+                return
+            for key in keys:
+                val = dic.get(key)
+                if val is None:
+                    continue
+                arr = np.asarray(val, dtype=float)
+                if arr.shape == (3,):
+                    dic[key] = rot_vec(arr)
+
+        for msa in sa.mol:
+            msa.sxx = rot_rows(msa.sxx)
+            msa.svv = rot_rows(msa.svv)
+            if hasattr(msa, "siJ"):
+                msa.siJ = rot_vec(msa.siJ)
+            if hasattr(msa, "srpar") and len(msa.srpar) > 0:
+                msa.srpar[-1] = rot_vec(msa.srpar[-1])
+            rotate_dict_vectors(
+                msa.SampInfo.get("rot", {}),
+                ("vecJ", "svecJs", "svecJm", "svecJc", "svecJ0", "svecJ0s"),
+            )
+
+        for attr in ("scL", "scJ", "sjab"):
+            if hasattr(sa, attr):
+                setattr(sa, attr, rot_vec(getattr(sa, attr)))
+        if hasattr(sa, "svel"):
+            sa.svel = rot_rows(sa.svel)
+
+        rotate_dict_vectors(
+            sa.SampInfo.get("orb", {}),
+            ("icL", "icJ", "cL", "cJ", "Jab", "scL", "scJ", "sJab"),
+        )
+        sa._output_frame_applied = True
+        sa.slog += info_section("frame convention")
+        sa.slog += [info_frame_marker(frame)]
+        sa.slog += info_frame_transform(frame)
+
+
     def StoreOrbitalInfoLog(self,sa):
         mol = self.mol
         sp = self.sp
@@ -2398,7 +2469,15 @@ class icats:
         """
         mol = sa.mol
         sp = self.sp 
-        d = -b * ( y * sin(phi) + x * cos(phi) )
+        if hasattr(sa, "svel") and hasattr(sa, "scL"):
+            p_rel = -sp.rmass * (sa.svel[0] - sa.svel[1])
+            p2 = float(np.dot(p_rel, p_rel))
+            if p2 > 1.0e-20:
+                d = np.cross(p_rel, sa.scL) / p2
+            else:
+                d = b * (y * sin(phi) + x * cos(phi))
+        else:
+            d = b * (y * sin(phi) + x * cos(phi))
         mol[0].sxx += d * sp.w1
         mol[1].sxx -= d * sp.w0
 
@@ -2869,6 +2948,7 @@ class icats:
         sp = self.sp
         sa.slog += info_header(sa.sii, "analysis")
         sa.slog += [info_frame_marker(ip.output_frame)]
+        sa.slog += info_frame_transform(ip.output_frame)
         # Calculates Euler orientation of molecular frame from xx and vv
         self.CalcOrient(sa)
         # Calculates Rotational information from xx and vv

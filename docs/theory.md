@@ -252,12 +252,13 @@ names:
 | system Jacobi embedding | `phi, beta, chi` | Euler rotation from the space-fixed frame into the two-vector body-fixed frame of the collision complex. |
 | impact-parameter azimuth | `impact-phi` | Input/sample coordinate fixing the lab collision plane; not the full system Euler `phi`. |
 
-The output logs also print `output frame`. At present the implemented value is
-`internal`, the historical ICATS convention. A future `incoming-k-plus-z`
-convention is reserved for the common scattering choice where the incoming
-relative wave vector is parallel to the space-fixed `+Z` axis. That convention
-requires a real rotation of exported coordinates, velocities, vectors, and
-therefore the reconstructed SF/BF angles; it is not a cosmetic label change.
+The output logs also print `output frame`. The default value is `internal`, the
+historical ICATS convention. `output-frame = incoming-k-plus-z` applies the
+proper rotation `Rx(pi)` to the completed generated sample before reporting,
+analysis, audit, and Cartesian export. This is the common scattering choice
+where the incoming relative wave vector is parallel to the space-fixed `+Z`
+axis. Because coordinates, velocities, vectors, and reconstructed SF/BF angles
+all change, this is not a cosmetic label change.
 
 The molecular Euler triple follows the usual `Z-Y-Z`/line-of-nodes
 construction:

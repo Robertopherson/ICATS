@@ -344,7 +344,8 @@ Eckart/body-fixed frame.
 Line meanings:
 
 - `output frame`: reporting/export convention used by the current block.
-  The implemented default is `internal`.
+  The default is `internal`; `incoming-k-plus-z` means the sample was rotated by
+  `Rx(pi)` before reporting/export.
 - `frame note`: reminder of the frame convention used by this block.
 - `system Euler`: Euler angles for the transformation from the space-fixed lab
   frame to the Jacobi body-fixed collision frame.

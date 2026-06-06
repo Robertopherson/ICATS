@@ -268,7 +268,7 @@ over the intermolecular relative speed.
 | `maxb` | `maxb = 10.0` | Maximum impact parameter estimate, in Angstrom. |
 | `fixed-b` | `fixed-b = 3.5` | Fixed impact parameter in Angstrom. This bypasses impact-parameter sampling and derives the corresponding orbital angular momentum from the sampled relative velocity. Currently use with `wang = False`. |
 | `impact-phi` | `impact-phi = 0.0` | Fixed impact-parameter azimuth in the lab frame, in radians. Omit this key to sample the azimuth. This controls the collision plane, not the full Jacobi/Euler `phi, beta, chi` transformation reconstructed later from the Cartesian geometry. |
-| `output-frame` | `output-frame = internal` | Reporting/export frame convention. The implemented default is `internal`; logs print this marker so future convention changes are explicit. The planned `incoming-k-plus-z` convention is reserved but not enabled yet. |
+| `output-frame` | `internal` or `incoming-k-plus-z` | Reporting/export frame convention. `internal` is the historical ICATS default. `incoming-k-plus-z` applies an `Rx(pi)` transform before reporting, analysis, audit, and Cartesian export so the incoming relative wave vector is parallel to space-fixed `+Z`. |
 | `maxl` | `maxl = 80` | Maximum orbital angular momentum quantum number. |
 | `maxj` | `maxj = 80` | Maximum total angular momentum for Wang-Landau/J setup. If `maxl` is omitted, ICATS can use `maxj` as the orbital cap. |
 | `orbital-sampling` | `geometric` or `flat-l` | Proposal distribution for non-fixed orbital angular momentum. `geometric` is the default/current behavior and samples the classical impact-parameter measure, approximately `P(L) ~ L`. `flat-l` samples `L` uniformly over the requested cap and lets `J = L + Jab` emerge. |
