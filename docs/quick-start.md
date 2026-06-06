@@ -90,6 +90,18 @@ For a quick check of all bundled tutorials:
 icats.audit-tutorials --nsamp 3 --keep-going
 ```
 
+To repeat the audit in the `incoming-k-plus-z` scattering convention:
+
+```bash
+icats.audit-tutorials --nsamp 2 --keep-going --output-frame incoming-k-plus-z
+```
+
+For a focused frame-convention regression check:
+
+```bash
+icats.frame-smoke
+```
+
 For a single tutorial, add the following lines to `tutorial_input.txt` before
 running `icats.init`:
 

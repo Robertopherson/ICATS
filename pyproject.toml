@@ -32,6 +32,7 @@ icats = "icats.cli:main"
 "icats.init" = "icats.cli_init:main"
 "icats.analyse" = "icats.cli_analyse:main"
 "icats.audit-tutorials" = "icats.cli_audit_tutorials:main"
+"icats.frame-smoke" = "icats.cli_frame_smoke:main"
 
 [tool.setuptools]
 packages = ["icats"]

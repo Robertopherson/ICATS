@@ -31,6 +31,11 @@ def _replace_or_insert(text: str, key: str, value: str) -> str:
     return text.rstrip() + "\n" + line + "\n"
 
 
+def _remove_key(text: str, key: str) -> str:
+    rx = re.compile(rf"^{re.escape(key)}\s*=.*\n?", re.MULTILINE)
+    return rx.sub("", text)
+
+
 def _patch_input(path: Path, args: argparse.Namespace) -> None:
     text = path.read_text()
     for key, value in (
@@ -46,10 +51,12 @@ def _patch_input(path: Path, args: argparse.Namespace) -> None:
         ("audit-initial-angular-tol", str(args.angular_tol)),
         ("audit-initial-vib-tol", str(args.vib_tol)),
         ("audit-initial-velocity-tol", str(args.velocity_tol)),
+        ("output-frame", args.output_frame),
     ):
         text = _replace_or_insert(text, key, value)
     if not args.include_wl:
         text = _replace_or_insert(text, "wang", "False")
+        text = _remove_key(text, "wl-target")
     path.write_text(text)
 
 
@@ -90,6 +97,12 @@ def main() -> int:
     parser.add_argument("--angular-tol", type=float, default=2.0, help="Angular audit tolerance in au; 0 disables angular checks.")
     parser.add_argument("--vib-tol", type=float, default=2.0, help="Vibrational Q/P RMS-per-component audit tolerance; 0 records diagnostics without failing.")
     parser.add_argument("--velocity-tol", type=float, default=5.0, help="Relative-velocity audit tolerance in m/s.")
+    parser.add_argument(
+        "--output-frame",
+        choices=("internal", "incoming-k-plus-z"),
+        default="internal",
+        help="Reporting/export frame convention to use in generated tutorial audits.",
+    )
     parser.add_argument("--include-wl", action="store_true", help="Keep Wang-Landau enabled in tutorials that request it.")
     parser.add_argument("--keep-going", action="store_true", help="Continue after a failed tutorial.")
     args = parser.parse_args()
@@ -180,6 +193,7 @@ def main() -> int:
         f"- Angular tolerance: `{args.angular_tol}`\n"
         f"- Vibrational Q/P RMS-per-component tolerance: `{args.vib_tol}`\n"
         f"- Relative-velocity tolerance: `{args.velocity_tol}` m/s\n"
+        f"- Output frame: `{args.output_frame}`\n"
         f"- Wang-Landau enabled: `{args.include_wl}`\n"
         "- Dynamics were not run.\n\n"
         "See `summary.tsv` for per-tutorial results.\n"

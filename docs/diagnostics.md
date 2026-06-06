@@ -27,6 +27,27 @@ velocity analysis at `t = 0`, before any dynamics are run.
 For a guided explanation of the first generation and analysis blocks, see
 [Annotated First Output](annotated-output.md).
 
+To run the bundled tutorial audit in the alternative scattering-axis
+convention:
+
+```bash
+icats.audit-tutorials --nsamp 2 --keep-going --output-frame incoming-k-plus-z
+```
+
+This keeps Wang-Landau disabled by default, so it is a quick initial-condition
+regression check rather than an umbrella-convergence test.
+
+For a sharper frame-convention smoke test:
+
+```bash
+icats.frame-smoke
+```
+
+This generates the fixed-plane Ar + NO tutorial once in `output-frame =
+internal` and once in `output-frame = incoming-k-plus-z`. It checks that both
+initial-sample audits pass and that the plus-Z `.xyz` and `.vel` files are
+exactly the `Rx(pi)` transform of the internal-frame files.
+
 The audit compares:
 
 - vibrational energy,
