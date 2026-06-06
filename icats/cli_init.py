@@ -36,6 +36,7 @@ OPTIONAL_INPUT_KEYS = [
     ("orbital-sampling", "Orbital L proposal: geometric (default) or flat-l."),
     ("fixed-b", "Use one fixed impact parameter in Angstrom; currently for non-Wang-Landau runs."),
     ("impact-phi", "Fixed impact-parameter azimuth in radians; omit to sample it."),
+    ("output-frame", "Output/reporting frame convention: internal. incoming-k-plus-z is reserved for the planned Rx(pi) export convention."),
     ("Trot", "Rotational temperature."),
     ("Tvib", "Vibrational temperature."),
     ("vib-mode", "Vibrational treatment: sample or rigid. rigid skips harmonic vibrational sampling."),

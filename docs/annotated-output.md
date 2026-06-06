@@ -343,6 +343,8 @@ Eckart/body-fixed frame.
 
 Line meanings:
 
+- `output frame`: reporting/export convention used by the current block.
+  The implemented default is `internal`.
 - `frame note`: reminder of the frame convention used by this block.
 - `system Euler`: Euler angles for the transformation from the space-fixed lab
   frame to the Jacobi body-fixed collision frame.

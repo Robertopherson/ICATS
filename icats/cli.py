@@ -666,6 +666,7 @@ def _tutorial_input_text(name: str, cfg: dict, hist_samples: int | None = None) 
         "progress = normal",
         "output-format = xyzvel",
         "units-out = ang-fs",
+        "output-frame = internal",
         "",
         "# Tutorial-specific options",
     ]

@@ -25,6 +25,9 @@ def info_header(sample_id, stage):
 def info_section(title):
     return ["\n[" + title + "]\n"]
 
+def info_frame_marker(frame):
+    return "{0:<{w}} = {1}\n".format("output frame", str(frame), w=INFO_LABEL_WIDTH)
+
 def info_scalar(label, value, unit="", fmt="{:14.7f}"):
     unit_txt = ("  " + unit) if unit else ""
     return "{0:<{w}} = {1}{2}\n".format(label, fmt.format(float(value)), unit_txt, w=INFO_LABEL_WIDTH)
@@ -170,6 +173,7 @@ class icats:
               self.save_frequency = 0
               self.output_format = "xyzvel"
               self.units_out = "ang-fs"
+              self.output_frame = "internal"
               self.ostandard = True
               self.plothist =False
               self.hist_initial = False
@@ -371,6 +375,16 @@ class icats:
             if ky == "impact-phi":
                 ip.ImpactPhi = float(val[0])
                 self.log += ["Fixed impact-parameter azimuth phi: " + val[0] + " rad\n"]
+            if ky == "output-frame":
+                ip.output_frame = val[0].lower()
+                if ip.output_frame not in ("internal", "incoming-k-plus-z"):
+                    raise ValueError("output-frame must be internal or incoming-k-plus-z")
+                if ip.output_frame == "incoming-k-plus-z":
+                    raise NotImplementedError(
+                        "output-frame = incoming-k-plus-z is reserved but not enabled yet; "
+                        "the current implemented frame is output-frame = internal."
+                    )
+                self.log += ["Output/reporting frame convention: " + ip.output_frame + "\n"]
             if ky == "orbital-sampling":
                 ip.orbital_sampling = val[0].lower()
                 if ip.orbital_sampling not in ("geometric", "flat-l"):
@@ -1271,6 +1285,7 @@ class icats:
         sp = self.sp
         sa.sii = ii 
         sa.slog = info_header(ii, "generation")
+        sa.slog += [info_frame_marker(self.ip.output_frame)]
         sa.SampInfo = {}
         sa.svv = zeros(sp.shape)  
         sa.sxx = zeros(sp.shape)
@@ -2853,6 +2868,7 @@ class icats:
         ip = self.ip
         sp = self.sp
         sa.slog += info_header(sa.sii, "analysis")
+        sa.slog += [info_frame_marker(ip.output_frame)]
         # Calculates Euler orientation of molecular frame from xx and vv
         self.CalcOrient(sa)
         # Calculates Rotational information from xx and vv
