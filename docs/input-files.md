@@ -121,6 +121,64 @@ directory. Choose a new `run-tag` when comparing different setups.
 | `wang` | Enable Wang-Landau weighting | Use for difficult `J` distributions |
 | `plothist` | Generate histogram scripts | Use for diagnostics |
 
+## Choosing A Setup
+
+Use the simplest input that answers the physical question.
+
+For a standard geometric scattering ensemble, start with:
+
+```text
+orbital-sampling = geometric
+wang = False
+```
+
+This samples the impact-parameter/orbital-angular-momentum proposal in the
+usual geometric way. Inspect the sampled `L` and `J` histograms before using a
+large ensemble.
+
+For a fixed-impact-parameter diagnostic or an external scattering/QM
+comparison, use:
+
+```text
+fixed-b = ...
+impact-phi = ...
+vib-mode = rigid
+output-frame = internal
+```
+
+Change `output-frame` to `incoming-k-plus-z` only when the downstream
+convention expects the incoming relative wave vector along space-fixed `+Z`.
+
+For a coverage/reweighting study that needs more samples at small `L`, use:
+
+```text
+orbital-sampling = flat-l
+wang = False
+```
+
+This is not geometrically weighted by itself. Reweight later by the desired
+measure, normally proportional to `L` or `b` at fixed incoming momentum.
+
+For a molecular system where the sampled `J` distribution is poor because
+`Jab` mixes strongly with `L`, use:
+
+```text
+wang = True
+wl-target = linear-j
+```
+
+For a flat-`L` Wang-Landau diagnostic, use the paired option:
+
+```text
+orbital-sampling = flat-l
+wang = True
+wl-target = flat-j
+```
+
+Do not mix geometric `L` with `wl-target = flat-j`, or flat `L` with
+`wl-target = linear-j`; ICATS rejects those combinations because the resulting
+ensemble is easy to misinterpret.
+
 ## Option Reference
 
 The tables below group the current input keys by what they control. They are

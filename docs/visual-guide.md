@@ -74,9 +74,9 @@ a formatting preference.
 
 The impact parameter and relative momentum define the orbital angular momentum:
 
-$$
-\vec{L} = \vec{R}_{AB} \times \vec{P}_{AB}.
-$$
+```text
+L = R_AB cross P_AB
+```
 
 The input key
 
@@ -107,11 +107,10 @@ J = L + Jab
 
 For two molecules, the total angular momentum is decomposed as:
 
-$$
-\vec{J} = \vec{L} + \vec{J}_{AB},
-\qquad
-\vec{J}_{AB} = \vec{J}_{A} + \vec{J}_{B}.
-$$
+```text
+J    = L + J_AB
+J_AB = J_A + J_B
+```
 
 Here `L` is the intermolecular orbital part, while `Ja` and `Jb` are the
 rotational angular momenta of the two fragments. The `.info` file prints both

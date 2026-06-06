@@ -34,6 +34,12 @@ is internally consistent with the model used to generate it. A later energy
 drift in MINDO dynamics is then a dynamics, integration, or potential-energy
 surface issue, not direct evidence that the initial-condition sampler is broken.
 
+The `output-frame` choice is part of the initial-condition stage. ICATS applies
+the selected frame convention before writing the generated `.info` diagnostics,
+before the immediate analysis/audit, and before exporting xyz/vel files. Change
+`output-frame` in `tutorial_input.txt` before running `icats.init`; changing it
+afterward requires regenerating the samples.
+
 For a quick regression check of the tutorial initial-condition pipeline:
 
 ```bash

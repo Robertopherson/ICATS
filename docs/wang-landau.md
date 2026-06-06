@@ -27,13 +27,11 @@ partial-wave state density:   weight ~ 2J + 1 -> roughly linear in J
 
 In the notation used in the theory page this is:
 
-$$
-d\sigma \propto b db,
-\qquad
-P(L) dL \propto (2L+1) dL,
-\qquad
-P(J) dJ \propto (2J+1) dJ.
-$$
+```text
+d sigma       proportional to b db
+P(L) dL       proportional to (2L + 1) dL
+P(J) dJ       proportional to (2J + 1) dJ
+```
 
 For atom-atom scattering these are almost the same statement because `J = L`.
 For molecular scattering they are not the same statement because `Jab = Ja +
@@ -41,11 +39,10 @@ Jb` has its own thermal/vector-model distribution. If ICATS samples a clean
 geometric `L` distribution and independently samples the molecular rotors, the
 resulting `J` distribution is the vector-coupling mixture of `L` and `Jab`.
 
-$$
-\vec{J}_{AB}=\vec{J}_A+\vec{J}_B,
-\qquad
-\vec{J}=\vec{L}+\vec{J}_{AB}.
-$$
+```text
+J_AB = J_A + J_B
+J    = L + J_AB
+```
 
 One could try to force both one-dimensional distributions by choosing the angle
 between `L` and `Jab` by hand. That would make the histogram look tidy, but it
@@ -56,14 +53,8 @@ by the chosen `L` proposal and independent `Jab` sampling, then uses an
 acceptance weight of the form
 
 ```text
-W(J) ~ (2J + 1) / Omega(J)
+W(J) proportional to (2J + 1) / Omega_WL(J)
 ```
-
-or
-
-$$
-W(J) \propto \frac{2J+1}{\Omega_{\mathrm{WL}}(J)}.
-$$
 
 to bring the accepted ensemble closer to the usual degeneracy-weighted
 total-`J` measure. This is `wl-target = linear-j`, used with the default
@@ -80,14 +71,8 @@ wl-target = flat-j
 In that case the acceptance correction is
 
 ```text
-W(J) ~ 1 / Omega(J)
+W(J) proportional to 1 / Omega_WL(J)
 ```
-
-or
-
-$$
-W(J) \propto \frac{1}{\Omega_{\mathrm{WL}}(J)}.
-$$
 
 This mode is useful when the user wants to sample low and high `L` more evenly
 and later apply their own `L`/`b` reweighting. It should not be read as a
@@ -236,11 +221,12 @@ long tail, inspect the WL and `Jab` histograms before relying on the flattened
 high-`J` correction.
 
 `wl-target = linear-j` uses the default geometric target
-`(2J+1)/Omega(J)`, where `Omega(J)` is the WL-estimated sampled `J` density.
+`(2J + 1) / Omega_WL(J)`, where `Omega_WL(J)` is the WL-estimated sampled `J`
+density.
 This is intended for the usual geometric impact-parameter proposal. For
 flat-`L` trajectory-budgeting runs, use `wl-target = flat-j`; this uses
-`1/Omega(J)` and therefore does not add the extra `2J+1` factor. ICATS rejects
-the mixed combinations because they are easy to misinterpret.
+`1 / Omega_WL(J)` and therefore does not add the extra `2J + 1` factor. ICATS
+rejects the mixed combinations because they are easy to misinterpret.
 
 ## Plotting Checks
 
@@ -253,11 +239,16 @@ python wl_wl_plot.py
 ```
 
 These write `wl_td_plot.png` and `wl_wl_plot.png` in the same directory.
-The `wl_wl_plot` figure is the estimated natural sampled density `Omega(J)`,
-shown in normalized plotting units. It is not an absolute density of states.
+The `wl_wl_plot` figure is the estimated natural sampled density
+`Omega_WL(J)`, shown in normalized plotting units. It is not an absolute
+density of states.
 The `wl_td_plot` figure is the normalized sampling correction used to target
-the requested total-`J` distribution: `(2J+1)/Omega(J)` for
-`wl-target = linear-j`, or `1/Omega(J)` for `wl-target = flat-j`.
+the requested total-`J` distribution: `(2J + 1) / Omega_WL(J)` for
+`wl-target = linear-j`, or `1 / Omega_WL(J)` for `wl-target = flat-j`.
+
+Read these plots together with the sampled `L`, `J`, and `Jab` histograms. A
+smooth WL curve by itself does not prove that the requested range, binning, or
+target distribution is appropriate for the physical question.
 
 Initial and sampled angular-momentum histograms can be generated with:
 

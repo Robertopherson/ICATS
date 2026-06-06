@@ -50,13 +50,10 @@ distribution. This gives Cartesian displacements and velocities that retain the
 harmonic oscillator energy and uncertainty-like spread expected from the chosen
 state.
 
-$$
-E_{\mathrm{HO},k}
-  = \frac{1}{2}\omega_k\left(Q_k^2 + P_k^2\right),
-\qquad
-E_{v,k}
-  = \omega_k\left(v_k+\frac{1}{2}\right).
-$$
+```text
+E_HO,k = 0.5 * omega_k * (Q_k^2 + P_k^2)
+E_v,k  = omega_k * (v_k + 0.5)
+```
 
 The first expression is the classical phase-point energy reconstructed from the
 sampled `Q, P` values. The second is the harmonic-oscillator level energy used
@@ -69,12 +66,11 @@ sample a rotational state, construct a classical angular momentum vector with
 length close to `sqrt(J(J+1))`, then convert that vector into an angular
 velocity field on the reference geometry.
 
-$$
-|\vec{J}| = \sqrt{J(J+1)}, \qquad
-\vec{\omega}_{\mathrm{ref}} = I_{\mathrm{ref}}^{-1}\vec{J},
-\qquad
-\vec{v}_{\mathrm{rot},i} = \vec{\omega}_{\mathrm{ref}}\times \vec{x}_{\mathrm{ref},i}.
-$$
+```text
+|J_vector| = sqrt(J(J+1))
+omega_ref  = inverse(I_ref) * J_vector
+v_rot,i    = omega_ref cross x_ref,i
+```
 
 For intermolecular scattering, the natural classical variable is the impact
 parameter, while the partial-wave view is organised by total angular momentum.
@@ -83,29 +79,23 @@ For atoms these almost coincide because `J = L`. For molecules, however,
 is used to balance these views without manually forcing the angle between `L`
 and `Jab`.
 
-$$
-d\sigma \propto b db,
-\qquad
-P(L) dL \propto (2L+1) dL,
-\qquad
-\vec{J} = \vec{L}+\vec{J}_{AB}.
-$$
+```text
+d sigma       proportional to b db
+P(L) dL       proportional to (2L + 1) dL
+J             = L + J_AB
+J_AB          = J_A + J_B
+P_acc(J)      proportional to (2J + 1) / Omega_WL(J)
+```
 
-$$
-\vec{J}_{AB}=\vec{J}_A+\vec{J}_B,
-\qquad
-P_{\mathrm{acc}}(J)\propto \frac{2J+1}{\Omega_{\mathrm{WL}}(J)}.
-$$
-
-Here $\Omega_{\mathrm{WL}}(J)$ denotes the Wang-Landau estimate of the density
+Here `Omega_WL(J)` denotes the Wang-Landau estimate of the density
 of trial samples produced at total angular momentum `J`. The expression above
 is the default `wl-target = linear-j` form used with geometric orbital
 sampling. For `orbital-sampling = flat-l`, ICATS uses `wl-target = flat-j` and
 therefore
 
-$$
-P_{\mathrm{acc}}(J)\propto \frac{1}{\Omega_{\mathrm{WL}}(J)}.
-$$
+```text
+P_acc(J) proportional to 1 / Omega_WL(J)
+```
 
 This second mode is intended for diagnostic or reweighting workflows where `L`
 is proposed uniformly and the user later applies the desired `L`/`b` weights.
@@ -118,19 +108,19 @@ logs, histogram file names, or input options.
 
 | Type | Sampled quantity | Distribution or weight |
 | --- | --- | --- |
-| Vibrational state | normal-mode quantum numbers `vstat` | Boltzmann harmonic-oscillator populations, $P(v)\propto \exp[-E_v/(k_B T_{\mathrm{vib}})]$ |
+| Vibrational state | normal-mode quantum numbers `vstat` | Boltzmann harmonic-oscillator populations, `P(v) proportional to exp[-E_v/(k_B T_vib)]` |
 | Vibrational phase space | normal-mode `Q, P` | Husimi-style harmonic-oscillator phase-space density for the sampled `vstat` |
-| Rigid-rotor total angular momentum | molecular `J` | Boltzmann rotor populations, with $(2J+1)$ degeneracy for isotropic tops and state-specific weights for anisotropic/asymmetric tops |
+| Rigid-rotor total angular momentum | molecular `J` | Boltzmann rotor populations, with `(2J + 1)` degeneracy for isotropic tops and state-specific weights for anisotropic/asymmetric tops |
 | Symmetric-top projection | body-fixed `K` or projection-like coordinate | Boltzmann projection distribution at fixed `J` |
 | Asymmetric-top state | Wang-basis eigenstate at fixed `J` | Boltzmann distribution over asymmetric-rotor eigenenergies and symmetry labels |
 | Asymmetric vector model | projection spread and unresolved azimuth | rejection-sampled Gaussian-sine, azimuthal, or Bingham-like auxiliary distributions chosen from the Wang-state expectation values |
 | Molecular orientation | Euler angles | isotropic orientations by default, or user-supplied/fixed/read orientation distributions when requested |
-| Impact parameter | `b` | geometric incoming-flux measure, $P(b) db \propto b db$ on the requested interval |
-| Orbital angular momentum | `L` | geometric/default proposal, $P(L) dL \propto (2L+1) dL$, or uniform proposal with `orbital-sampling = flat-l` |
-| Total angular momentum | `J` | default target partial-wave measure, $P(J) dJ \propto (2J+1) dJ$, or approximately flat target with `wl-target = flat-j` |
+| Impact parameter | `b` | geometric incoming-flux measure, `P(b) db proportional to b db` on the requested interval |
+| Orbital angular momentum | `L` | geometric/default proposal, `P(L) dL proportional to (2L + 1) dL`, or uniform proposal with `orbital-sampling = flat-l` |
+| Total angular momentum | `J` | default target partial-wave measure, `P(J) dJ proportional to (2J + 1) dJ`, or approximately flat target with `wl-target = flat-j` |
 | Orbital azimuth | `phi` | uniform angle when `phisample = True` |
 | Relative speed | intermolecular velocity | Crossed-beam molecular speed distributions, direct relative-speed/channel input, or Maxwell-Boltzmann relative-speed sampling, depending on input mode |
-| Wang-Landau correction | accepted total `J` | rejection weight proportional to $(2J+1)/\Omega_{\mathrm{WL}}(J)$ for `linear-j`, or $1/\Omega_{\mathrm{WL}}(J)$ for `flat-j` |
+| Wang-Landau correction | accepted total `J` | rejection weight proportional to `(2J + 1) / Omega_WL(J)` for `linear-j`, or `1 / Omega_WL(J)` for `flat-j` |
 
 The important practical point is that these distributions are not all sampled
 at the same level. Vibrational and rotor state distributions define internal
@@ -150,12 +140,10 @@ from the molecule-file `vel` entries, then combines them using the requested
 `beam-angle`. This produces the Jacobi relative speed and therefore the
 collision energy:
 
-$$
-v_{\mathrm{rel}}^2
-= v_A^2 + v_B^2 - 2 v_A v_B \cos\varphi ,
-\qquad
-E_{\mathrm{coll}} = \frac{1}{2}\mu v_{\mathrm{rel}}^2 .
-$$
+```text
+v_rel^2 = v_A^2 + v_B^2 - 2 v_A v_B cos(beam_angle)
+E_coll  = 0.5 * mu * v_rel^2
+```
 
 This is the natural model for a crossed-beam experiment where the beam
 velocities and crossing angle are known.
@@ -163,19 +151,17 @@ velocities and crossing angle are known.
 In a direct-channel interpretation, the user specifies the relative incoming
 channel itself. The equivalent quantities are:
 
-$$
-p_0 = \mu v_{\mathrm{rel}},
-\qquad
-E_{\mathrm{coll}} = \frac{p_0^2}{2\mu},
-\qquad
-k = \frac{p_0}{\hbar}.
-$$
+```text
+p0     = mu * v_rel
+E_coll = p0^2 / (2 * mu)
+k      = p0 / hbar
+```
 
-Since ICATS uses atomic units internally, \(\hbar=1\), so the numerical values
+Since ICATS uses atomic units internally, `hbar = 1`, so the numerical values
 of `incoming-p0` and `incoming-k` are the same when both are expressed in
 atomic units. This direct-channel setup is closest to the usual partial-wave
-language, where an incoming channel is labelled by \(k\) and semiclassically
-\(L \simeq k b\).
+language, where an incoming channel is labelled by `k` and semiclassically
+`L approx k b`.
 
 ## Generation-To-Analysis Workflow
 
@@ -191,9 +177,9 @@ physical order is:
    In the usual geometric or flat-`L` modes, ICATS samples the orbital angular
    momentum `L` first and then forms
 
-   $$
-   \vec{J} = \vec{L}+\vec{J}_{AB}.
-   $$
+   ```text
+   J = L + J_AB
+   ```
 
    In `fixed-b` mode, ICATS samples or sets the relative velocity first, then
    constructs the impact displacement so that the requested `b` and
@@ -283,10 +269,9 @@ all change, this is not a cosmetic label change.
 The molecular Euler triple follows the usual `Z-Y-Z`/line-of-nodes
 construction:
 
-$$
-R(\alpha,\beta,\gamma)
-  = R_Z(\alpha)R_Y(\beta)R_Z(\gamma).
-$$
+```text
+R(alpha,beta,gamma) = R_Z(alpha) R_Y(beta) R_Z(gamma)
+```
 
 In the molecular output, `alpha` is the first azimuthal rotation about the
 space-fixed axis, `beta` is the polar line-of-nodes rotation, and `gamma` is the
@@ -297,17 +282,16 @@ bond is arbitrary; ICATS reports `gamma = 0` for that gauge coordinate.
 For the two-body collision analysis, the first embedding vector is the Jacobi
 COM-to-COM vector:
 
-$$
-\vec{R}_{AB} = \vec{R}_A-\vec{R}_B.
-$$
+```text
+R_AB = R_A - R_B
+```
 
 ICATS computes the system angles from the generated Cartesian coordinates as
 
-$$
-\phi = \mathrm{atan2}(R_y,R_x),
-\qquad
-\beta = \cos^{-1}\left(\frac{R_z}{|\vec{R}_{AB}|}\right),
-$$
+```text
+phi  = atan2(R_y, R_x)
+beta = acos(R_z / |R_AB|)
+```
 
 then uses a second molecular embedding vector to define the final azimuth
 `chi` about the system body-fixed `z` axis. The sampled data still includes a
@@ -346,16 +330,8 @@ The phase-space `Q, P` values are drawn from the Husimi-style distributions used
 by the sampler. The harmonic oscillator energy for one mode is then
 
 ```text
-E_mode = 0.5 * omega * (Q^2 + P^2)
+E_mode = 0.5 * omega * (Q^2 + P^2) = QE + PE
 ```
-
-or, in the same notation as the manuscript,
-
-$$
-E_{\mathrm{mode}}
-  = \frac{1}{2}\omega\left(Q^2+P^2\right)
-  = Q_E + P_E.
-$$
 
 where `omega` is the mode frequency in atomic units. This is the quantity
 printed as `EE (eV)` in the vibrational table. The coordinate and momentum
@@ -372,12 +348,6 @@ The approximate state label `~vstat` printed by the analysis is
 ```text
 ~vstat = E_mode / omega - 0.5
 ```
-
-equivalently,
-
-$$
-\tilde{v} = \frac{E_{\mathrm{mode}}}{\omega}-\frac{1}{2}.
-$$
 
 This is not a new quantum measurement. It is a convenient way to express the
 reconstructed classical oscillator energy in units of one vibrational quantum.
@@ -418,12 +388,6 @@ length approximately
 |J| = sqrt(J(J+1))
 ```
 
-or
-
-$$
-|\vec{J}| = \sqrt{J(J+1)}.
-$$
-
 and with a body-fixed projection determined by the sampled rotor state. For
 symmetric-top-like cases this resembles the usual `J, K` vector-model picture.
 For asymmetric tops, ICATS uses the asymmetric-top/Wang-state machinery in the
@@ -433,19 +397,9 @@ After the angular momentum vector is selected, `molecules.SetAngularVeloc`
 constructs the rotational velocity field as
 
 ```text
-omega = I_ref^-1 J_vector
-v_rot = omega x x_ref
+omega = inverse(I_ref) * J_vector
+v_rot = omega cross x_ref
 ```
-
-or
-
-$$
-\vec{\omega}_{\mathrm{ref}}
-  = I_{\mathrm{ref}}^{-1}\vec{J}_{\mathrm{vector}},
-\qquad
-\vec{v}_{\mathrm{rot},i}
-  = \vec{\omega}_{\mathrm{ref}}\times\vec{x}_{\mathrm{ref},i}.
-$$
 
 where `I_ref` and `x_ref` belong to the reference/equilibrium Eckart geometry.
 This is deliberate. The vector model describes the persistent rigid-rotor
@@ -457,14 +411,6 @@ The corresponding reference-geometry rotor energy is
 ```text
 E_vector = 0.5 * sum_i J_vector_i^2 / I_ref_i
 ```
-
-or
-
-$$
-E_{\mathrm{vector}}
-  = \frac{1}{2}\sum_i
-    \frac{J_{\mathrm{vector},i}^2}{I_{\mathrm{ref},i}}.
-$$
 
 This is the energy that should be compared to the sampled rigid-rotor energy
 when validating the initial condition.
@@ -518,15 +464,8 @@ This is the total instantaneous molecular angular momentum in the space-fixed
 frame:
 
 ```text
-J_full_space = sum_i m_i r_i x v_i
+J_full_space = sum_i m_i (r_i cross v_i)
 ```
-
-or
-
-$$
-\vec{J}_{\mathrm{full}}^{\mathrm{space}}
-  = \sum_i m_i \vec{r}_i\times\vec{v}_i.
-$$
 
 where `r_i` and `v_i` are measured after removing the molecular COM.
 
@@ -536,15 +475,8 @@ The same instantaneous molecule is rotated into the Eckart frame and the
 angular momentum is recomputed:
 
 ```text
-J_full_eckart = sum_i m_i r_i^E x v_i^E
+J_full_eckart = sum_i m_i (r_i^E cross v_i^E)
 ```
-
-or
-
-$$
-\vec{J}_{\mathrm{full}}^{E}
-  = \sum_i m_i \vec{r}_i^{E}\times\vec{v}_i^{E}.
-$$
 
 The magnitude should match the space-frame value apart from numerical noise,
 but the components are expressed in the Eckart molecular frame.
@@ -555,15 +487,8 @@ This is the reference-geometry rotor component extracted from the same Eckart
 velocities:
 
 ```text
-J_vector_eckart = sum_i m_i x_ref_i x v_i^E
+J_vector_eckart = sum_i m_i (x_ref_i cross v_i^E)
 ```
-
-or
-
-$$
-\vec{J}_{\mathrm{vector}}^{E}
-  = \sum_i m_i \vec{x}_{\mathrm{ref},i}\times\vec{v}_i^{E}.
-$$
 
 The key difference is that the cross product uses the reference geometry
 `x_ref`, not the realised distorted geometry `r_i^E`. This is the analysis-side
@@ -582,14 +507,6 @@ The code defines this residual as:
 ```text
 J_vib_eckart = J_full_eckart - J_vector_eckart
 ```
-
-or
-
-$$
-\vec{J}_{\mathrm{vib}}^{E}
-  = \vec{J}_{\mathrm{full}}^{E}
-  - \vec{J}_{\mathrm{vector}}^{E}.
-$$
 
 It measures how much instantaneous molecular angular momentum is carried by
 the vibrational distortion and vibrational velocity in the realised snapshot.
@@ -615,13 +532,6 @@ inertia:
 E_vector_i = 0.5 * J_vector_i^2 / I_ref_i
 ```
 
-or
-
-$$
-E_{\mathrm{vector},i}
-  = \frac{1}{2}\frac{J_{\mathrm{vector},i}^2}{I_{\mathrm{ref},i}}.
-$$
-
 The printed line gives the three principal-axis contributions and their sum.
 This is the correct comparison to the sampled rotor energy at `t = 0`.
 
@@ -635,13 +545,6 @@ frame:
 ```text
 E_full_i = 0.5 * J_full_i^2 / I_inst_i
 ```
-
-or
-
-$$
-E_{\mathrm{full},i}
-  = \frac{1}{2}\frac{J_{\mathrm{full},i}^2}{I_{\mathrm{inst},i}}.
-$$
 
 This is a real diagnostic of the Cartesian snapshot, but it is not the same
 quantity as the sampled vector-model rotor energy for a vibrating molecule. It
@@ -660,12 +563,6 @@ The sampled orbital vector has length
 |L| = sqrt(L(L+1))
 ```
 
-or
-
-$$
-|\vec{L}| = \sqrt{L(L+1)}.
-$$
-
 The two molecular vector-model angular momenta are rotated into the space frame
 and added:
 
@@ -673,14 +570,6 @@ and added:
 Jab = Ja + Jb
 J_total = L + Jab
 ```
-
-or
-
-$$
-\vec{J}_{AB} = \vec{J}_A+\vec{J}_B,
-\qquad
-\vec{J} = \vec{L}+\vec{J}_{AB}.
-$$
 
 For atom-atom scattering, `J` and `L` are essentially the same. For molecular
 scattering, `Jab` can be comparable to `L`, especially at low collision angular
@@ -715,14 +604,6 @@ The semiclassical map used throughout the log is:
 q = 0.5 * (-1 + sqrt(1 + 4 |A|^2))
 ```
 
-or
-
-$$
-|\vec{A}|^2 = q(q+1),
-\qquad
-q = \frac{-1+\sqrt{1+4|\vec{A}|^2}}{2}.
-$$
-
 The printed `(QM: ...)` values are this inverse map from a classical vector
 length back to an effective quantum number.
 
@@ -745,23 +626,11 @@ The printed `Init. Angular Energy` is
 E_L = |L|^2 / (2 mu |R|^2)
 ```
 
-or
-
-$$
-E_L = \frac{|\vec{L}|^2}{2\mu |\vec{R}|^2}.
-$$
-
 where `mu` is the reduced mass. The printed `Init. Radial Energy` is
 
 ```text
 E_R = |P_R|^2 / (2 mu)
 ```
-
-or
-
-$$
-E_R = \frac{|\vec{P}_R|^2}{2\mu}.
-$$
 
 The lines `b` and `phi` in the `[intermolecular]` block report the reconstructed
 impact parameter and azimuthal angle:
@@ -770,14 +639,6 @@ impact parameter and azimuthal angle:
 b = |L| / (mu |v_rel|)
 phi = atan2(L_x, -L_y)
 ```
-
-or
-
-$$
-b = \frac{|\vec{L}|}{\mu |\vec{v}_{\mathrm{rel}}|},
-\qquad
-\phi = \mathrm{atan2}(L_x,-L_y).
-$$
 
 The lines labelled `Tot. Mol Ja/Jb/Jab` use the full molecular angular momenta
 from the Cartesian analysis. The lines labelled `Vec Model Ja/Jb/Jab` use the

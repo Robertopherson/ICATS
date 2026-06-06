@@ -19,6 +19,13 @@ The emphasis is practical: run a small example, understand the files it creates,
 and learn the checks that make an ensemble worth trusting before committing to a
 larger trajectory set.
 
+An ICATS sample is not just a random Cartesian geometry. It is a sampled
+entrance-channel state: harmonic normal-mode phase-space coordinates,
+rigid-rotor/vector-model angular momenta, molecular orientations, and
+intermolecular Jacobi motion are drawn first, then converted into atom-wise
+positions and velocities. The analysis tools perform the reverse projection so
+the user can check what the Cartesian sample actually contains.
+
 ## Contents
 
 - [Installation](installation.md)
@@ -50,6 +57,28 @@ incoming molecules are assumed to be well separated, each molecule is described
 with harmonic-oscillator and rigid-rotor approximations, and the relative
 collision motion is represented with Jacobi coordinates, impact parameters, and
 orbital angular momentum.
+
+The important approximations are exposed in the output rather than hidden. The
+manual therefore distinguishes sampled vector-model rotation from full
+instantaneous rotational analysis, harmonic normal-mode vibration from internal
+residual motion, and orbital angular momentum `L` from total angular momentum
+`J = L + Jab`.
+
+## What To Check In A New Calculation
+
+For a new system, the useful first checks are:
+
+- confirm the input frame convention with `output-frame`,
+- run a very small `Nsamp` first,
+- enable `audit-initial-sample = True` while testing,
+- inspect `out_full.info` or per-sample `.info` files,
+- plot sampled `L`, `J`, and `Jab` histograms,
+- inspect Wang-Landau plots before trusting a `wang.pkl` umbrella.
+
+The cheap dynamics scripts are examples of the file pipeline. They are useful
+for learning how generated samples can be propagated and analysed, but the
+initial-condition audit should be checked before interpreting any later
+dynamics drift.
 
 ## What To Read First
 
