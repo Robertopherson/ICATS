@@ -57,6 +57,9 @@ The user manual is being developed in [`docs/`](docs/index.md). It covers
 installation, the tutorial workflow, input files, Wang-Landau umbrellas,
 diagnostics, and the theory behind the initial-condition sampling.
 
+The project background and licence note are described in
+[`docs/about.md`](docs/about.md).
+
 ## Wang-Landau Umbrellas
 
 For Wang-Landau runs, `wang.pkl` stores the generated Wang-Landau umbrella and

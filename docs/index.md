@@ -28,6 +28,7 @@ the user can check what the Cartesian sample actually contains.
 
 ## Contents
 
+- [Project Background](about.md)
 - [Installation](installation.md)
 - [Quick Start](quick-start.md)
 - [Tutorials](tutorials.md)
@@ -79,6 +80,15 @@ The cheap dynamics scripts are examples of the file pipeline. They are useful
 for learning how generated samples can be propagated and analysed, but the
 initial-condition audit should be checked before interpreting any later
 dynamics drift.
+
+## Project Background
+
+ICATS was developed as an educational and research tool for postgraduate
+students learning the theoretical ingredients behind quasi-classical
+bimolecular scattering and using them to prepare initial conditions for
+trajectory calculations. The work grew out of the EPSRC New Directions in
+Molecular Scattering programme grant EP/T021675/1. See
+[Project Background](about.md) for the fuller provenance and licence note.
 
 ## What To Read First
 
