@@ -45,7 +45,11 @@ angles. It does not change scalar magnitudes such as collision energy, `b`,
 
 The lab or space-fixed frame is the Cartesian frame in which ICATS writes
 coordinates and velocities. In crossed-beam mode the two molecular beam speeds
-and `beam-angle` define the relative incoming velocity. In direct-channel mode
+and `beam-angle` define the literal crossed-beam angle eta between the incoming
+molecular beam velocity vectors. ICATS uses these to compute the Jacobi
+relative velocity. This eta angle is distinct from the frame-rotation angle
+varphi in the manuscript diagram, which rotates the lab frame so that P_AB lies
+along the collision-frame Z axis. In direct-channel mode
 the relative motion is set by one of:
 
 ```text
@@ -55,7 +59,9 @@ incoming-k = ...
 ```
 
 ICATS reduces these inputs to the Jacobi relative channel of the two molecular
-centres of mass. In the `.info` file, this appears as:
+centres of mass. `beam-angle` is therefore an input beam-geometry parameter,
+not the reconstructed Jacobi/system Euler angle `phi`. In the `.info` file,
+this appears as:
 
 ```text
 relative velocity
@@ -103,7 +109,7 @@ J = L + Jab
 
 ## Total Angular Momentum
 
-![Full angular-momentum decomposition](assets/figures/fulldiag.png)
+<img src="assets/figures/fulldiag.png" alt="Full angular-momentum decomposition" style="width:50%; max-width:520px;">
 
 For two molecules, the total angular momentum is decomposed as:
 
