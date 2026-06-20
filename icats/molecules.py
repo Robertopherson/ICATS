@@ -1607,8 +1607,8 @@ class imolecule:
                   log += ['exac  = '+"".join(["{0:6.3f}".format(v).rjust(8) for v in hh])]
                sa.dist['nvib']['cont'] = InitICDF(sp.nm,VibPartFuncICDF,
                                            [sp.w[sp.ntr:], T, False,ip.MaxV],seed=seed*439)
-            log += [f"Generating distribuitions for wigner/Husimi distribuitions up to excited state {ip.MaxV} \n"]
-            # generate some samples from each wigner distro for each vib state
+            log += [f"Generating distributions for leading-Wigner vibrational distributions up to excited state {ip.MaxV} \n"]
+            # generate some samples from each leading-Wigner distribution for each vib state
             sa.dist['wig'] = {}
             sa.dist['wig']['MaxV'] = ip.MaxV
             sa.dist['wig']['cont'] = [] 

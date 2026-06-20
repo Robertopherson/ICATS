@@ -448,8 +448,8 @@ vibrational mode sampling for that molecule.
 `vib-mode = rigid` is the simplest way to freeze all intramolecular vibrational
 motion for a run without editing the molecule file. Molecule-level `nfreeze`
 can be used for finer control when only selected normal modes should be kept at
-zero. `maxv = 0` is different: it still samples the ground-state Husimi/Wigner
-width, so it is not a rigid-bond setting.
+zero. `maxv = 0` is different: it still samples the ground-state
+oscillator width (`vstat = 0`), so it is not a rigid-bond setting.
 
 ### Wang-Landau
 

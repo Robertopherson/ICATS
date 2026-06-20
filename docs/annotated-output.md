@@ -518,9 +518,10 @@ each molecule's body-frame orientation before the Cartesian sample is written.
 ```
 
 `freq` is the harmonic normal-mode frequency. `vstat` is the sampled oscillator
-state used by the Husimi-like normal-mode sampler. `Q` and `P` are the sampled
-mass/frequency-scaled coordinate and momentum. `QE`, `PE`, and `EE` are the
-coordinate, momentum, and total harmonic energy for that mode.
+state used by the leading-Wigner normal-mode sampler. `Q` and `P` are the sampled
+mass/frequency-scaled coordinate and momentum. Their ensemble radial moment,
+not each individual sample, reproduces `vstat + 0.5`. `QE`, `PE`, and `EE` are
+the coordinate, momentum, and total harmonic energy for that mode.
 
 ### Generation: Intermolecular Channel
 

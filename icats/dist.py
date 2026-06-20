@@ -253,14 +253,17 @@ def HarmWigner(QP, n):
 
 def HarmHusimi(QP, n): 
     """
-    Calculate the Husimi distribution for harmonic oscillators.
+    Calculate the energy-matched leading-Wigner oscillator sampling density.
+
+    The function name is kept for compatibility with older ICATS inputs and
+    saved distribution metadata.
 
     Parameters:
     QP (tuple): Tuple containing Q and P coordinates.
     n (int): Quantum number.
 
     Returns:
-    float: Husimi distribution value.
+    float: Leading-Wigner sampler density value.
     """
     Q, P = QP
     if n == 0:
@@ -288,17 +291,19 @@ def gamma_mt(n,rng):
 
 def HusimiFuncICDF(rng,n):  
     """
-    The inverse CDF of the Husimi distribution.
+    The inverse CDF of the energy-matched leading-Wigner distribution.
 
     Parameters:
     rng (array): Array of RNG objects (ONE ONE ELEMENT)
     n (integer): vibrational state 
 
     Returns:
-    float: The inverse of the  ICDF ( the momenta and positions).
-    float: The Husimi distributiion value for that vibrational state 
+    float: The inverse of the ICDF (the momenta and positions).
+    float: The leading-Wigner distribution value for that vibrational state. 
     """
-    r = np.sqrt(gamma_mt(n,rng[0]))
+    # Match the radial density evaluated by HarmHusimi, so that
+    # <0.5 * (Q**2 + P**2)> = n + 0.5 for fixed oscillator state n.
+    r = np.sqrt(gamma_mt(2*n,rng[0]))
     theta = rng[0].random()*tpi
     Q = r * np.cos(theta)
     P = r * np.sin(theta)
@@ -597,4 +602,3 @@ def IsotropicDistICDF(rng,rotpar,rn1,rn2):
     if rotpar == 'xyz':
        d1[1] = d1[1]-np.pi/2.0
     return d1, 1  
-

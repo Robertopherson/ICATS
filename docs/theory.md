@@ -45,10 +45,10 @@ channel have different natural variables.
 
 For vibrations, the natural model is a harmonic oscillator in normal-mode
 phase space. ICATS therefore samples a vibrational quantum number and then
-samples dimensionless `Q, P` coordinates from a Husimi-style phase-space
-distribution. This gives Cartesian displacements and velocities that retain the
-harmonic oscillator energy and uncertainty-like spread expected from the chosen
-state.
+samples dimensionless `Q, P` coordinates from an energy-matched
+leading-Wigner sampler. This gives Cartesian displacements and velocities that
+retain the harmonic oscillator energy and uncertainty-like spread expected
+from the chosen state.
 
 ```text
 E_HO,k = 0.5 * omega_k * (Q_k^2 + P_k^2)
@@ -57,8 +57,18 @@ E_v,k  = omega_k * (v_k + 0.5)
 
 The first expression is the classical phase-point energy reconstructed from the
 sampled `Q, P` values. The second is the harmonic-oscillator level energy used
-when assigning Boltzmann populations. A single Husimi phase-space draw does not
-have to make these two numbers identical mode by mode.
+when assigning Boltzmann populations. A single leading-Wigner phase-space draw
+does not have to make these two numbers identical mode by mode, but the
+ensemble radial moment preserves the oscillator ladder,
+`<0.5*(Q^2+P^2)> = v + 0.5`.
+
+The name is deliberately not just "Husimi". The textbook Husimi function is the
+Gaussian-smoothed Wigner function and is positive, but in these scaled
+coordinates its direct radial form does not reproduce the oscillator energy
+moment used by the sampler. ICATS instead uses a positive leading-Wigner form:
+it keeps the Wigner Gaussian envelope and uses the radial density
+`x^(2v) exp(-x)` with `x = Q^2 + P^2`, so `x` follows a Gamma distribution with
+shape `2v + 1`.
 
 For molecular rotations, the natural variables are angular momenta rather than
 Cartesian velocities. ICATS therefore uses a quasi-classical vector model:
@@ -109,7 +119,7 @@ logs, histogram file names, or input options.
 | Type | Sampled quantity | Distribution or weight |
 | --- | --- | --- |
 | Vibrational state | normal-mode quantum numbers `vstat` | Boltzmann harmonic-oscillator populations, `P(v) proportional to exp[-E_v/(k_B T_vib)]` |
-| Vibrational phase space | normal-mode `Q, P` | Husimi-style harmonic-oscillator phase-space density for the sampled `vstat` |
+| Vibrational phase space | normal-mode `Q, P` | Energy-matched leading-Wigner harmonic-oscillator phase-space density for the sampled `vstat` |
 | Rigid-rotor total angular momentum | molecular `J` | Boltzmann rotor populations, with `(2J + 1)` degeneracy for isotropic tops and state-specific weights for anisotropic/asymmetric tops |
 | Symmetric-top projection | body-fixed `K` or projection-like coordinate | Boltzmann projection distribution at fixed `J` |
 | Asymmetric-top state | Wang-basis eigenstate at fixed `J` | Boltzmann distribution over asymmetric-rotor eigenenergies and symmetry labels |
@@ -326,8 +336,8 @@ For each normal mode, ICATS samples:
 - dimensionless normal coordinate `Q`,
 - dimensionless normal momentum `P`.
 
-The phase-space `Q, P` values are drawn from the Husimi-style distributions used
-by the sampler. The harmonic oscillator energy for one mode is then
+The phase-space `Q, P` values are drawn from the leading-Wigner distributions
+used by the sampler. The harmonic oscillator energy for one mode is then
 
 ```text
 E_mode = 0.5 * omega * (Q^2 + P^2) = QE + PE

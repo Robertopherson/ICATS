@@ -34,3 +34,13 @@
      follows `L`,
    - document and test this carefully so the automatic choice is conservative
      and visible in `wang.pkl` metadata/log output.
+
+5. Finish leading-Wigner naming cleanup:
+   - the sampled vibrational radial law is now documented as the
+     energy-matched leading-Wigner sampler, not the textbook Husimi function,
+   - a focused sampler moment test exists in
+     `tests/test_leading_wigner_sampling.py`, covering
+     `<0.5*(Q^2+P^2)> = v + 0.5`,
+   - later, consider renaming compatibility functions such as `HarmHusimi` and
+     `HusimiFuncICDF` behind aliases, but only with a careful deprecation path
+     because old generated metadata may reference those names.

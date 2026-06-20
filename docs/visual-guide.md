@@ -255,12 +255,21 @@ number.
 
 ## Vibrational Phase Space
 
-![Husimi vibrational distributions](assets/figures/husimi.png)
+![Leading-Wigner vibrational distributions](assets/figures/leading-wigner.png)
 
-ICATS samples harmonic vibrational states and then draws phase-space `Q, P`
-values from Husimi-style distributions. The histogram does not mean every
-sample has exactly the quantum level energy; it means the phase-space ensemble
-represents the chosen oscillator state.
+ICATS samples a harmonic vibrational quantum number `vstat`, then draws
+phase-space `Q, P` values from the energy-matched leading-Wigner sampler. The
+sampler is related to the Wigner/Husimi discussion in the theory section: the
+textbook Husimi distribution is positive but has a broader Gaussian envelope,
+while the implemented leading-Wigner sampler keeps the Wigner envelope and uses
+an energy-matched doubled radial power.
+
+For a fixed state `v`, the sampled radius satisfies the ensemble relation
+`<0.5*(Q^2 + P^2)> = v + 0.5`. A single sample does not have to sit exactly on
+that energy shell. In the figure, red shows the one-dimensional projection of
+the positive leading-Wigner sampler, while black shows the corresponding exact
+Hermite-polynomial coordinate density. The red curve is therefore the sampling
+model, not the exact coordinate-space quantum probability density.
 
 In `.info` files, the generation block prints:
 
