@@ -111,7 +111,7 @@ Jab, vector model      = [      5.57276,      2.37260,     -9.50990 ]  au, |Jab|
 L                      = [      0.00000,    170.01775,      0.00000 ]  au, |L|     =    170.01775  (QM: 169.52)
 J = L + Jab            = [      5.57276,    172.39035,     -9.50990 ]  au, |J|     =    172.74237  (QM: 172.24)
 b                      =        8.59126  Ang
-impact phi             =        1.00000  pi rad
+impact phi             =       -0.00000  pi rad
 ```
 
 For direct-channel runs, `relative velocity`, `collision energy`, or
@@ -536,7 +536,7 @@ Jb, vector model       = [      0.14867,      2.36552,      0.61824 ]  au, |Jb| 
 L                      = [      0.00000,    170.01775,      0.00000 ]  au, |L|     =    170.01775
 J = L + Jab            = [      5.57276,    172.39035,     -9.50990 ]  au, |J|     =    172.74237
 b                      =        8.59126  Ang
-impact phi             =        1.00000  pi rad
+impact phi             =       -0.00000  pi rad
 ```
 
 The relative velocity and collision energy are the incoming two-body channel.

@@ -29,6 +29,8 @@ Current tutorials cover:
 - `methane_methane`: heavier symmetric-top example.
 - `single_atom_he_he`: atom-atom edge case.
 - `single_atom_diatom_he_n2`: atom-diatom template.
+- `polarized_orientation_he_no`: atom-diatom toy polarization example using a
+  user-supplied molecular orientation PDF.
 - `fixed_plane_atom_diatom_ar_no`: constrained Ar + NO diagnostic setup. It
   uses `incoming-k = 13.615392`, `fixed-b = 4.5`, `impact-phi = 0.0`,
   `vib-mode = rigid`, `Trot = 0.0`, and `Tvib = 0.0`; it samples only the NO
@@ -66,27 +68,32 @@ toy dynamics with more serious calculations.
    initial diatom angular momentum. This is mainly an initial-condition
    diagnostic tutorial.
 
-4. `flat_l_atom_diatom_ar_no`
+4. `polarized_orientation_he_no`
+   Shows how to provide a molecule-level orientation PDF. The example keeps NO
+   rigid and non-rotating, then biases the NO body axis with a simple tilted
+   field model.
+
+5. `flat_l_atom_diatom_ar_no`
    Shows how to sample orbital angular momentum uniformly rather than
    geometrically. Use it to learn the difference between a proposal ensemble and
    a weighted/geometric cross-section ensemble.
 
-5. `quickstart`
+6. `quickstart`
    Introduces two polyatomic molecules and the full file pipeline.
 
-6. `methane_methane`
+7. `methane_methane`
    Shows a heavier symmetric-top case. This is useful for seeing vibrational
    angular momentum in the analysis.
 
-7. `single_atom_diatom_he_n2_wl`
+8. `single_atom_diatom_he_n2_wl`
    Adds Wang-Landau weighting in a relatively cheap system.
 
-8. `flat_l_atom_diatom_he_n2_wl`
+9. `flat_l_atom_diatom_he_n2_wl`
    Uses the same one-dimensional Wang-Landau correction on total `J`, but with
    uniform `L` proposals. This is a diagnostic for low-`L` coverage and
    reweighting strategy, not a two-dimensional Wang-Landau calculation.
 
-9. `wang_landau_nh3_h2o`
+10. `wang_landau_nh3_h2o`
    Demonstrates Wang-Landau sampling in a more demanding polyatomic system.
 
 ## Running A Tutorial
@@ -187,6 +194,55 @@ This tutorial is an initial-condition/export example, not a cheap-MINDO
 dynamics example. The PySCF MINDO/3 backend used by `run_cheap_dynamics.sh`
 does not support Ar for this setup, so use the generated files for inspection
 or pass them to an external dynamics/QM code.
+
+## Polarized NO Orientation Tutorial
+
+Use this tutorial to test a user-supplied molecular orientation PDF. The
+example is intentionally simple: He is an atom, NO is rigid and non-rotating,
+and the main diagnostic is the biased NO orientation.
+
+```bash
+icats --tutorial polarized_orientation_he_no --setup-only
+cd tutorial_polarized_orientation_he_no
+icats.init tutorial_input.txt
+python rd_tutorial_input/histograms/plot_polarization_check.py
+```
+
+The generated NO molecule file contains:
+
+```text
+orientation-mode = pdf orientation_pdfs.py dipole_field_tilted 0.75 0.7853981633974483 0.0
+orientation-frame = scattering
+orientation-thin = 100
+rot-param = euler
+```
+
+The referenced function has the form:
+
+```python
+def dipole_field_tilted(alpha, beta, gamma, strength, field_theta, field_phi):
+    ...
+```
+
+It treats the NO body-fixed `z` axis as a toy dipole and the field direction as
+already expressed in the ICATS scattering frame. The example field is tilted by
+`pi/4`, so the sampled distribution depends on both `alpha` and `beta`. ICATS
+multiplies the user PDF by the Euler measure `sin(beta)`, so the user function
+should return only the physical angular weight.
+
+The plotting helper writes:
+
+```text
+rd_tutorial_input/histograms/plots/polarization/polarized_orientation_check.png
+```
+
+![Polarized NO tutorial orientation check](assets/figures/polarized-orientation-check.png)
+
+The left panel compares sampled `alpha` with the expected azimuthal trend. The
+right panel compares sampled `cos(beta)` with the expected linear trend. With
+the default tutorial sample count the curves are not production-smooth, but the
+tilt and sign should be visible. Increase `Nsamp` if you want a cleaner
+diagnostic plot.
 
 ## Flat-L Ar + NO Tutorial
 

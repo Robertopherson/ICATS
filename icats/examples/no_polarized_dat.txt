@@ -1,0 +1,10 @@
+name = no_polarized_dat
+xyz  = no_geom.xyz
+
+# Toy polarized-orientation example.
+# The function is evaluated in the ICATS scattering frame and ICATS applies
+# the Euler sin(beta) measure during sampling.
+orientation-mode = pdf orientation_pdfs.py dipole_field_tilted 0.75 0.7853981633974483 0.0
+orientation-frame = scattering
+orientation-thin = 100
+rot-param = euler

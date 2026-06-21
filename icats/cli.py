@@ -13,6 +13,7 @@ TUTORIAL_ORDER = [
     "methane_methane",
     "single_atom_he_he",
     "single_atom_diatom_he_n2",
+    "polarized_orientation_he_no",
     "fixed_plane_atom_diatom_ar_no",
     "flat_l_atom_diatom_ar_no",
     "single_atom_diatom_he_n2_wl",
@@ -128,6 +129,35 @@ TUTORIALS = {
         "notes": [
             "Atom-diatom baseline; good before trying WL.",
             "Simple and fast while including one molecular rotor.",
+        ],
+    },
+    "polarized_orientation_he_no": {
+        "desc": "He + NO toy polarized-orientation PDF tutorial",
+        "mol0": "he_dat.txt",
+        "mol1": "no_polarized_dat.txt",
+        "extra_files": ["orientation_pdfs.py"],
+        "nsamp": 2000,
+        "ntraj": 1,
+        "steps": 120,
+        "maxl": 80,
+        "maxb": 8,
+        "tvib": 0.0,
+        "trot": 0.0,
+        "printout": "0 1 0 0",
+        "hist_by_default": True,
+        "extra": [
+            "vib-mode = rigid",
+            "maxv = 0",
+            "incoming-k = 10.0",
+            "wang = False",
+            "phisample = True",
+        ],
+        "notes": [
+            "Demonstrates a user-supplied molecular orientation PDF.",
+            "NO is kept rigid with Trot=0 so the orientation histogram is the main signal.",
+            "The example PDF treats the NO body-z axis as a dipole in a tilted field in the ICATS scattering frame.",
+            "The tilted field makes the sampled distribution depend on both alpha and beta.",
+            "Run rd_tutorial_input/histograms/plot_polarization_check.py after icats.init to compare sampled angles with the expected trends.",
         ],
     },
     "fixed_plane_atom_diatom_ar_no": {
@@ -608,6 +638,95 @@ else:
     )
 
 
+def _write_polarization_histogram_helper(out_dir: Path, run_tag: str = "tutorial_input") -> None:
+    hist_dir = out_dir / f"rd_{run_tag}" / "histograms"
+    hist_dir.mkdir(parents=True, exist_ok=True)
+    _write_file(
+        hist_dir / "plot_polarization_check.py",
+        """#!/usr/bin/env python3
+from __future__ import annotations
+
+import ast
+import re
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "plots" / "polarization"
+OUT.mkdir(parents=True, exist_ok=True)
+
+# These values match icats/examples/no_polarized_dat.txt.
+A = 0.75
+field_theta = np.pi / 4.0
+field_phi = 0.0
+
+
+def _read_hist_data(candidates):
+    for path in candidates:
+        if path.exists():
+            txt = path.read_text()
+            m = re.search(r"data\\s*=\\s*np\\.array\\((\\[[\\s\\S]*?\\])\\)", txt)
+            if not m:
+                raise SystemExit(f"Could not read embedded data from {path}")
+            return np.asarray(ast.literal_eval(m.group(1)), dtype=float), path
+    raise SystemExit("Missing orientation histogram scripts. Run icats.init tutorial_input.txt first.")
+
+
+alpha, alpha_path = _read_hist_data(
+    [
+        ROOT / "sampled" / "molecule_m1" / "hist_sam_m1_salpha.py",
+        ROOT / "sampled" / "molecule_m1" / "hist_sam_m1_alpha.py",
+        ROOT / "sampled" / "molecule_m1" / "hist_sam_m1_ori_alpha.py",
+        ROOT / "initial" / "molecule_m1" / "hist_ini_m1_alpha.py",
+        ROOT / "initial" / "molecule_m1" / "hist_ini_m1_ori_alpha.py",
+    ]
+)
+beta, beta_path = _read_hist_data(
+    [
+        ROOT / "sampled" / "molecule_m1" / "hist_sam_m1_sbeta.py",
+        ROOT / "sampled" / "molecule_m1" / "hist_sam_m1_beta.py",
+        ROOT / "sampled" / "molecule_m1" / "hist_sam_m1_ori_beta.py",
+        ROOT / "initial" / "molecule_m1" / "hist_ini_m1_beta.py",
+        ROOT / "initial" / "molecule_m1" / "hist_ini_m1_ori_beta.py",
+    ]
+)
+
+u = np.cos(beta)
+
+fig, axs = plt.subplots(1, 2, figsize=(11, 4.2))
+
+alpha_grid = np.linspace(-np.pi, np.pi, 500)
+alpha_pdf = 1.0 + A * (np.pi / 4.0) * np.sin(field_theta) * np.cos(alpha_grid - field_phi)
+axs[0].hist(alpha, bins=40, density=True, alpha=0.72, edgecolor="k", label="sampled")
+axs[0].plot(alpha_grid, alpha_pdf / np.trapz(alpha_pdf, alpha_grid), "r-", lw=2, label="expected")
+axs[0].set_xlabel("alpha / rad")
+axs[0].set_ylabel("density")
+axs[0].set_title("Azimuthal bias from tilted field")
+axs[0].legend()
+
+u_grid = np.linspace(-1.0, 1.0, 500)
+u_pdf = 1.0 + A * np.cos(field_theta) * u_grid
+axs[1].hist(u, bins=40, density=True, alpha=0.72, edgecolor="k", label="sampled")
+axs[1].plot(u_grid, 0.5 * u_pdf, "r-", lw=2, label="expected")
+axs[1].set_xlabel("cos(beta)")
+axs[1].set_ylabel("density")
+axs[1].set_title("Polar bias of body-z axis")
+axs[1].legend()
+
+fig.suptitle("NO orientation PDF in the ICATS scattering frame")
+fig.tight_layout()
+out = OUT / "polarized_orientation_check.png"
+fig.savefig(out, dpi=160)
+print(f"Read alpha from {alpha_path}")
+print(f"Read beta from {beta_path}")
+print(f"Wrote {out}")
+""",
+        executable=True,
+    )
+
+
 def _dat_references(dat_path: Path) -> list[str]:
     refs = []
     for raw in dat_path.read_text().splitlines():
@@ -621,8 +740,8 @@ def _dat_references(dat_path: Path) -> list[str]:
 
 
 def _tutorial_input_text(name: str, cfg: dict, hist_samples: int | None = None) -> str:
-    hist_enabled = hist_samples is not None and hist_samples > 0
-    nsamp_value = int(hist_samples) if hist_enabled else int(cfg["nsamp"])
+    hist_enabled = (hist_samples is not None and hist_samples > 0) or bool(cfg.get("hist_by_default", False))
+    nsamp_value = int(hist_samples) if hist_samples is not None and hist_samples > 0 else int(cfg["nsamp"])
     # Histogram diagnostics should not heavily clip orbital-L via b cutoff.
     maxb_value = float(cfg["maxb"])
     is_wl = any(line.strip().lower() == "wang = true" for line in cfg.get("extra", []))
@@ -672,7 +791,7 @@ def _tutorial_input_text(name: str, cfg: dict, hist_samples: int | None = None) 
     ]
     if hist_enabled:
         lines += [
-            f"plotinit = {int(hist_samples)}",
+            f"plotinit = {nsamp_value}",
             "# plotinit draws MC samples for distribution histograms",
             "# Nsamp is matched to plotinit in histogram mode for fair init-vs-sampled comparisons",
             "# maxb is kept fixed in histogram mode to match the chosen angular-momentum cap",
@@ -716,6 +835,11 @@ def _generate_tutorial(
                 shutil.copy2(ref_src, out_dir / ref)
             else:
                 raise SystemExit(f"Missing referenced file '{ref}' for {dat_name}")
+    for extra_name in cfg.get("extra_files", []):
+        extra_src = ex_dir / extra_name
+        if not extra_src.exists():
+            raise SystemExit(f"Missing example companion file: {extra_src}")
+        shutil.copy2(extra_src, out_dir / extra_name)
 
     cfg_for_file = dict(cfg)
     cfg_for_file["nsamp"] = nsamp
@@ -981,6 +1105,8 @@ def _generate_tutorial(
         )
     _write_file(out_dir / "tutorial_README.txt", readme_text)
     _write_histogram_helpers(out_dir, run_tag="tutorial_input")
+    if name == "polarized_orientation_he_no":
+        _write_polarization_histogram_helper(out_dir, run_tag="tutorial_input")
 
 
 def _default_tutorial_dir(name: str) -> str:

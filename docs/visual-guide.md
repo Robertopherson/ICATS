@@ -181,6 +181,19 @@ molecules the final rotation about the bond axis is a gauge coordinate, so
 ICATS reports `gamma = 0` for that arbitrary spin angle. The physical bond
 direction is carried by `alpha` and `beta`.
 
+Molecule files can also bias these angles with `orientation-mode = pdf`. The
+user PDF is evaluated in the ICATS scattering frame and ICATS applies the
+Euler `sin(beta)` measure during sampling. The tutorial
+`polarized_orientation_he_no` shows this with a tilted-field toy PDF and a
+plotting helper for the sampled `alpha` and `cos(beta)` distributions.
+
+![Polarized NO tutorial orientation check](assets/figures/polarized-orientation-check.png)
+
+In this tutorial diagnostic, the left panel checks the sampled azimuthal angle
+`alpha` and the right panel checks `cos(beta)`. The red curves are the expected
+one-dimensional trends for the toy tilted-field PDF; the blue histograms are
+the generated ICATS samples.
+
 ## System Jacobi Body Frame
 
 ![Two-vector system body-fixed embedding](assets/figures/two-vector-embedding.png)
@@ -305,7 +318,7 @@ Use this quick map when reading a tutorial `.info` file:
 | Lab/collision frame | `output-frame`, `beam-angle`, `relative-velocity`, `incoming-k` | `output frame`, `relative velocity`, `collision energy`, `P_R` |
 | Impact plane | `fixed-b`, `maxb`, `impact-phi`, `orbital-sampling` | `b`, `impact phi`, `L` |
 | Total angular momentum | `maxl`, `maxj`, `wang`, `wl-target` | `Ja`, `Jb`, `Jab`, `L`, `J = L + Jab` |
-| Molecular orientation | `ordist`, `rot-param` | `alpha,beta,gamma`, `wx,wy,wz` |
+| Molecular orientation | `orientation-mode`, `orientation-frame`, `rot-param` | `alpha,beta,gamma`, `wx,wy,wz` |
 | Rotor model | `Trot`, molecule geometry/top type | `vector J`, `full J`, `vector rot. energy`, `full rot. energy` |
 | Vibrations | `Tvib`, `vib-mode`, `nfreeze`, Hessian/frequencies | `Q`, `P`, `vstat`, `internal residual` |
 

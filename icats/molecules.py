@@ -32,6 +32,21 @@ def info_angle_vec(label, vec, comment):
     return "{0:<{w}} = [ {1} ]  pi rad   # {2}\n".format(label, vals, comment, w=INFO_LABEL_WIDTH)
 
 
+def OrientationPDFSurface(angs, func, pars):
+    """Sampling surface for user orientation PDFs.
+
+    The user function is the physical density P(alpha,beta,gamma). ICATS
+    applies the Euler measure sin(beta) here.
+    """
+    alpha, beta, gamma = [float(a) for a in angs]
+    p = float(func(alpha, beta, gamma, *pars))
+    if not np.isfinite(p):
+        raise ValueError("orientation PDF returned a non-finite value")
+    if p < 0.0:
+        raise ValueError("orientation PDF returned a negative value")
+    return p * sin(beta)
+
+
  
 
 class imolecule:
@@ -96,7 +111,12 @@ class imolecule:
               self.Trot = 0
               self.Tvel = 0
               self.VelPar = []
-              self.ordist = 0
+              self.ordist = "isotropic"
+              self.orientation_frame = "scattering"
+              self.orfilename = ""
+              self.orfunction = ""
+              self.orpars = []
+              self.orthin = 25
               self.nfreeze = []
               self.rotpar = 'xyz'
               self.isotropic = True
@@ -163,17 +183,50 @@ class imolecule:
                 sp.nfreeze = ip.nfreeze
             if ky == "ordist":
                 if 'read' == val[0]:
-                  self.log += ["Orientation Distribuition Function File: " + val[1] + ' File : '+ val[2] + "\n"]
-                  ip.ordist = val[0]
+                  self.log += ["Orientation distribution PDF file: " + val[1] + " function: " + val[2] + "\n"]
+                  ip.ordist = "pdf"
                   ip.orfilename = val[1]
                   ip.orfunction = val[2]
-                  ip.orpars = [v for v in val[3:]]
-                  ip.isotropic = False
+                  ip.orpars = [float(v) for v in val[3:]]
+                  ip.rotpar = "euler"
                 elif 'fixed' == val[0]:
-                  ip.odist = 0  
+                  ip.ordist = "fixed"
+                  ip.orpars = [float(v) for v in val[1:4]]
+                  ip.rotpar = "euler"
+            if ky == "orientation-mode":
+                mode = val[0].lower()
+                if mode in ("isotropic", "default"):
+                    ip.ordist = "isotropic"
+                    self.log += ["Molecular orientation mode: isotropic\n"]
+                elif mode == "fixed":
+                    if len(val) < 4:
+                        raise ValueError("orientation-mode = fixed requires alpha beta gamma")
+                    ip.ordist = "fixed"
+                    ip.orpars = [float(v) for v in val[1:4]]
+                    ip.rotpar = "euler"
+                    self.log += ["Molecular orientation mode: fixed Euler angles\n"]
+                elif mode == "pdf":
+                    if len(val) < 3:
+                        raise ValueError("orientation-mode = pdf requires file and function")
+                    ip.ordist = "pdf"
+                    ip.orfilename = val[1]
+                    ip.orfunction = val[2]
+                    ip.orpars = [float(v) for v in val[3:]]
+                    ip.rotpar = "euler"
+                    self.log += ["Molecular orientation mode: user PDF " + ip.orfilename + ":" + ip.orfunction + "\n"]
+                else:
+                    raise ValueError("Unknown orientation-mode: " + val[0])
+            if ky == "orientation-frame":
+                ip.orientation_frame = val[0].lower()
+                if ip.orientation_frame != "scattering":
+                    raise ValueError("Only orientation-frame = scattering is currently supported")
+                self.log += ["Molecular orientation PDF frame: ICATS scattering frame\n"]
+            if ky == "orientation-thin":
+                ip.orthin = max(1, int(val[0]))
+                self.log += ["Molecular orientation MC thinning: " + val[0] + "\n"]
             if ky == "rot-param":
                 self.log += ["Rotation angle Parametrization : " + val[0] + "\n"]
-                ip.rotpar = val[0]
+                ip.rotpar = "euler" if val[0] == "eul" else val[0]
         if sp.na == 1:
             ip.Trot = 0.0
             ip.Tvib = 0.0
@@ -600,8 +653,11 @@ class imolecule:
     def SampleRotation(self,sa):
         sp = self.sp 
         ip = self.ip 
-        if ip.ordist == 'read':
-          ang =  MCsample(sa.dist['ori']['cont'])
+        if ip.ordist == 'pdf':
+          for _ in range(max(1, int(ip.orthin))):
+              ang = MCsample(sa.dist['ori']['cont'])
+        elif ip.ordist == 'fixed':
+          ang = np.array(sa.dist['ori']['fixed'], dtype=float)
         else:  
           ang = ICDFsample(sa.dist['ori']['cont']) 
 #          print('name = ', self.ip.name, 'ang = ', ang)
@@ -1809,13 +1865,30 @@ class imolecule:
             log += ["Generated orientational distribuition type " +str(ip.ordist) + "\n"]
             # fix specific orientation
             if ip.ordist == 'fixed':
-                sa.osamp = array(ip.orpars)
-            elif ip.ordist == 'read':  # polarization distribiuition 
+                sa.dist['ori'] = {}
+                sa.dist['ori']['fixed'] = array(ip.orpars, dtype=float)
+                if nsamp != 0:
+                  vv = [sa.dist['ori']['fixed'] for _ in range(nsamp)]
+                  valpha,vbeta,vgamma = [[o[i] for o in vv] for i in range(3)]
+                  hist_emit(valpha, "ori_alpha", stage="initial", scope=f"molecule_m{ip.mi}")
+                  hist_emit(vbeta,  "ori_beta", stage="initial", scope=f"molecule_m{ip.mi}")
+                  hist_emit(vgamma, "ori_gamma", stage="initial", scope=f"molecule_m{ip.mi}")
+            elif ip.ordist == 'pdf':  # polarization distribiuition
                 orF = load_function_from_file(ip.orfilename,ip.orfunction)
                 sa.dist['ori'] = {}
-                sa.dist['ori']['cont'] = InitMC(zeros(3),orF,ip.orpars,domains=[[-pi, pi, True],[0.0, pi, False], [-pi, pi, True]],idel=0.25)
+                sa.dist['ori']['cont'] = InitMC(
+                    array([0.0, hpi, 0.0]),
+                    OrientationPDFSurface,
+                    [orF, ip.orpars],
+                    domains=[[-pi, pi, True],[0.0, pi, False], [-pi, pi, True]],
+                    idel=0.25,
+                )
                 if nsamp != 0: 
-                  vv = [MCsample(sa.dist['ori']['cont']) for _ in range(nsamp)]
+                  vv = []
+                  for _ in range(nsamp):
+                      for _ in range(max(1, int(ip.orthin))):
+                          ang = MCsample(sa.dist['ori']['cont'])
+                      vv.append(ang)
                   valpha,vbeta,vgamma = [[o[i] for o in vv] for i in range(3)]
                   hist_emit(valpha, "ori_alpha", stage="initial", scope=f"molecule_m{ip.mi}")
                   hist_emit(vbeta,  "ori_beta", stage="initial", scope=f"molecule_m{ip.mi}")
@@ -1824,7 +1897,13 @@ class imolecule:
                   log += ['Orientation Histogram  = \n']
                   log += [str(edg) + '\n']
                   log += [str(hist) +'\n']
-                  sa.dist['ori']['cont'] = InitMC(zeros(3),orF,ip.orpars[2:],domains=[[-pi, pi, True],[0.0, pi, False], [-pi, pi, True]],idel=0.25)
+                  sa.dist['ori']['cont'] = InitMC(
+                      array([0.0, hpi, 0.0]),
+                      OrientationPDFSurface,
+                      [orF, ip.orpars],
+                      domains=[[-pi, pi, True],[0.0, pi, False], [-pi, pi, True]],
+                      idel=0.25,
+                  )
             else:
               # xyz parametrisation has a uniform distribuition across all rotation axis (xyz jacobian is identity)
               # note the range of the beta angle is -hpi-hpi 

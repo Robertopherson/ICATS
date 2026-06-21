@@ -209,8 +209,11 @@ These options appear inside each molecule file referenced by `mol`.
 | `tvib` | `tvib = 50.0` | Molecule-level vibrational temperature override. |
 | `vel` | `vel = 1000 100 3` | Molecule beam-speed distribution: centre speed in m/s, FWHM in m/s, and velocity-power weight. |
 | `nfreeze` | `nfreeze = 1 2 3` | Normal-mode indices to leave at zero during vibrational sampling. |
-| `ordist` | `ordist = read file function ...` | Read a molecule orientation distribution from a user-supplied function. |
-| `ordist` | `ordist = fixed` | Fixed-orientation mode. |
+| `orientation-mode` | `orientation-mode = isotropic` | Default molecular orientation sampling. |
+| `orientation-mode` | `orientation-mode = fixed alpha beta gamma` | Fixed molecular Euler orientation in radians. |
+| `orientation-mode` | `orientation-mode = pdf file.py function p1 ...` | User-supplied molecular orientation PDF. The function is evaluated in the ICATS scattering frame. |
+| `orientation-frame` | `orientation-frame = scattering` | Frame convention for the molecule-level orientation PDF. This is currently the only supported value. |
+| `orientation-thin` | `orientation-thin = 25` | Number of MC trial steps between saved orientation-PDF samples. Increase when a sharply structured PDF mixes slowly. |
 | `rot-param` | `rot-param = xyz` or `euler` | Rotation-angle parameterisation for this molecule. |
 
 For atoms, ICATS forces molecular `Trot` and `Tvib` to zero because there are no
@@ -417,11 +420,51 @@ this setup.
 
 | Key | Form | Meaning |
 | --- | --- | --- |
-| `ordist` | `ordist = ...` | System-level orientation distribution and parameters. |
+| `orientation-mode` | `isotropic`, `fixed`, or `pdf` | Molecule-level orientation mode. |
+| `orientation-frame` | `scattering` | Frame used by a molecule-level PDF. |
+| `orientation-thin` | positive integer | MC thinning for molecule-level PDF sampling. |
 | `rot-param` | `rot-param = xyz` or `euler` | System-level rotation parameterisation; overrides molecule-level values. |
 
 Use isotropic/default orientations first. When using custom orientation
 distributions, enable histograms and inspect the resulting angular distributions.
+
+For a fixed molecular orientation, put this in the molecule definition file:
+
+```text
+orientation-mode = fixed 0.0 1.5707963267948966 0.0
+rot-param = euler
+```
+
+For a user orientation PDF, put a Python file beside the molecule definition
+or top-level input and reference a function:
+
+```text
+orientation-mode = pdf orientation_pdfs.py dipole_field_tilted 0.75 0.7853981633974483 0.0
+orientation-frame = scattering
+orientation-thin = 100
+rot-param = euler
+```
+
+The function signature is:
+
+```python
+def orient_pdf(alpha, beta, gamma, *pars):
+    return non_negative_weight
+```
+
+Angles are in radians and use the molecular Euler convention
+`alpha,beta,gamma`. The function should return the physical angular density.
+ICATS multiplies it by the Euler measure `sin(beta)` during sampling. The PDF
+must be non-negative and finite; negative or non-finite values are treated as
+input errors.
+
+`orientation-frame = scattering` means the PDF is already expressed in the
+ICATS space-fixed scattering frame, where the incoming Jacobi relative momentum
+defines the collision axis. If the experimental field, laser polarization, or
+hexapole axis is naturally defined in another laboratory/beam frame, rotate
+that axis into the ICATS scattering frame inside the user PDF. The
+impact-parameter key `impact-phi` controls the collision plane and does not, by
+itself, rotate a molecule-level polarization PDF.
 
 Set `Trot = 0.0` when the molecule should have no initial rigid-rotor angular
 momentum but should still have a sampled orientation. This is useful for

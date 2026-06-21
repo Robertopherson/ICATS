@@ -185,6 +185,7 @@ class icats:
               self.units_out = "ang-fs"
               self.output_frame = "internal"
               self.ostandard = True
+              self.polarized_orientation = False
               self.plothist =False
               self.hist_initial = False
               self.hist_sampled = False
@@ -318,8 +319,9 @@ class icats:
                 mol[mi].ReadInput(val[1])
                 self.log += mol[mi].log
                 mol[mi].log = []
-                if self.mol[mi].ip.ordist == 'read':
-                  ip.isotropic = False
+                if self.mol[mi].ip.ordist in ("pdf", "fixed"):
+                  ip.polarized_orientation = True
+                  self.log += ["Molecule-level fixed/PDF orientation detected; preserving space-fixed orientation frame\n"]
             if ky == "tvel":
                 if float(val[0]) > 0.0:
                     self.log += ["Temperature for Intermolecular Velocity: "+ val[0]+ " \n"]
@@ -445,10 +447,10 @@ class icats:
             if ky == "rot-param":
                 self.log += ["Rotation angle Parametrization : " + val[0] + "\n"]
                 self.log += [" (overrides molecular option)    \n"]
-                ip.rotpar = val[0]
+                ip.rotpar = "euler" if val[0] == "eul" else val[0]
                 for i in range(2):
                     self.mol[i].ip.rotpar = ip.rotpar
-                    if self.mol[i].ip.rotpar == 'xyz' and self.mol[i].ip.ordist == 1:
+                    if self.mol[i].ip.rotpar == 'xyz' and self.mol[i].ip.ordist == 'pdf':
                         self.log += ["for polarized distribuitions, switching to euler rotation parametrization (molecule " +str(i)+')' +'\n']
                         self.mol[i].ip.rotpar = 'euler'
             if ky == "phisample":
@@ -993,25 +995,11 @@ class icats:
           sa.dist['perchi'] = {} 
           if ip.isotropic:
               sa.dist['perchi']['cont'] = InitICDF(1,uniform,[0,tpi],seed=seed*23) 
-              j, jab = 10.0, 6.0
-              par = [j,jab]
-              #self.dist['perchi']['cont'] = InitICDF(1,AniChiPerpICDFX,[]) 
-              #self.dist['perchi']['cont'] = InitICDF(1,AniChiPerpICDF2,[],par0=par) 
-              #self.dist['perchi']['cont'] = InitICDF(1,AniChiPerpICDF4,[],par0=par) 
           else:  
-              # this distribuiton is conditional on  j,jab  : is taken as a variable :
-              #example j, jab 
-              j, jab = 10.0, 6.0
-              par = [j,jab]
-              sa.dist['perchi']['cont'] = InitICDF(1,AniChiPerpICDF,[],par0=par,seed=seed*353) 
-              if nsamp != 0: 
-                vv = [ICDFsample(sa.dist['perchi']['cont'],*par) for _ in range(nsamp)]
-                hist_emit(vv, "chi", stage="initial", scope="system")
-                sa.dist['perchi']['samp'] = vv
-                hist, edg = np.histogram(vv, bins=11)
-                sa.slog += ['Anisotropic orientation Histogram  = \n']
-                sa.slog += [str(edg) + '\n']
-                sa.slog += [str(hist) +'\n']
+              raise NotImplementedError(
+                  "System-level anisotropic chi sampling is not currently enabled. "
+                  "Use molecule-level orientation-mode = pdf for polarized molecular orientations."
+              )
         else:
          quit('MaxB or MaxJ needs to be set')
         # generate Intermolecular velocity dist:
@@ -1123,7 +1111,7 @@ class icats:
         # imact parameter
         b = (norm(LL)) / (sp.rmass*norm(vv_rel))
         b0 = sum(0.5 * norm(LL) / (norm(vv, axis=1) * ms))
-        phi = np.arctan2(LL[0],-LL[1])
+        phi = np.arctan2(-LL[0],LL[1])
         iJa = msa[0].SampInfo['rot']["svecJs"] 
         iJb = msa[1].SampInfo['rot']["svecJs"] 
         iJab = iJa+iJb 
@@ -1399,8 +1387,8 @@ class icats:
             )
           append_live_sampling_log()
           sa.slog += log
-          if ip.isotropic and ip.ostandard and ip.ImpactPhi is None:
-           self.SetStandardOrientation(sa)
+          if ip.isotropic and ip.ostandard and ip.ImpactPhi is None and not ip.polarized_orientation:
+             self.SetStandardOrientation(sa)
           debug and print('Sample HOVib... ')  
           if ip.vib_mode == "rigid":
             sa.slog += info_section("vibration")
@@ -1415,7 +1403,7 @@ class icats:
           debug and print('Sample Impact Param...')  
           if not hasattr(sa, "sb"):
             sa.sb = sa.snL/(sp.rmass*sa.sV)
-            sa.sphi = np.arctan2(sa.scL[0],-sa.scL[1])
+            sa.sphi = np.arctan2(-sa.scL[0],sa.scL[1])
           self.SetImpactParam(sa,sa.sb, sa.sphi)
           self.SetInterMolZVeloc(sa)
           self.ApplyOutputFrameConvention(sa)
@@ -1857,7 +1845,10 @@ class icats:
             vectors["J"] = _arr(orb.get("cJ"))
             vectors["Jab"] = _arr(orb.get("Jab"))
             scalars["b"] = _scalar(orb.get("b"))
-            angles["impact_phi"] = _scalar(orb.get("phi"))
+            if self.ip.ImpactPhi is not None:
+                angles["impact_phi"] = _scalar(orb.get("sampled_impact_phi", orb.get("phi")))
+            else:
+                angles["impact_phi"] = _scalar(orb.get("phi"))
             scalars["relative_velocity_mps"] = _scalar(sa.SampInfo.get("vel", {}).get("ivel"))
             energy = getattr(sa, "audit_energy_generation", {})
         else:
@@ -2209,6 +2200,7 @@ class icats:
         sa.SampInfo['orb']['iL'] = sa.sL 
         sa.SampInfo['orb']['inL'] = sa.snL 
         sa.SampInfo['orb']['icL'] = sa.scL 
+        sa.SampInfo['orb']['sampled_impact_phi'] = phi
         return log
 
     def SampleImpactPhi(self, sa):
@@ -2240,6 +2232,7 @@ class icats:
         sa.SampInfo['orb']['iL'] = sa.sL
         sa.SampInfo['orb']['inL'] = sa.snL
         sa.SampInfo['orb']['icL'] = sa.scL
+        sa.SampInfo['orb']['sampled_impact_phi'] = phi
         sa.SampInfo['orb']['sampling'] = "fixed-b"
         sa.SampInfo['orb']['fixed_b'] = b
         return [
@@ -2386,7 +2379,7 @@ class icats:
         sa.slog += [info_vec("J = L + Jab", cJ, "au", "J", ncJ, qJ)]
         # semiclassical mapping
         b = nL/(sp.rmass*sa.sV)
-        phi = np.arctan2(cL[0],-cL[1])
+        phi = np.arctan2(-cL[0],cL[1])
         if 'orb' not in sa.SampInfo.keys():
             sa.SampInfo['orb'] = {}
         sa.SampInfo['orb']['cL'] = cL 

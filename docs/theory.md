@@ -124,7 +124,7 @@ logs, histogram file names, or input options.
 | Symmetric-top projection | body-fixed `K` or projection-like coordinate | Boltzmann projection distribution at fixed `J` |
 | Asymmetric-top state | Wang-basis eigenstate at fixed `J` | Boltzmann distribution over asymmetric-rotor eigenenergies and symmetry labels |
 | Asymmetric vector model | projection spread and unresolved azimuth | rejection-sampled Gaussian-sine, azimuthal, or Bingham-like auxiliary distributions chosen from the Wang-state expectation values |
-| Molecular orientation | Euler angles | isotropic orientations by default, or user-supplied/fixed/read orientation distributions when requested |
+| Molecular orientation | Euler angles | isotropic orientations by default, or fixed/user-supplied orientation PDFs through `orientation-mode` |
 | Impact parameter | `b` | geometric incoming-flux measure, `P(b) db proportional to b db` on the requested interval |
 | Orbital angular momentum | `L` | geometric/default proposal, `P(L) dL proportional to (2L + 1) dL`, or uniform proposal with `orbital-sampling = flat-l` |
 | Total angular momentum | `J` | default target partial-wave measure, `P(J) dJ proportional to (2J + 1) dJ`, or approximately flat target with `wl-target = flat-j` |
@@ -139,6 +139,41 @@ into Cartesian coordinates and velocities. Intermolecular distributions define
 the incoming collision geometry. Wang-Landau then acts on the combined trial
 sample, after `L`, `J_A`, and `J_B` have already produced a candidate total
 angular momentum.
+
+## User Orientation PDFs
+
+By default, molecular orientations are isotropic. A molecule file can instead
+request a fixed Euler orientation or a user-supplied PDF:
+
+```text
+orientation-mode = fixed alpha beta gamma
+orientation-mode = pdf orientation_pdfs.py orient_pdf p1 p2 ...
+orientation-frame = scattering
+orientation-thin = 25
+```
+
+The PDF function is evaluated as:
+
+```python
+orient_pdf(alpha, beta, gamma, *pars)
+```
+
+where `alpha,beta,gamma` are molecular Euler angles in radians. The function
+returns the physical orientation weight, and ICATS multiplies this by the Euler
+measure `sin(beta)` during Monte Carlo sampling:
+
+```text
+P_sample(alpha,beta,gamma) proportional to
+    orient_pdf(alpha,beta,gamma) * sin(beta)
+```
+
+The current frame option is `orientation-frame = scattering`. This means that
+the PDF is expressed in the ICATS space-fixed scattering frame, where the
+incoming Jacobi relative momentum defines the collision axis. If a real
+experiment defines the field or laser polarization in a different lab frame,
+that axis should be rotated into the scattering frame inside the user PDF. This
+keeps the molecule-level polarization separate from the impact-parameter
+azimuth `impact-phi`, which controls the collision plane.
 
 ## Intermolecular Velocity Ensembles
 
@@ -647,7 +682,7 @@ impact parameter and azimuthal angle:
 
 ```text
 b = |L| / (mu |v_rel|)
-phi = atan2(L_x, -L_y)
+phi = atan2(-L_x, L_y)
 ```
 
 The lines labelled `Tot. Mol Ja/Jb/Jab` use the full molecular angular momenta

@@ -646,12 +646,12 @@ def Rabout(ang, d):
     return oo
 
 def iang2R(q,typ):
-    if typ == 'eul': 
+    if typ in ('eul', 'euler'):
       return iq2R(q)
     else:
       return ixyz2R(q)
 def iR2ang(q,typ):
-    if typ == 'eul': 
+    if typ in ('eul', 'euler'):
       return iR2q(q)
     else:
       return iR2xyz(q)
