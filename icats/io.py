@@ -265,6 +265,8 @@ output-frame = internal
     h2o_txt = """# H2O molecule input template
 # Required file links (update paths as needed)
 xyz  = h2o_geom.xyz
+# hess is the full mass-weighted Cartesian Hessian in atomic units.
+# Its eigenvalues should be omega^2; ICATS diagonalizes this matrix directly.
 hess = h2o_hessian.txt
 w    = h2o_freq.txt
 
@@ -272,13 +274,15 @@ w    = h2o_freq.txt
 vel  = 1000 100 3
 
 # Notes:
-# - If hess/w are unavailable, vibrations are reduced/disabled in model assumptions.
+# - If hess is unavailable, harmonic vibrational sampling is disabled.
 # - Keep file names relative to this file for portability.
 """
 
     nh3_txt = """# NH3 molecule input template
 # Required file links (update paths as needed)
 xyz  = ammonia_geom.xyz
+# hess is the full mass-weighted Cartesian Hessian in atomic units.
+# Its eigenvalues should be omega^2; ICATS diagonalizes this matrix directly.
 hess = ammonia_hessian.txt
 w    = ammonia_freq.txt
 
@@ -286,7 +290,7 @@ w    = ammonia_freq.txt
 vel  = 1000 100 3
 
 # Notes:
-# - If hess/w are unavailable, vibrations are reduced/disabled in model assumptions.
+# - If hess is unavailable, harmonic vibrational sampling is disabled.
 # - Keep file names relative to this file for portability.
 """
 

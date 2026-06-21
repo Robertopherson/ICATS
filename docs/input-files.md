@@ -203,8 +203,8 @@ These options appear inside each molecule file referenced by `mol`.
 | --- | --- | --- |
 | `name` | `name = ammonia` | Optional label used in logs. |
 | `xyz` | `xyz = geom.xyz` | Reference geometry in Angstrom. Required for normal molecule setup. |
-| `hess` | `hess = hessian.txt` | Mass-weighted or code-compatible Hessian used to construct normal modes. |
-| `w` | `w = freq.txt` | Frequency-file reference used by templates/validation; current normal-mode sampling is driven by `hess`. |
+| `hess` | `hess = hessian.txt` | Full mass-weighted Cartesian Hessian used to construct normal modes. See the Hessian convention below. |
+| `w` | `w = freq.txt` | Optional frequency-file reference used by templates/validation; current normal-mode sampling is driven by `hess`. |
 | `trot` | `trot = 50.0` | Molecule-level rotational temperature override. |
 | `tvib` | `tvib = 50.0` | Molecule-level vibrational temperature override. |
 | `vel` | `vel = 1000 100 3` | Molecule beam-speed distribution: centre speed in m/s, FWHM in m/s, and velocity-power weight. |
@@ -218,6 +218,31 @@ These options appear inside each molecule file referenced by `mol`.
 
 For atoms, ICATS forces molecular `Trot` and `Tvib` to zero because there are no
 internal rotor or vibrational degrees of freedom.
+
+#### Hessian Convention
+
+The `hess` file is the object from which ICATS constructs harmonic normal
+modes. It should be a plain numeric `3N x 3N` matrix in the same atom order and
+Cartesian component order as the `xyz` geometry. The expected convention is:
+
+- coordinates are Cartesian `x1 y1 z1 x2 y2 z2 ...`;
+- the matrix is symmetric and mass-weighted;
+- values are in atomic units;
+- eigenvalues of the matrix are `omega^2`;
+- `omega = sqrt(eigenvalue)` is the angular frequency used internally;
+- the first translational/rotational directions should appear as near-zero
+  eigenvalues in the full `3N` matrix.
+
+Do not provide a mass-frequency-scaled Hessian, a matrix of normal-mode
+displacement vectors, or a Hessian still in unweighted Cartesian force-constant
+form. ICATS diagonalizes the supplied matrix directly. It then removes the
+translation/rotation subspace and builds the mass- and frequency-scaled `Q, P`
+normal coordinates used for vibrational sampling and analysis.
+
+If a quantum-chemistry program exports an ordinary Cartesian force-constant
+matrix, convert it to the mass-weighted atomic-unit form before using it as
+`hess`. The supplied `w` file is useful for checking/template bookkeeping, but
+the sampler obtains its frequencies from the eigenvalues of `hess`.
 
 ### Ensemble Size and Runtime
 
@@ -453,18 +478,26 @@ def orient_pdf(alpha, beta, gamma, *pars):
 ```
 
 Angles are in radians and use the molecular Euler convention
-`alpha,beta,gamma`. The function should return the physical angular density.
-ICATS multiplies it by the Euler measure `sin(beta)` during sampling. The PDF
-must be non-negative and finite; negative or non-finite values are treated as
-input errors.
+`alpha,beta,gamma`. The function should return only the physical angular
+weight for that molecular orientation. Do not include the Euler measure in the
+function: ICATS multiplies the returned value by `sin(beta)` during sampling.
+The return value must be finite and non-negative everywhere in the sampled
+domain. Negative values, `nan`, or `inf` indicate an input error.
+
+For a simple dipole-like toy PDF, a suitable function is proportional to
+`1 + A cos(theta_muE)`, where `theta_muE` is computed from the body-fixed
+molecular dipole after rotating it by `alpha,beta,gamma` into the scattering
+frame. Choose parameters that keep the function non-negative over all angles,
+or explicitly clip/raise an error in the function.
 
 `orientation-frame = scattering` means the PDF is already expressed in the
 ICATS space-fixed scattering frame, where the incoming Jacobi relative momentum
 defines the collision axis. If the experimental field, laser polarization, or
 hexapole axis is naturally defined in another laboratory/beam frame, rotate
-that axis into the ICATS scattering frame inside the user PDF. The
-impact-parameter key `impact-phi` controls the collision plane and does not, by
-itself, rotate a molecule-level polarization PDF.
+that axis into the ICATS scattering frame inside the user PDF before taking dot
+products with molecular axes. The impact-parameter key `impact-phi` controls
+the collision plane and does not, by itself, rotate a molecule-level
+polarization PDF.
 
 Set `Trot = 0.0` when the molecule should have no initial rigid-rotor angular
 momentum but should still have a sampled orientation. This is useful for
@@ -484,9 +517,10 @@ axis direction is controlled by `alpha` and `beta`.
 | `Tvib` | `Tvib = 500.0` | Vibrational temperature, also listed above because it controls vibrational populations. |
 | `vib-mode` | `vib-mode = sample` or `rigid` | `sample` uses the harmonic normal-mode sampler. `rigid` skips vibrational sampling and leaves molecules at the reference geometry while still sampling rotations and orientations. |
 
-The normal modes come from the molecule Hessian. If a molecule has no Hessian,
-the current model can still handle rigid/atomic pieces but has no harmonic
-vibrational mode sampling for that molecule.
+The normal modes come from the molecule Hessian described in the molecule-file
+section above. If a molecule has no Hessian, the current model can still handle
+rigid/atomic pieces but has no harmonic vibrational mode sampling for that
+molecule.
 
 `vib-mode = rigid` is the simplest way to freeze all intramolecular vibrational
 motion for a run without editing the molecule file. Molecule-level `nfreeze`

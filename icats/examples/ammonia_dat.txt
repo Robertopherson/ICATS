@@ -1,6 +1,6 @@
 #reference geometry of the molecule
 xyz  = ammonia_geom.xyz  
-#mass scaled hessian of the molecule at ref geometry (for some method), if not present vibrations are neglected
+# full mass-weighted Cartesian Hessian at the reference geometry; eigenvalues are omega^2 in atomic units
 hess = ammonia_hessian.txt  
 w    = ammonia_freq.txt      
 vel  = 1000 100 3

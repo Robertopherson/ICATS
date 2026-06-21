@@ -228,7 +228,10 @@ It treats the NO body-fixed `z` axis as a toy dipole and the field direction as
 already expressed in the ICATS scattering frame. The example field is tilted by
 `pi/4`, so the sampled distribution depends on both `alpha` and `beta`. ICATS
 multiplies the user PDF by the Euler measure `sin(beta)`, so the user function
-should return only the physical angular weight.
+should return only the physical angular weight. In particular, the example
+function computes the body-axis direction from the supplied Euler angles, takes
+its dot product with the field axis, and returns a non-negative value
+proportional to `1 + A cos(theta_muE)`.
 
 The plotting helper writes:
 

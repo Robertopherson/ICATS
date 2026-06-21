@@ -159,13 +159,18 @@ orient_pdf(alpha, beta, gamma, *pars)
 ```
 
 where `alpha,beta,gamma` are molecular Euler angles in radians. The function
-returns the physical orientation weight, and ICATS multiplies this by the Euler
-measure `sin(beta)` during Monte Carlo sampling:
+returns only the physical orientation weight. ICATS multiplies this by the
+Euler measure `sin(beta)` during Monte Carlo sampling:
 
 ```text
 P_sample(alpha,beta,gamma) proportional to
     orient_pdf(alpha,beta,gamma) * sin(beta)
 ```
+
+The user function should not include the `sin(beta)` measure itself. It must
+return a finite, non-negative value for every sampled orientation. This keeps
+the user PDF as the statement of the physical preparation, while ICATS handles
+the angular coordinate measure.
 
 The current frame option is `orientation-frame = scattering`. This means that
 the PDF is expressed in the ICATS space-fixed scattering frame, where the
@@ -361,9 +366,20 @@ and therefore reported as zero.
 ## Vibrational Sampling
 
 The molecule setup constructs normal modes from the reference geometry and
-Hessian. In code, the normal-mode transformation matrices are stored on the
-molecule object and used by `molecules.SetHOVibrState` and
-`molecules.CalcInterEner`.
+Hessian. The Hessian supplied in the molecule file should be the full
+mass-weighted Cartesian Hessian in atomic units, ordered as
+`x1 y1 z1 x2 y2 z2 ...` in the same atom order as the reference geometry.
+ICATS diagonalizes this matrix directly, so its eigenvalues should be
+`omega^2`. The corresponding `omega` values are then used for harmonic
+Boltzmann populations, leading-Wigner phase-space sampling, and vibrational
+energy reconstruction.
+
+This is distinct from several other common conventions in the literature. Do
+not provide a mass-frequency-scaled Hessian, a normal-mode displacement matrix,
+or an unweighted Cartesian force-constant matrix unless it has first been
+converted to the mass-weighted atomic-unit form. After diagonalization, ICATS
+removes the translational/rotational subspace and stores the transformation
+matrices used by `molecules.SetHOVibrState` and `molecules.CalcInterEner`.
 
 For each normal mode, ICATS samples:
 
