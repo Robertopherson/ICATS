@@ -247,8 +247,6 @@ momentum.
 
 ## Vector Model And Asymmetric Tops
 
-![Vector-model top geometry](assets/figures/vecdiag.png)
-
 ![Asymmetric-top state distribution](assets/figures/asymplot.png)
 
 The extended vector model lets ICATS keep a compact classical representation
