@@ -344,8 +344,8 @@ run-mode = fresh
 
 This is not a two-dimensional Wang-Landau calculation in `(L,J)`. ICATS still
 builds a one-dimensional WL profile for the sampled total `J`. In this tutorial
-`wl-target = flat-j`, so the WL acceptance uses `1/Omega(J)` rather than the
-usual `(2J+1)/Omega(J)` target. The practical question is whether proposing `L`
+`wl-target = flat-j`, so the WL acceptance uses `1/Omega_t(J)` rather than the
+usual `(2J+1)/Omega_t(J)` target. The practical question is whether proposing `L`
 uniformly gives better coverage of the low-`L` region while the WL acceptance
 keeps the total-`J` ensemble from becoming badly concentrated.
 

@@ -94,17 +94,17 @@ d sigma       proportional to b db
 P(L) dL       proportional to (2L + 1) dL
 J             = L + J_AB
 J_AB          = J_A + J_B
-P_acc(J)      proportional to (2J + 1) / Omega_WL(J)
+P_acc(J)      proportional to (2J + 1) / Omega_t(J)
 ```
 
-Here `Omega_WL(J)` denotes the Wang-Landau estimate of the density
+Here `Omega_t(J)` denotes the Wang-Landau estimate of the density
 of trial samples produced at total angular momentum `J`. The expression above
 is the default `wl-target = linear-j` form used with geometric orbital
 sampling. For `orbital-sampling = flat-l`, ICATS uses `wl-target = flat-j` and
 therefore
 
 ```text
-P_acc(J) proportional to 1 / Omega_WL(J)
+P_acc(J) proportional to 1 / Omega_t(J)
 ```
 
 This second mode is intended for diagnostic or reweighting workflows where `L`
@@ -130,7 +130,7 @@ logs, histogram file names, or input options.
 | Total angular momentum | `J` | default target partial-wave measure, `P(J) dJ proportional to (2J + 1) dJ`, or approximately flat target with `wl-target = flat-j` |
 | Orbital azimuth | `phi` | uniform angle when `phisample = True` |
 | Relative speed | intermolecular velocity | Crossed-beam molecular speed distributions, direct relative-speed/channel input, or Maxwell-Boltzmann relative-speed sampling, depending on input mode |
-| Wang-Landau correction | accepted total `J` | rejection weight proportional to `(2J + 1) / Omega_WL(J)` for `linear-j`, or `1 / Omega_WL(J)` for `flat-j` |
+| Wang-Landau correction | accepted total `J` | rejection weight proportional to `(2J + 1) / Omega_t(J)` for `linear-j`, or `1 / Omega_t(J)` for `flat-j` |
 
 The important practical point is that these distributions are not all sampled
 at the same level. Vibrational and rotor state distributions define internal

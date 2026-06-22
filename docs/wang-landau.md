@@ -48,12 +48,12 @@ One could try to force both one-dimensional distributions by choosing the angle
 between `L` and `Jab` by hand. That would make the histogram look tidy, but it
 would also introduce an artificial correlation between the incoming collision
 geometry and the molecular internal rotation. Wang-Landau avoids that manual
-choice. It first estimates the sampled total-`J` density `Omega(J)` generated
+choice. It first estimates the trial total-`J` density `Omega_t(J)` generated
 by the chosen `L` proposal and independent `Jab` sampling, then uses an
 acceptance weight of the form
 
 ```text
-W(J) proportional to (2J + 1) / Omega_WL(J)
+W(J) proportional to (2J + 1) / Omega_t(J)
 ```
 
 to bring the accepted ensemble closer to the usual degeneracy-weighted
@@ -71,7 +71,7 @@ wl-target = flat-j
 In that case the acceptance correction is
 
 ```text
-W(J) proportional to 1 / Omega_WL(J)
+W(J) proportional to 1 / Omega_t(J)
 ```
 
 This mode is useful when the user wants to sample low and high `L` more evenly
@@ -103,7 +103,7 @@ of a finite requested angular-momentum window.
 <img src="assets/figures/wl-nh3-h2o-umbrella.png" alt="NH3 H2O Wang-Landau umbrella" style="width: 50%; min-width: 320px;">
 
 The corresponding Wang-Landau umbrella is largest at small `J`, where the
-molecular rotor sum `Jab` strongly affects the total `J` density of states. At
+molecular rotor sum `Jab` strongly affects the total `J` trial density. At
 larger `J`, the umbrella becomes much flatter because the orbital angular
 momentum dominates and `J` increasingly tracks `L`.
 
@@ -221,11 +221,11 @@ long tail, inspect the WL and `Jab` histograms before relying on the flattened
 high-`J` correction.
 
 `wl-target = linear-j` uses the default geometric target
-`(2J + 1) / Omega_WL(J)`, where `Omega_WL(J)` is the WL-estimated sampled `J`
+`(2J + 1) / Omega_t(J)`, where `Omega_t(J)` is the WL-estimated trial `J`
 density.
 This is intended for the usual geometric impact-parameter proposal. For
 flat-`L` trajectory-budgeting runs, use `wl-target = flat-j`; this uses
-`1 / Omega_WL(J)` and therefore does not add the extra `2J + 1` factor. ICATS
+`1 / Omega_t(J)` and therefore does not add the extra `2J + 1` factor. ICATS
 rejects the mixed combinations because they are easy to misinterpret.
 
 ## Plotting Checks
@@ -240,11 +240,10 @@ python wl_wl_plot.py
 
 These write `wl_td_plot.png` and `wl_wl_plot.png` in the same directory.
 The `wl_wl_plot` figure is the estimated natural sampled density
-`Omega_WL(J)`, shown in normalized plotting units. It is not an absolute
-density of states.
+`Omega_t(J)`, shown in normalized plotting units. It is a normalized diagnostic curve, not an absolute physical density of states.
 The `wl_td_plot` figure is the normalized sampling correction used to target
-the requested total-`J` distribution: `(2J + 1) / Omega_WL(J)` for
-`wl-target = linear-j`, or `1 / Omega_WL(J)` for `wl-target = flat-j`.
+the requested total-`J` distribution: `(2J + 1) / Omega_t(J)` for
+`wl-target = linear-j`, or `1 / Omega_t(J)` for `wl-target = flat-j`.
 
 Read these plots together with the sampled `L`, `J`, and `Jab` histograms. A
 smooth WL curve by itself does not prove that the requested range, binning, or
