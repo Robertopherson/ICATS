@@ -112,7 +112,7 @@ toy dynamics with more serious calculations.
 
 ## Paper Validation Ensemble
 
-Generate the paper-scale tutorial without starting it on the login node:
+Generate the paper-scale tutorial:
 
 ```bash
 icats --tutorial paper_nh3_h2o_100k --setup-only
@@ -126,18 +126,21 @@ range shown in Figure 9; `J` extends slightly further through the molecular
 `Jab` contribution. The tutorial suppresses Cartesian trajectory files because
 the purpose is distribution validation rather than dynamics propagation.
 
-Run it interactively only on a suitable compute machine:
+Run the complete workflow on a Linux desktop:
+
+```bash
+./run_paper_tutorial.sh
+```
+
+The input uses four workers. The wrapper reuses the supplied, validated
+`rd_tutorial_input/wang.pkl`, generates the accepted ensemble, exports the
+compact histogram data, and creates the validation plots. The same stages can
+be run manually:
 
 ```bash
 icats.init tutorial_input.txt
 python export_paper_histogram_data.py
 python plot_paper_histograms.py
-```
-
-On a configured SLURM cluster, inspect the resource directives and submit:
-
-```bash
-sbatch run_paper_slurm.sh
 ```
 
 The exporter writes `paper_histogram_data/` containing raw CSV samples,
@@ -156,14 +159,13 @@ Figure 8 is not part of this ensemble. It is a fixed-`J`, fixed-eigenstate
 asymmetric-top benchmark against Wigner-matrix densities, whereas Figures 6,
 7, and 9 test distributions produced by the full collision sampler.
 
-The generated `run_paper_slurm.sh` requests one node, one task, 16 CPUs, and
-32 GB on DMOG's `nodes` partition. It sets `workers` from
-`SLURM_CPUS_PER_TASK`, prevents nested BLAS thread pools, and runs sampling,
-CSV export, and plotting in sequence. The normal Wang-Landau profile uses 500
-trial steps per active bin, flatness `0.90`, and tolerance `1.00001`; these are
-the paper tutorial's compromise between a stable umbrella and practical wall
-time. Keep the resulting `wang.pkl` with the exported metadata so the exact
-umbrella can be inspected and reused.
+The supplied Wang-Landau profile was built with 4000 trial steps per active
+bin, flatness `0.95`, and tolerance `1.0000001`. Reusing it avoids the expensive
+learning stage and should allow the four-worker production calculation to
+finish in minutes on a modern desktop. Keep `wang.pkl` with the exported
+metadata so the exact umbrella can be inspected and reused. Moving it before
+running triggers a from-scratch high-quality WL build, which may take about an
+hour or longer on four cores.
 
 ## Running A Tutorial
 

@@ -16,18 +16,31 @@ def test_paper_tutorial_generation_and_export(tmp_path):
     assert "Nsamp = 100010" in input_text
     assert "maxj = 70" in input_text
     assert "beam-angle = 90.0" in input_text
+    assert "workers = 4" in input_text
+    assert "wl-nstep = 4000" in input_text
+    assert "wl-flatness = 0.95" in input_text
+    assert "wl-tol = 1.0000001" in input_text
     assert "vel  = 600 100 3" in (tutorial / "paper_ammonia_dat.txt").read_text()
     assert "vel  = 800 100 3" in (tutorial / "paper_h2o_dat.txt").read_text()
     assert (tutorial / "export_paper_histogram_data.py").exists()
     assert (tutorial / "plot_paper_histograms.py").exists()
-    assert (tutorial / "run_paper_slurm.sh").exists()
-    slurm_text = (tutorial / "run_paper_slurm.sh").read_text()
-    assert "#SBATCH --cpus-per-task=16" in slurm_text
-    assert 'cd "$SLURM_SUBMIT_DIR"' in slurm_text
-    assert "set +u\n  eval \"$(conda shell.bash hook)\"" in slurm_text
+    assert (tutorial / "run_paper_tutorial.sh").exists()
+    runner_text = (tutorial / "run_paper_tutorial.sh").read_text()
+    assert "SBATCH" not in runner_text
+    assert "SLURM" not in runner_text
+    assert "icats.init tutorial_input.txt" in runner_text
+    assert '"$PYTHON" export_paper_histogram_data.py' in runner_text
+    assert '"$PYTHON" plot_paper_histograms.py' in runner_text
+    assert not (tutorial / "run_paper_slurm.sh").exists()
     assert not (tutorial / "run_cheap_dynamics.sh").exists()
 
     run_dir = tutorial / "rd_tutorial_input"
+    with (run_dir / "wang.pkl").open("rb") as handle:
+        supplied_wang = pickle.load(handle)
+    assert supplied_wang["metadata"]["wl_nstep_mult"] == 4000
+    assert supplied_wang["metadata"]["wl_flatness"] == 0.95
+    assert supplied_wang["metadata"]["wl_tol"] == 1.0000001
+    assert len(supplied_wang["td"]) == 77
     sampled = {
         "vel": {"ivel": [990.0, 1000.0, 1010.0, 1020.0]},
         "orb": {

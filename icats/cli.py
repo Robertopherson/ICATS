@@ -348,10 +348,10 @@ TUTORIALS = {
             "wang = True",
             "wlmode = normal",
             "wl-ff = 1.105170185988091",
-            "wl-nstep = 500",
-            "wl-flatness = 0.90",
+            "wl-nstep = 4000",
+            "wl-flatness = 0.95",
             "wl-wn-factor = 4.0",
-            "wl-tol = 1.00001",
+            "wl-tol = 1.0000001",
             "wl-angular-sampler = fast",
             "wl-audit-angular-sampler = True",
             "run-mode = fresh",
@@ -362,11 +362,12 @@ TUTORIALS = {
             "Uses 100,010 collision samples, 500 K vibrational and rotational temperatures, and a 90 degree crossed-beam geometry.",
             "The NH3 and H2O beam-speed distributions are centred at 600 and 800 m/s, respectively, with 100 m/s FWHM.",
             "Uses an orbital cap of 70, giving the J/L support and upper-edge roll-off shown in manuscript Figure 9.",
-            "Freezes the normal WL profile at ff=exp(0.1), 500 trial steps per active bin, flatness 0.90, and tolerance 1.00001.",
+            "Includes the converged WL umbrella used for Figure 9; the default four-worker run reuses it rather than rebuilding it.",
+            "The stored profile was built with ff=exp(0.1), 4000 trial steps per active bin, flatness 0.95, and tolerance 1.0000001.",
             "Run export_paper_histogram_data.py after icats.init to write compact CSV data for manuscript Figures 6, 7, and 9.",
             "Run plot_paper_histograms.py to turn those tables into PNG and PDF validation composites.",
             "Figure 8 is a separate fixed-J asymmetric-top benchmark and is not generated from this collision ensemble.",
-            "This calculation can take substantial time; run_paper_slurm.sh is supplied for a configured cluster environment.",
+            "With the supplied umbrella, the four-worker desktop run normally completes in minutes rather than rebuilding Wang-Landau.",
         ],
     },
     "npz_output_co2_co2": {
@@ -638,6 +639,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 
 def trapezoid(y, x):
@@ -767,6 +769,39 @@ def histogram_bars(ax, table, title, xlabel):
     return centres
 
 
+def compact_density_axis(ax, one_decimal=False):
+    def two_significant(value):
+        if value == 0.0:
+            return "0"
+        decimals = max(0, 1 - int(np.floor(np.log10(abs(value)))))
+        return f"{value:.{decimals}f}"
+
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
+    if one_decimal:
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{100.0 * value:.1f}"))
+    else:
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda value, _: two_significant(100.0 * value)))
+    ax.text(0.0, 1.015, r"$\times 10^{-2}$", transform=ax.transAxes, ha="left", va="bottom", fontsize=12)
+
+
+def angular_panel(ax, table, symbol):
+    left = table["bin_left"]
+    right = table["bin_right"]
+    centres = 0.5 * (left + right)
+    widths = right - left
+    included = right <= 60.0
+    density = table["count"] / np.sum(table["count"][included] * widths[included])
+    ax.bar(centres, density, width=widths, color="tab:blue", edgecolor="black", linewidth=0.35, alpha=0.65)
+    line_grid = np.linspace(0.0, 60.0, 301)
+    normalization = 60.0 + 60.0**2
+    ax.plot(line_grid, (1.0 + 2.0 * line_grid) / normalization, color="tab:red", lw=1.5, label=rf"$1+2{symbol}$")
+    ax.set_xlim(0.0, 72.0)
+    ax.set_xlabel(rf"${symbol}$")
+    ax.set_ylabel(r"$\rho$")
+    ax.legend(frameon=False, fontsize=12, loc="upper left")
+    compact_density_axis(ax)
+
+
 def weighted_beam_speed(v, centre, fwhm, power):
     sigma = fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0)))
     return np.where(v >= 0.0, v**power * np.exp(-0.5 * ((v - centre) / sigma) ** 2), 0.0)
@@ -791,20 +826,17 @@ def relative_speed_target(grid, metadata):
 
 
 def plot_figure9(data_dir: Path, output: Path, metadata) -> None:
-    fig, axes = plt.subplots(2, 2, figsize=(9.2, 6.8))
+    fig, axes = plt.subplots(2, 2, figsize=(7.5, 5.2))
     l_table = read_csv(data_dir / "figure9_L_histogram.csv")
     j_table = read_csv(data_dir / "figure9_J_histogram.csv")
-    j_grid = histogram_bars(axes[0, 0], j_table, "Total angular momentum", r"$J$")
-    l_grid = histogram_bars(axes[0, 1], l_table, "Orbital angular momentum", r"$L$")
-    for ax, grid, label in ((axes[0, 0], j_grid, r"$1+2J$"), (axes[0, 1], l_grid, r"$1+2L$")):
-        target = 1.0 + 2.0 * grid
-        target /= trapezoid(target, grid)
-        ax.plot(grid, target, color="tab:red", lw=1.5, label=label)
-        ax.legend(frameon=False, fontsize=8)
+    angular_panel(axes[0, 0], j_table, "J")
+    angular_panel(axes[0, 1], l_table, "L")
     v_table = read_csv(data_dir / "figure9_relative_velocity_histogram.csv")
-    v_grid = histogram_bars(axes[1, 0], v_table, "Relative beam speed", r"$|v_{AB}|$ / m s$^{-1}$")
+    v_grid = histogram_bars(axes[1, 0], v_table, "", r"$|v_{AB}|$ / m s$^{-1}$")
     axes[1, 0].plot(v_grid, relative_speed_target(v_grid, metadata), color="tab:red", lw=1.5, label="analytic target")
+    axes[1, 0].set_ylabel(r"$\rho$")
     axes[1, 0].legend(frameon=False, fontsize=8)
+    compact_density_axis(axes[1, 0], one_decimal=True)
     wl = read_csv(data_dir / "figure9_wang_landau.csv")
     learned = np.isfinite(wl["estimated_Omega_J"])
     axes[1, 1].bar(
@@ -815,10 +847,12 @@ def plot_figure9(data_dir: Path, output: Path, metadata) -> None:
         edgecolor="black",
         linewidth=0.35,
     )
-    axes[1, 1].set_title("Wang-Landau acceptance weight")
     axes[1, 1].set_xlabel(r"$J$")
     axes[1, 1].set_ylabel(r"$W(J)$")
-    fig.tight_layout()
+    axes[1, 1].set_ylim(0.0, 1.05)
+    for ax in axes.flat:
+        ax.tick_params(direction="in", top=True, right=True)
+    fig.tight_layout(pad=0.8, w_pad=1.1, h_pad=1.0)
     fig.savefig(output / "figure9_validation.png", dpi=180)
     fig.savefig(output / "figure9_validation.pdf")
     plt.close(fig)
@@ -847,51 +881,37 @@ if __name__ == "__main__":
 
     if include_paper:
         _write_file(
-            out_dir / "run_paper_slurm.sh",
-        "#!/usr/bin/env bash\n"
-        "#SBATCH --job-name=icats-paper-100k\n"
-        "#SBATCH --export=ALL\n"
-        "#SBATCH --partition=nodes\n"
-        "#SBATCH --nodes=1\n"
-        "#SBATCH --ntasks=1\n"
-        "#SBATCH --cpus-per-task=16\n"
-        "#SBATCH --mem=32G\n"
-        "#SBATCH --time=12:00:00\n"
-        "#SBATCH --output=icats-paper-%j.out\n"
-        "#SBATCH --error=icats-paper-%j.err\n\n"
-        "set -euo pipefail\n"
-        "source \"${flight_ROOT:-/opt/flight}/etc/setup.sh\" >/dev/null 2>&1 || true\n"
-        "if [ -n \"${SLURM_SUBMIT_DIR:-}\" ]; then\n"
-        "  cd \"$SLURM_SUBMIT_DIR\"\n"
-        "else\n"
-        "  cd \"$(dirname \"${BASH_SOURCE[0]}\")\"\n"
-        "fi\n"
-        "export OMP_NUM_THREADS=1\n"
-        "export OPENBLAS_NUM_THREADS=1\n"
-        "export MKL_NUM_THREADS=1\n"
-        "export NUMEXPR_NUM_THREADS=1\n"
-        "export MPLBACKEND=Agg\n"
-        "export NUMBA_CACHE_DIR=\"${NUMBA_CACHE_DIR:-/tmp/numba_cache_${USER:-user}}\"\n"
-        "export MPLCONFIGDIR=\"${MPLCONFIGDIR:-/tmp/mpl_cache_${USER:-user}}\"\n"
-        "mkdir -p \"$NUMBA_CACHE_DIR\" \"$MPLCONFIGDIR\"\n"
-        "ICATS_ENV=\"${ICATS_ENV:-icats_clean}\"\n"
-        "if command -v conda >/dev/null 2>&1; then\n"
-        "  set +u\n"
-        "  eval \"$(conda shell.bash hook)\"\n"
-        "  conda activate \"$ICATS_ENV\"\n"
-        "  set -u\n"
-        "fi\n"
-        "if ! command -v icats.init >/dev/null 2>&1; then\n"
-        "  echo \"icats.init is not available. Activate the environment containing the frozen ICATS release.\" >&2\n"
-        "  exit 1\n"
-        "fi\n"
-        "WORKERS=\"${SLURM_CPUS_PER_TASK:-1}\"\n"
-        "sed -i -E \"s/^[[:space:]]*workers[[:space:]]*=.*/workers = ${WORKERS}/\" tutorial_input.txt\n"
-        "printf 'ICATS commit: '; python -c 'import pathlib, subprocess; p=pathlib.Path(__import__(\"icats\").__file__).resolve().parent.parent; print(subprocess.run([\"git\", \"-C\", str(p), \"rev-parse\", \"HEAD\"], text=True, capture_output=True).stdout.strip() or p)'\n"
-        "echo \"ICATS workers: $WORKERS\"\n"
-        "icats.init tutorial_input.txt\n"
-        "python export_paper_histogram_data.py --vibrational-samples 100000\n"
-        "python plot_paper_histograms.py\n",
+            out_dir / "run_paper_tutorial.sh",
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            "cd \"$(dirname \"${BASH_SOURCE[0]}\")\"\n"
+            "export OMP_NUM_THREADS=1\n"
+            "export OPENBLAS_NUM_THREADS=1\n"
+            "export MKL_NUM_THREADS=1\n"
+            "export NUMEXPR_NUM_THREADS=1\n"
+            "export MPLBACKEND=Agg\n"
+            "export NUMBA_CACHE_DIR=\"${NUMBA_CACHE_DIR:-/tmp/numba_cache_${USER:-user}}\"\n"
+            "export MPLCONFIGDIR=\"${MPLCONFIGDIR:-/tmp/mpl_cache_${USER:-user}}\"\n"
+            "mkdir -p \"$NUMBA_CACHE_DIR\" \"$MPLCONFIGDIR\"\n"
+            "if ! command -v icats.init >/dev/null 2>&1; then\n"
+            "  echo \"icats.init is not available. Activate the environment containing ICATS.\" >&2\n"
+            "  exit 1\n"
+            "fi\n"
+            "if [[ -z \"${PYTHON:-}\" ]]; then\n"
+            "  if command -v python3 >/dev/null 2>&1; then\n"
+            "    PYTHON=python3\n"
+            "  elif command -v python >/dev/null 2>&1; then\n"
+            "    PYTHON=python\n"
+            "  else\n"
+            "    echo \"A Python interpreter is required.\" >&2\n"
+            "    exit 1\n"
+            "  fi\n"
+            "fi\n"
+            "echo \"Running the paper validation tutorial with the four workers set in tutorial_input.txt.\"\n"
+            "echo \"The supplied rd_tutorial_input/wang.pkl will be reused.\"\n"
+            "icats.init tutorial_input.txt\n"
+            "\"$PYTHON\" export_paper_histogram_data.py --vibrational-samples 100000\n"
+            "\"$PYTHON\" plot_paper_histograms.py\n",
             executable=True,
         )
 
@@ -1451,15 +1471,17 @@ def _generate_tutorial(
                 shutil.move(str(old), str(wl_dir / fn))
         wl_umbrella_note = (
             "Precomputed WL umbrella copied:\n"
-            "- rd_tutorial_input/wang.pkl\n"
-            "- rd_tutorial_input/histograms/wl/wl_td_plot.py\n"
-            "- rd_tutorial_input/histograms/wl/wl_wl_plot.py\n"
-            "Visualize with:\n"
-            "- python rd_tutorial_input/histograms/wl/wl_td_plot.py\n"
-            "- python rd_tutorial_input/histograms/wl/wl_wl_plot.py\n\n"
+            "- rd_tutorial_input/wang.pkl\n\n"
+            "The default run reuses this validated profile and does not rebuild Wang-Landau.\n"
             "If input settings change, move or rename rd_tutorial_input/wang.pkl before rerunning.\n"
-            "icats.init will refuse incompatible WL umbrellas instead of overwriting them.\n\n"
+            "ICATS refuses incompatible WL umbrellas instead of overwriting them.\n\n"
         )
+        if all((wl_dir / fn).exists() for fn in ("wl_td_plot.py", "wl_wl_plot.py")):
+            wl_umbrella_note += (
+                "Visualize the stored WL profile with:\n"
+                "- python rd_tutorial_input/histograms/wl/wl_td_plot.py\n"
+                "- python rd_tutorial_input/histograms/wl/wl_wl_plot.py\n\n"
+            )
 
     _write_file(
         out_dir / "run_cheap_dynamics.sh",
@@ -1577,15 +1599,13 @@ def _generate_tutorial(
         run_order = (
             "Run sequence:\n"
             "1) Read this file and inspect tutorial_input.txt.\n"
-            "2) Submit to a configured SLURM compute node:\n"
-            "   sbatch run_paper_slurm.sh\n"
-            "   Alternatively, on a suitable interactive compute node run:\n"
+            "2) Run the complete four-worker desktop workflow:\n"
+            "   ./run_paper_tutorial.sh\n"
+            "   This reuses the supplied rd_tutorial_input/wang.pkl, generates 100,010 samples, exports the compact data, and plots the validation figures.\n"
+            "3) To run the stages manually instead:\n"
             "   icats.init tutorial_input.txt\n"
-            "3) For an interactive run, export the paper data after sampling:\n"
             "   python export_paper_histogram_data.py\n"
-            "4) Create the paper-validation plots:\n"
-            "   python plot_paper_histograms.py\n"
-            "   The SLURM wrapper performs all three commands automatically.\n\n"
+            "   python plot_paper_histograms.py\n\n"
         )
     else:
         run_order = (
@@ -1620,11 +1640,12 @@ def _generate_tutorial(
         "- rd_tutorial_input/\n"
     )
     if is_wl:
-        expected_text += (
-            "- rd_tutorial_input/wang.pkl\n"
-            "- rd_tutorial_input/histograms/wl/wl_td_plot.py\n"
-            "- rd_tutorial_input/histograms/wl/wl_wl_plot.py\n"
-        )
+        expected_text += "- rd_tutorial_input/wang.pkl\n"
+        if not is_paper:
+            expected_text += (
+                "- rd_tutorial_input/histograms/wl/wl_td_plot.py\n"
+                "- rd_tutorial_input/histograms/wl/wl_wl_plot.py\n"
+            )
     if hist_enabled:
         expected_text += (
             "- rd_tutorial_input/histograms/initial/\n"
@@ -1662,7 +1683,7 @@ def _generate_tutorial(
             "- Open the resulting PNGs in:\n"
             "  rd_tutorial_input/histograms/plots/sampled/\n\n"
         )
-    if is_wl:
+    if is_wl and not is_paper:
         after_init_note += (
             "After icats.init: Wang-Landau checks\n"
             "- Confirm the stored umbrella exists:\n"
@@ -1683,13 +1704,13 @@ def _generate_tutorial(
             "Environment setup:\n"
             "1) Install and activate the frozen ICATS release used for the paper.\n"
             "2) Confirm that `icats.init --help` resolves inside that environment.\n\n"
-            "Cluster note:\n"
-            "- Do not run the 100,000-sample calculation on a login node.\n"
-            "- Inspect the CPU, memory, wall-time, account, and partition directives in run_paper_slurm.sh before submission.\n"
+            "Desktop resources:\n"
+            "- tutorial_input.txt uses four workers.\n"
+            "- The supplied umbrella avoids the expensive WL reconstruction; only production sampling and plotting are run by default.\n"
             "- The wrapper places numba and matplotlib caches under writable /tmp paths.\n\n"
             "Rebuilding the umbrella:\n"
-            "- A compatible rd_tutorial_input/wang.pkl is reused on rerun.\n"
-            "- Move or rename it before rerunning only when the WL settings have changed.\n"
+            "- Keep rd_tutorial_input/wang.pkl for the normal tutorial workflow.\n"
+            "- Moving it before rerunning triggers a from-scratch high-quality WL build that may take about an hour or longer on four cores.\n"
             "- ICATS refuses metadata-incompatible umbrellas rather than silently overwriting them.\n\n"
             "Interpreting the validation plots:\n"
             "- Figure 6: sampled Q histograms should follow the smooth leading-Wigner curves; the black curves are the oscillatory harmonic-oscillator densities.\n"
