@@ -6,6 +6,7 @@ from .mc import ICDFsample, InitICDF
 from .molecules import imolecule
 from . import wang
 from .histograms import write_histogram_helpers_runtime
+from .diagnostics import write_costheta_diagnostics
 import pickle
 from scipy.interpolate import CubicSpline
 from joblib import Parallel, delayed
@@ -154,6 +155,8 @@ class icats:
               self.wl_wn_factor = 4.0
               self.wl_wn = None
               self.wl_j_range = None
+              self.wl_j_min = 0.0
+              self.wl_low_j_scale = 0.25
               self.wl_l_cap = None
               self.wl_angular_sampler = "fast"
               self.wl_audit_angular_sampler = False
@@ -168,6 +171,8 @@ class icats:
               self.wl_wn_factor_user = None
               self.wl_wn_user = None
               self.wl_j_range_user = None
+              self.wl_j_min_user = None
+              self.wl_low_j_scale_user = None
               self.wl_l_cap_user = None
               self.wl_tol = 1.000001
               self.wl_tol_user = None
@@ -258,50 +263,6 @@ class icats:
     def _runpath(self, name):
         ip = self.ip
         return os.path.join(ip.rundir, name)
-
-    def _write_costheta_convergence(self):
-        """Write costheta convergence diagnostics to rd_<input>/convergence."""
-        vals = self.sdat.get('orb', {}).get('cosLJab_thet', [])
-        if vals is None or len(vals) == 0:
-            return
-        arr = np.asarray(vals, dtype=float)
-        conv_dir = self._runpath("convergence")
-        os.makedirs(conv_dir, exist_ok=True)
-
-        # Final summary statistics.
-        n = int(arr.size)
-        mean = float(np.mean(arr))
-        std = float(np.std(arr, ddof=1)) if n > 1 else 0.0
-        sem = float(std / np.sqrt(n)) if n > 0 else 0.0
-        mean_abs = float(np.mean(np.abs(arr)))
-        summ = [
-            "# cos(theta_{L,Jab}) convergence summary\n",
-            f"n = {n}\n",
-            f"mean = {mean:.8e}\n",
-            f"std = {std:.8e}\n",
-            f"sem = {sem:.8e}\n",
-            f"mean_abs = {mean_abs:.8e}\n",
-        ]
-        with open(os.path.join(conv_dir, "costheta_summary.txt"), "w") as f:
-            f.writelines(summ)
-
-        # Cumulative trend for quick convergence inspection.
-        csum = np.cumsum(arr)
-        csum2 = np.cumsum(arr * arr)
-        lines = ["sample_count\tmean\tstd\tsem\tmean_abs\n"]
-        abs_csum = np.cumsum(np.abs(arr))
-        for i in range(1, n + 1):
-            mu = csum[i - 1] / i
-            if i > 1:
-                var = max((csum2[i - 1] - i * mu * mu) / (i - 1), 0.0)
-                si = np.sqrt(var)
-            else:
-                si = 0.0
-            sei = si / np.sqrt(i)
-            mai = abs_csum[i - 1] / i
-            lines.append(f"{i}\t{mu:.8e}\t{si:.8e}\t{sei:.8e}\t{mai:.8e}\n")
-        with open(os.path.join(conv_dir, "costheta_cumulative.tsv"), "w") as f:
-            f.writelines(lines)
 
     def GenerateInputData(self):
         """Generate input data from the provided parameters.
@@ -521,6 +482,14 @@ class icats:
             if ky == "wl-j-range":
                 ip.wl_j_range_user = float(val[0])
                 self.log += ["Wang-Landau explicit J range: " + val[0] + "\n"]
+            if ky == "wl-j-min":
+                ip.wl_j_min_user = max(0.0, float(val[0]))
+                self.log += ["Wang-Landau low-J boundary clamp: " + val[0] + "\n"]
+            if ky == "wl-low-j-scale":
+                ip.wl_low_j_scale_user = float(val[0])
+                if ip.wl_low_j_scale_user <= 0.0 or ip.wl_low_j_scale_user > 1.0:
+                    raise ValueError("wl-low-j-scale must be > 0 and <= 1")
+                self.log += ["Wang-Landau low-J boundary scale: " + val[0] + "\n"]
             if ky == "wl-l-cap":
                 ip.wl_l_cap_user = float(val[0])
                 self.log += ["Wang-Landau orbital L cap: " + val[0] + "\n"]
@@ -630,6 +599,10 @@ class icats:
           ip.wl_wn = ip.wl_wn_user
         if ip.wl_j_range_user is not None:
           ip.wl_j_range = ip.wl_j_range_user
+        if ip.wl_j_min_user is not None:
+          ip.wl_j_min = ip.wl_j_min_user
+        if ip.wl_low_j_scale_user is not None:
+          ip.wl_low_j_scale = ip.wl_low_j_scale_user
         if ip.wl_l_cap_user is not None:
           ip.wl_l_cap = ip.wl_l_cap_user
 
@@ -659,6 +632,12 @@ class icats:
           np.random.seed(ip.seed)
         # per-worker is handled by InitializeWorker/sample seeds derived from worker ids
 
+        if ip.polarized_orientation and ip.ImpactPhi is not None:
+          self.log += [
+              "WARNING: impact-phi is fixed while molecule-level fixed/PDF orientation is active; "
+              "this is a fixed collision-plane geometry, not an azimuthally averaged polarized preparation.\n"
+          ]
+
         self.log += ["WL resolved settings: mode=" + str(ip.wlmode)
                      + " ff=" + str(ip.wl_ff)
                      + " nstep_mult=" + str(ip.wl_nstep_mult)
@@ -666,6 +645,8 @@ class icats:
                      + " wn_factor=" + str(ip.wl_wn_factor)
                      + " wn=" + str(ip.wl_wn)
                      + " j_range=" + str(ip.wl_j_range)
+                     + " j_min=" + str(ip.wl_j_min)
+                     + " low_j_scale=" + str(ip.wl_low_j_scale)
                      + " l_cap=" + str(ip.wl_l_cap) + "\n"]
  
         sp.na = mol[0].sp.na + mol[1].sp.na
@@ -831,6 +812,13 @@ class icats:
         def _emit(msg):
             self.log += [msg + "\n"]
 
+        if ip.MaxL > 0:
+            _emit(
+                "maxb is not the proposal bound because maxj/maxl sampling is active; "
+                "ICATS samples L directly and reconstructs b from L/(mu*v_rel)."
+            )
+            return
+
         bmax_au = float(ip.MaxB)
         bmax_ang = bmax_au * au2ang
         _emit(f"maxb estimate basis: b_max = {bmax_ang:.6f} Ang ({bmax_au:.6e} a.u.)")
@@ -934,6 +922,14 @@ class icats:
             sa.slog += mol[i].log
             mol[i].log = []
             #print("Molecule " + str(i) + " done ...")
+        if ip.usewang and sa.id == 0 and any(m.sp.na == 1 for m in mol):
+            sa.slog += [
+                "WARNING: Wang-Landau weighting with an atom-containing system "
+                "can over-emphasize low-J cancellation geometries, because fewer "
+                "molecular angular degrees of freedom are available to balance "
+                "L and Jab. Inspect sampled L, J, Jab, and cos(theta_L,Jab) "
+                "diagnostics before trusting the umbrella.\n"
+            ]
         if sa.id == 0 and not self._logged_maxb_equiv:
             self._log_maxb_equivalence()
             self._logged_maxb_equiv = True
@@ -1372,7 +1368,8 @@ class icats:
                 break
               iiL = int(np.floor(wn*abs(sa.sJ)/ip.MaxJ))
               if iiL < len(sp.td):
-                if np.random.rand() <= sp.td[iiL]:
+                accept_wl = min(1.0, max(0.0, float(sp.td[iiL])))
+                if np.random.rand() <= accept_wl:
                   break
                 nreject_wl += 1
               else:
@@ -1434,7 +1431,9 @@ class icats:
           else:
             self.AddInfoToSamples(sa.sdat,sa.SampInfo)
           if (ii+1)%1000 == 0 and sa.id == 0 and ip.progress == "verbose":
-            print('AVERAGE COSTHETA = ', np.mean(sa.sdat['orb']['cosLJab_thet']))
+            vals = sa.sdat.get('orb', {}).get('cosLJab_thet', [])
+            if len(vals) > 0:
+              print('AVERAGE COSTHETA = ', np.mean(vals))
           if ip.save_frequency > 0 and ((ii+1) % ip.save_frequency == 0):
             if not os.path.isdir(ip.dirout):
               os.system("mkdir " + ip.dirout)
@@ -1527,6 +1526,7 @@ class icats:
 
         def GetiL(self,sa,rnge,cap):
           cost = []
+          cost_j = []
           iiLL = np.empty(rnge[1] - rnge[0], dtype=np.int32)
           for k, s in enumerate(range(rnge[0],rnge[1])):
             SampleWangAngularMomenta(
@@ -1541,14 +1541,17 @@ class icats:
             sa.costhet = costhet
             if abs(sa.costhet) < 1.0:
              cost.append(sa.costhet)
-            iiL = int(np.floor(wg.wn*abs(sa.sJ)/wg.maxr))
+             cost_j.append(float(sa.sJ))
+            if abs(sa.sJ) < ip.wl_j_min:
+              iiL = -1
+            else:
+              iiL = int(np.floor(wg.wn*abs(sa.sJ)/wg.maxr))
             iiLL[k] = iiL
-          return iiLL
+          return iiLL, np.asarray(cost, dtype=float), np.asarray(cost_j, dtype=float)
         def flatten(xss):
           return [x for xs in xss for x in xs] 
         wg = self.InitWang()
         n = 0
-        iL = 4
         ip = self.ip 
         sp = self.sp 
         ff_init = float(wg.ff)
@@ -1558,8 +1561,17 @@ class icats:
           log_denom = 1.0
         wg.maxr = float(ip.wl_j_range) if ip.wl_j_range is not None else float(ip.PeakJab*4)
         cap = float(ip.wl_l_cap) if ip.wl_l_cap is not None else float(ip.PeakJab*5)
+        if ip.wl_j_min < 0.0:
+          raise ValueError("wl-j-min must be non-negative")
+        if ip.wl_j_min >= wg.maxr:
+          raise ValueError("wl-j-min must be smaller than the Wang-Landau J range")
+        min_iL = int(np.floor(wg.wn * float(ip.wl_j_min) / wg.maxr))
+        min_iL = min(max(0, min_iL), wg.wn - 1)
+        iL = max(4, min_iL)
         wl_bar = None
         wl_bar_total = 1000
+        wl_costheta_last = np.array([], dtype=float)
+        wl_costheta_j_last = np.array([], dtype=float)
         if ip.progress == "normal":
           wl_bar = tqdm(
               total=wl_bar_total,
@@ -1575,8 +1587,12 @@ class icats:
           wg.hh = np.zeros(wg.wn)
           edges = np.linspace(0, wg.nstep, ip.nwork + 1, dtype=int)
           iiLL_parts = Parallel(n_jobs=ip.nwork)(delayed(GetiL)(self, wks[i], [int(edges[i]), int(edges[i+1])], cap) for i in range(ip.nwork))
-          iiLL = np.concatenate(iiLL_parts)
+          iiLL = np.concatenate([part[0] for part in iiLL_parts])
+          wl_costheta_last = np.concatenate([part[1] for part in iiLL_parts if len(part[1]) > 0]) if any(len(part[1]) > 0 for part in iiLL_parts) else np.array([], dtype=float)
+          wl_costheta_j_last = np.concatenate([part[2] for part in iiLL_parts if len(part[2]) > 0]) if any(len(part[2]) > 0 for part in iiLL_parts) else np.array([], dtype=float)
           for iiL in iiLL: 
+            if iiL < 0:
+              continue
             if iiL <= wg.wn-1:
               accept_prob = min(1,np.exp(wg.uu[iL] - wg.uu[iiL]))         
               if np.random.rand() < accept_prob:
@@ -1586,8 +1602,9 @@ class icats:
               continue
             wg.uu[iL] += np.log(wg.ff)
             wg.hh[iL] += 1
-          hmin = float(wg.hh.min())
-          hcrit = float(wg.flatness * wg.hh.mean())
+          active_hh = wg.hh[min_iL:]
+          hmin = float(active_hh.min())
+          hcrit = float(wg.flatness * active_hh.mean())
           acc_rate = float(ac) / float(wg.nstep)
           flat_ratio = hmin / (hcrit + 1.0e-15)
           log_gap = np.log(max(wg.ff, ff_tol + 1e-15)) - np.log(max(ff_tol, 1e-15))
@@ -1642,6 +1659,15 @@ class icats:
             )
             wl_bar.close()
           print(f'WL complete: iter={n}, ff={wg.ff:.8f}, tol={ip.wl_tol:.8f}, progress={100.0*progf:.2f}%, log_gap={log_gapf:.3e}, rem_log={100.0*log_remf:.2f}%')
+        if wl_costheta_last.size > 0:
+          res = write_costheta_diagnostics(
+              self._runpath("convergence"),
+              wl_costheta_last,
+              js=wl_costheta_j_last,
+              prefix="wl_costheta_last_iter",
+          )
+          if res.get("warning"):
+            self.log += ["WARNING: WL last-iteration L-Jab angular-correlation diagnostic exceeded heuristic limit; see " + res.get("summary_path", self._runpath("convergence")) + "\n"]
         if ip.progress == "verbose":
           print('U = ', wg.uu)
         dlj = float(wg.maxr)/float(wg.wn)
@@ -1678,7 +1704,15 @@ class icats:
         if ip.progress == "verbose":
           print('iwl= ', [wg.iwl(j) for j in range(ip.PeakJab*4)])
         #print('iwl= ', [wg.iwl(j) for j in range(ip.MaxJp)])
-        nn = min([wg.iwl(float(j)) for j in range(0,3)])
+        nn0 = min(max(0, int(np.ceil(float(ip.wl_j_min)))), int(np.ceil(wg.maxr)) - 1)
+        nn_vals = np.array([wg.iwl(float(j)) for j in range(nn0, min(nn0 + 3, int(np.ceil(wg.maxr))))], dtype=float)
+        nn_pos = nn_vals[np.isfinite(nn_vals) & (nn_vals > 0.0)]
+        if nn_pos.size > 0:
+          nn = float(np.min(nn_pos))
+        else:
+          nn = float(np.max(np.abs(nn_vals))) if nn_vals.size > 0 else 1.0
+        if not np.isfinite(nn) or nn <= 0.0:
+          raise ValueError("Invalid Wang-Landau normalization while building Omega(J)")
         if ip.progress == "verbose":
           print('nn = ', nn)
         wg.iwl = CubicSpline(jj, uu/nn, bc_type="natural", extrapolate=True)
@@ -1691,6 +1725,16 @@ class icats:
         else:
           wl_range = int(np.ceil(wg.maxr))
           sp.iwld = np.array([wg.iwl(j) for j in range(wl_range)])
+          if np.all(sp.iwld < 0.0):
+            sp.iwld = -sp.iwld
+          good_iwld = np.isfinite(sp.iwld) & (sp.iwld > 0.0)
+          if not np.all(good_iwld):
+            if np.any(good_iwld):
+              floor_iwld = float(np.min(sp.iwld[good_iwld]))
+              sp.iwld = np.where(good_iwld, sp.iwld, floor_iwld)
+              self.log += ["WARNING: clipped non-positive Wang-Landau Omega(J) spline values to the smallest positive value.\n"]
+            else:
+              raise ValueError("Invalid Wang-Landau Omega(J): no positive finite density values")
           if ip.progress == "verbose":
             print('IWLD = ', sp.iwld)
           if ip.wl_target == "linear-j":
@@ -1700,11 +1744,27 @@ class icats:
           else:
             raise ValueError("Unknown wl-target: " + str(ip.wl_target))
           sp.td = target_j/sp.iwld
+          jmin_idx = int(np.ceil(float(ip.wl_j_min)))
+          jmin_idx = min(max(0, jmin_idx), len(sp.td) - 1)
+          if jmin_idx > 0:
+            sp.iwld[:jmin_idx] = sp.iwld[jmin_idx]
+            sp.td[:jmin_idx] = sp.td[jmin_idx] * float(ip.wl_low_j_scale)
           tail0 = min(len(sp.td) - 1, max(0, int(len(sp.td)*0.75)))
           mntd = np.mean(sp.td[tail0:])
           td2 = [mntd for _ in range(wl_range,ip.MaxJ)]
           sp.td = np.array(sp.td.tolist() +td2)
-          sp.td = sp.td/sp.td.max()
+          good_td = np.isfinite(sp.td) & (sp.td > 0.0)
+          if not np.all(good_td):
+            if np.any(good_td):
+              floor_td = float(np.min(sp.td[good_td]))
+              sp.td = np.where(good_td, sp.td, floor_td)
+              self.log += ["WARNING: clipped non-positive Wang-Landau rejection weights to the smallest positive value.\n"]
+            else:
+              raise ValueError("Invalid Wang-Landau rejection weights: no positive finite values")
+          tdmax = float(np.max(sp.td))
+          if not np.isfinite(tdmax) or tdmax <= 0.0:
+            raise ValueError("Invalid Wang-Landau rejection weights: non-positive normalization")
+          sp.td = np.minimum(sp.td/tdmax, 1.0)
 
         if ip.progress == "verbose":
           print('TD = ', sp.td)
@@ -1713,13 +1773,14 @@ class icats:
         wang.save(self._runpath('wang.pkl'), sp.uu, sp.iwld, sp.td, wang.metadata_from_input(ip))
         wl_dir = self._runpath("histograms/wl")
         os.makedirs(wl_dir, exist_ok=True)
+        td_ylabel = "target weight 1/Omega(J)" if ip.wl_target == "flat-j" else "target weight (2J+1)/Omega(J)"
         write_wl_plot_script(
             sp.td,
             J_range=(0, ip.MaxJ),
             script_path=os.path.join(wl_dir, "wl_td_plot.py"),
             outfile="wl_td_plot.png",
             title="WL sampling correction vs. J",
-            ylabel="target weight (2J+1)/Omega(J)",
+            ylabel=td_ylabel,
         )
         write_wl_plot_script(
             sp.iwld,
@@ -2392,6 +2453,7 @@ class icats:
           sa.SampInfo['orb']["LJab_al"] = LJab_al
           sa.SampInfo['orb']["LJab_be"] = LJab_be
           sa.SampInfo['orb']["cosLJab_thet"] = cosLJab_thet
+          sa.SampInfo['orb']["J_for_cosLJab_thet"] = nJ
         sa.SampInfo['orb']['b'] = b
         sa.SampInfo['orb']['phi'] = phi
         sa.sb = b 
@@ -2676,7 +2738,14 @@ class icats:
          open(ip.fileout +"_full.xyz", "w").writelines(slog)
          open(ip.fileout +"_full.vel", "w").writelines(vslog)
         self.sdat = self.MergeSdats(wks)
-        self._write_costheta_convergence()
+        res = write_costheta_diagnostics(
+            self._runpath("convergence"),
+            self.sdat.get('orb', {}).get('cosLJab_thet', []),
+            js=self.sdat.get('orb', {}).get('J_for_cosLJab_thet', []),
+            prefix="costheta",
+        )
+        if res.get("warning"):
+            self.log += ["WARNING: L-Jab angular-correlation diagnostic exceeded heuristic limit; see " + res.get("summary_path", self._runpath("convergence")) + "\n"]
         self.saveworkers(wks)
         self.savedata()
         if ip.KeepInfo: 
@@ -2741,6 +2810,7 @@ class icats:
       sdat[ky]['iJ'], sdat[ky]['iL'] = [], []
       sdat[ky]['sJ'], sdat[ky]['sL'], sdat[ky]['sJab'] = [], [], [] 
       sdat[ky]['LJab_be'], sdat[ky]['LJab_al'], sdat[ky]["cosLJab_thet"] = [], [], []
+      sdat[ky]["J_for_cosLJab_thet"] = []
       # plot orbital cylibdrical coordinates 
       sdat[ky]['sb'], sdat[ky]['sphi'] = [], [] 
       # plot intermolecular COM kinetic-energy shares separately; the raw

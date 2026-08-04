@@ -11,7 +11,7 @@ import numpy as np
 def metadata_from_input(ip) -> Dict[str, Any]:
     return {
         "format": "icats-wang-umbrella",
-        "version": 1,
+        "version": 2,
         "maxj": int(ip.MaxJ),
         "maxl": int(ip.MaxL),
         "orbital_sampling": str(getattr(ip, "orbital_sampling", "geometric")),
@@ -24,6 +24,8 @@ def metadata_from_input(ip) -> Dict[str, Any]:
         "wl_wn_factor": float(ip.wl_wn_factor),
         "wl_wn": None if ip.wl_wn is None else int(ip.wl_wn),
         "wl_j_range": None if getattr(ip, "wl_j_range", None) is None else float(ip.wl_j_range),
+        "wl_j_min": float(getattr(ip, "wl_j_min", 0.0)),
+        "wl_low_j_scale": float(getattr(ip, "wl_low_j_scale", 0.25)),
         "wl_l_cap": None if getattr(ip, "wl_l_cap", None) is None else float(ip.wl_l_cap),
         "wl_tol": float(ip.wl_tol),
     }
@@ -92,6 +94,22 @@ def validate(path: str, uu, iwld, td, metadata, expected_metadata: Dict[str, Any
         )
     if len(td) == 0 or not np.all(np.isfinite(td)):
         raise ValueError("Invalid Wang-Landau umbrella weights in: " + path)
+    if np.any(td < -1.0e-12) or np.any(td > 1.0 + 1.0e-12):
+        raise ValueError(
+            "Invalid Wang-Landau umbrella rejection weights in: "
+            + path
+            + "\nStored td values must lie between 0 and 1. "
+            + "Move or rename the existing wang.pkl, then rerun so a new "
+            + "umbrella is generated."
+        )
+    if len(iwld) > 0 and (not np.all(np.isfinite(iwld)) or np.any(iwld <= 0.0)):
+        raise ValueError(
+            "Invalid Wang-Landau density estimate in: "
+            + path
+            + "\nStored Omega(J) values must be finite and positive. "
+            + "Move or rename the existing wang.pkl, then rerun so a new "
+            + "umbrella is generated."
+        )
 
     if metadata is None:
         return (
@@ -101,6 +119,7 @@ def validate(path: str, uu, iwld, td, metadata, expected_metadata: Dict[str, Any
 
     checks = [
         ("maxj", int),
+        ("version", int),
         ("maxl", int),
         ("orbital_sampling", str),
         ("wl_target", str),
@@ -119,7 +138,7 @@ def validate(path: str, uu, iwld, td, metadata, expected_metadata: Dict[str, Any
                 + str(expected_metadata.get(key))
             )
 
-    for key in ("wl_ff", "wl_flatness", "wl_wn_factor", "wl_j_range", "wl_l_cap", "wl_tol"):
+    for key in ("wl_ff", "wl_flatness", "wl_wn_factor", "wl_j_range", "wl_j_min", "wl_low_j_scale", "wl_l_cap", "wl_tol"):
         if metadata.get(key) is None and expected_metadata.get(key) is None:
             continue
         if key not in metadata:

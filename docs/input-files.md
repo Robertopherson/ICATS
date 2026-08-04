@@ -484,6 +484,9 @@ function: ICATS multiplies the returned value by `sin(beta)` during sampling.
 The return value must be finite and non-negative everywhere in the sampled
 domain. Negative values, `nan`, or `inf` indicate an input error.
 
+The orientation PDF biases only the sampled Euler angles. Molecular rotor `J`
+is still sampled with the field-free `(2J + 1)` projection-state count.
+
 For a simple dipole-like toy PDF, a suitable function is proportional to
 `1 + A cos(theta_muE)`, where `theta_muE` is computed from the body-fixed
 molecular dipole after rotating it by `alpha,beta,gamma` into the scattering
@@ -540,6 +543,8 @@ oscillator width (`vstat = 0`), so it is not a rigid-bond setting.
 | `wl-flatness` | `wl-flatness = 0.90` | Histogram flatness criterion. Larger is stricter. |
 | `wl-wn-factor` | `wl-wn-factor = 4.0` | Sets WL bins from `PeakJab * factor`. |
 | `wl-j-range` | `wl-j-range = 60` | Upper `J` range for the explicit WL density estimate. |
+| `wl-j-min` | `wl-j-min = 5.0` | Low-`J` boundary for the explicit WL fit. Lower production `J` values are allowed but use the boundary correction. |
+| `wl-low-j-scale` | `wl-low-j-scale = 0.15` | Scale applied to production rejection weights below `wl-j-min`. Smaller values sacrifice very-low-`J` flatness to reduce forced cancellation geometries. |
 | `wl-j-bins` | `wl-j-bins = 80` | Directly sets the number of WL bins. |
 | `wl-l-cap` | `wl-l-cap = 60` | Orbital `L` proposal cap during WL construction. |
 | `wl-wn` | `wl-wn = 80` | Old alias for `wl-j-bins`. |

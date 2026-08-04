@@ -280,6 +280,7 @@ angular-momentum check:
 
 ```bash
 ./rd_tutorial_input/histograms/plot_orbital_jljab.sh
+./rd_tutorial_input/histograms/plot_orbital_correlation.sh
 ```
 
 This renders the sampled `L`, `J`, and `Jab` histograms without plotting every

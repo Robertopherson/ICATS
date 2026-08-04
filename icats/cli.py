@@ -18,7 +18,9 @@ TUTORIAL_ORDER = [
     "flat_l_atom_diatom_ar_no",
     "single_atom_diatom_he_n2_wl",
     "flat_l_atom_diatom_he_n2_wl",
+    "flat_l_diatom_diatom_n2_n2_wl",
     "wang_landau_nh3_h2o",
+    "paper_nh3_h2o_100k",
     "npz_output_co2_co2",
 ]
 
@@ -254,10 +256,10 @@ TUTORIALS = {
             "wlmode = default",
             "wl-target = flat-j",
             "wl-j-range = 60",
-            "wl-j-bins = 80",
+            "wl-j-bins = 60",
             "wl-l-cap = 59",
-            "wl-flatness = 0.90",
-            "wl-nstep = 500",
+            "wl-flatness = 0.95",
+            "wl-nstep = 1000",
             "run-mode = fresh",
             "orbital-sampling = flat-l",
             "phisample = True",
@@ -270,6 +272,39 @@ TUTORIALS = {
             "The final L and J marginals can be only approximately flat because the one-dimensional WL acceptance still couples L, J, and Jab.",
             "Uses wl-j-range, wl-j-bins, and wl-l-cap to make the WL diagnostic range explicit.",
             "Inspect the WL umbrella plus sampled L, J, and Jab histograms before trusting production settings.",
+        ],
+    },
+    "flat_l_diatom_diatom_n2_n2_wl": {
+        "desc": "N2 + N2 flat-L Wang-Landau diagnostic with two molecular rotors",
+        "mol0": "n2_dat.txt",
+        "mol1": "n2_dat.txt",
+        "nsamp": 40,
+        "ntraj": 3,
+        "steps": 150,
+        "maxl": 100,
+        "maxb": 10,
+        "extra": [
+            "wang = True",
+            "wlmode = default",
+            "wl-target = flat-j",
+            "wl-j-range = 100",
+            "wl-j-bins = 50",
+            "wl-j-min = 5.0",
+            "wl-low-j-scale = 0.15",
+            "wl-l-cap = 100",
+            "wl-flatness = 0.95",
+            "wl-nstep = 1500",
+            "run-mode = fresh",
+            "orbital-sampling = flat-l",
+            "phisample = True",
+        ],
+        "notes": [
+            "Diatom-diatom companion to the He + N2 flat-L WL diagnostic.",
+            "Uses two molecular rotors, so Jab has more angular freedom than in atom-diatom tests.",
+            "This is intended as the clearer flat-J WL tutorial; He + N2 is kept as a stress case.",
+            "Uses wl-j-min = 5.0 and wl-low-j-scale = 0.15 so rare near-zero-J cancellation bins are not forced too strongly.",
+            "Inspect L, J, Jab, and cos(theta_L,Jab) diagnostics after running.",
+            "If you change WL range, bins, target, low-J boundary, or L cap, move rd_tutorial_input/wang.pkl before rerunning.",
         ],
     },
     "wang_landau_nh3_h2o": {
@@ -292,6 +327,46 @@ TUTORIALS = {
         "notes": [
             "Template to demonstrate WL workflow and restart behavior.",
             "For continuation, switch run-mode to continue in tutorial_input.txt.",
+        ],
+    },
+    "paper_nh3_h2o_100k": {
+        "desc": "NH3 + H2O 100k validation ensemble for manuscript Figures 6, 7, and 9",
+        "mol0": "paper_ammonia_dat.txt",
+        "mol1": "paper_h2o_dat.txt",
+        "nsamp": 100010,
+        "workers": 4,
+        "ntraj": 1,
+        "steps": 200,
+        "maxl": 70,
+        "maxb": 16,
+        "tvib": 500.0,
+        "trot": 500.0,
+        "rz": 20,
+        "printout": "0 0 0 0",
+        "extra": [
+            "beam-angle = 90.0",
+            "wang = True",
+            "wlmode = normal",
+            "wl-ff = 1.105170185988091",
+            "wl-nstep = 500",
+            "wl-flatness = 0.90",
+            "wl-wn-factor = 4.0",
+            "wl-tol = 1.00001",
+            "wl-angular-sampler = fast",
+            "wl-audit-angular-sampler = True",
+            "run-mode = fresh",
+            "phisample = True",
+        ],
+        "notes": [
+            "Paper-validation tutorial rather than a short introductory calculation.",
+            "Uses 100,010 collision samples, 500 K vibrational and rotational temperatures, and a 90 degree crossed-beam geometry.",
+            "The NH3 and H2O beam-speed distributions are centred at 600 and 800 m/s, respectively, with 100 m/s FWHM.",
+            "Uses an orbital cap of 70, giving the J/L support and upper-edge roll-off shown in manuscript Figure 9.",
+            "Freezes the normal WL profile at ff=exp(0.1), 500 trial steps per active bin, flatness 0.90, and tolerance 1.00001.",
+            "Run export_paper_histogram_data.py after icats.init to write compact CSV data for manuscript Figures 6, 7, and 9.",
+            "Run plot_paper_histograms.py to turn those tables into PNG and PDF validation composites.",
+            "Figure 8 is a separate fixed-J asymmetric-top benchmark and is not generated from this collision ensemble.",
+            "This calculation can take substantial time; run_paper_slurm.sh is supplied for a configured cluster environment.",
         ],
     },
     "npz_output_co2_co2": {
@@ -337,7 +412,7 @@ def _write_file(path: Path, text: str, executable: bool = False) -> None:
     if executable:
         path.chmod(0o755)
 
-def _write_histogram_helpers(out_dir: Path, run_tag: str = "tutorial_input") -> None:
+def _write_initial_histogram_helper(out_dir: Path, run_tag: str = "tutorial_input") -> None:
     hist_dir = out_dir / f"rd_{run_tag}" / "histograms"
     hist_dir.mkdir(parents=True, exist_ok=True)
 
@@ -357,6 +432,394 @@ def _write_histogram_helpers(out_dir: Path, run_tag: str = "tutorial_input") -> 
         "echo \"Initial histogram plots written to $HROOT/plots/initial/\"\n",
         executable=True,
     )
+
+
+def _write_histogram_helpers(
+    out_dir: Path,
+    run_tag: str = "tutorial_input",
+    include_paper: bool = False,
+) -> None:
+    _write_initial_histogram_helper(out_dir, run_tag=run_tag)
+    hist_dir = out_dir / f"rd_{run_tag}" / "histograms"
+    exporter = r'''#!/usr/bin/env python3
+"""Export the compact validation data used by manuscript Figures 6, 7, and 9."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import pickle
+from pathlib import Path
+
+import numpy as np
+
+
+def write_columns(path: Path, header: str, *columns) -> None:
+    arrays = [np.asarray(column) for column in columns]
+    if not arrays or any(len(column) != len(arrays[0]) for column in arrays):
+        raise ValueError("CSV columns must have equal lengths: " + str(path))
+    data = np.column_stack(arrays)
+    np.savetxt(path, data, delimiter=",", header=header, comments="")
+
+
+def write_histogram(path: Path, values, bins) -> None:
+    counts, edges = np.histogram(np.asarray(values, dtype=float), bins=bins)
+    widths = np.diff(edges)
+    density = counts / max(1, counts.sum()) / widths
+    write_columns(path, "bin_left,bin_right,count,density", edges[:-1], edges[1:], counts, density)
+
+
+def state_histogram(path: Path, values) -> None:
+    states, counts = np.unique(np.asarray(values, dtype=int), return_counts=True)
+    write_columns(path, "state,count,probability", states, counts, counts / counts.sum())
+
+
+def load_wang(path: Path):
+    with path.open("rb") as handle:
+        payload = pickle.load(handle)
+    if isinstance(payload, dict):
+        return payload["iwld"], payload["td"], payload.get("metadata", {})
+    uu, iwld, td = payload
+    return iwld, td, {"format": "legacy tuple"}
+
+
+def projection_arrays(rotor, j_value: int):
+    entry = rotor.get(j_value, rotor.get(str(j_value), {}))
+    return (
+        np.asarray(entry.get("jz", []), dtype=float),
+        np.asarray(entry.get("sjz", []), dtype=float),
+        np.asarray(entry.get("qjz", []), dtype=float),
+    )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--run-dir", default="rd_tutorial_input")
+    parser.add_argument("--output-dir", default="paper_histogram_data")
+    parser.add_argument("--vibrational-seed", type=int, default=20260619)
+    parser.add_argument("--vibrational-samples", type=int, default=100000)
+    args = parser.parse_args()
+
+    run_dir = Path(args.run_dir)
+    output = Path(args.output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    data_path = run_dir / "dat_''' + run_tag + r'''.txt.pkl"
+    wang_path = run_dir / "wang.pkl"
+    if not data_path.exists():
+        raise SystemExit("Missing sampled data: " + str(data_path) + ". Run icats.init first.")
+    if not wang_path.exists():
+        raise SystemExit("Missing Wang-Landau umbrella: " + str(wang_path) + ". Run icats.init first.")
+
+    with data_path.open("rb") as handle:
+        sampled = pickle.load(handle)
+
+    # Figure 6 is a one-mode component validation. All harmonic modes share this
+    # reduced distribution after mass-frequency scaling, so it is generated
+    # separately at the manuscript's NH3 umbrella-mode frequency and temperature.
+    nsamp = len(sampled["orb"]["sJ"])
+    vib_nsamp = args.vibrational_samples
+    if vib_nsamp <= 0:
+        raise SystemExit("--vibrational-samples must be positive")
+    rng = np.random.default_rng(args.vibrational_seed)
+    temp_k = 500.0
+    freq_cm = 652.27
+    kbt_cm = 0.69503476 * temp_k
+    states = np.arange(25)
+    probabilities = np.exp(-freq_cm * states / kbt_cm)
+    probabilities /= probabilities.sum()
+    vib_n = rng.choice(states, size=vib_nsamp, p=probabilities)
+    r2 = rng.gamma(shape=2 * vib_n + 1, scale=1.0)
+    phase = rng.random(vib_nsamp) * 2.0 * np.pi
+    vib_q = np.sqrt(r2) * np.cos(phase)
+    vib_p = np.sqrt(r2) * np.sin(phase)
+    vib_energy = 0.5 * (vib_q**2 + vib_p**2)
+    write_columns(
+        output / "figure6_mode1_vibrations.csv",
+        "state,Q,P,dimensionless_energy",
+        vib_n,
+        vib_q,
+        vib_p,
+        vib_energy,
+    )
+    state_histogram(output / "figure6_state_populations.csv", vib_n)
+    for state in (1, 2, 3):
+        write_histogram(output / f"figure6_n{state}_Q_histogram.csv", vib_q[vib_n == state], 100)
+
+    # Figure 7 uses the sampled molecular J distributions and the J=5
+    # body-fixed projection records. Both the sampled and Cartesian-reconstructed
+    # projection values are retained so the initial-condition audit is visible.
+    nh3_rot = sampled["rot"]["m0"]
+    h2o_rot = sampled["rot"]["m1"]
+    nh3_j = np.asarray(nh3_rot["J"], dtype=int)
+    h2o_j = np.asarray(h2o_rot["J"], dtype=int)
+    write_columns(output / "figure7_rotor_J_samples.csv", "sample,NH3_J,H2O_J", np.arange(nsamp), nh3_j, h2o_j)
+    state_histogram(output / "figure7_NH3_J_histogram.csv", nh3_j)
+    state_histogram(output / "figure7_H2O_J_histogram.csv", h2o_j)
+    for label, rotor in (("NH3", nh3_rot), ("H2O", h2o_rot)):
+        jz, analysed_jz, rms_jz = projection_arrays(rotor, 5)
+        nproj = min(len(jz), len(analysed_jz), len(rms_jz))
+        write_columns(
+            output / f"figure7_{label}_J5_projection.csv",
+            "sampled_Jz,analysed_Jz,quantum_rms_Jz",
+            jz[:nproj],
+            analysed_jz[:nproj],
+            rms_jz[:nproj],
+        )
+        if nproj:
+            write_histogram(output / f"figure7_{label}_J5_sampled_projection_histogram.csv", jz[:nproj], 30)
+
+    # Figure 9 is taken directly from the accepted bimolecular ensemble.
+    orb = sampled["orb"]
+    relative_velocity = np.asarray(sampled["vel"]["ivel"], dtype=float)
+    write_columns(
+        output / "figure9_intermolecular_samples.csv",
+        "sample,J,L,Jab,relative_velocity_m_per_s",
+        np.arange(nsamp),
+        orb["sJ"],
+        orb["sL"],
+        orb["sJab"],
+        relative_velocity,
+    )
+    angular_max = max(float(np.max(orb["sJ"])), float(np.max(orb["sL"])))
+    angular_edges = np.arange(0.0, 2.0 * np.ceil(angular_max / 2.0) + 4.0, 2.0)
+    write_histogram(output / "figure9_J_histogram.csv", orb["sJ"], angular_edges)
+    write_histogram(output / "figure9_L_histogram.csv", orb["sL"], angular_edges)
+    write_histogram(output / "figure9_relative_velocity_histogram.csv", relative_velocity, 100)
+    omega, acceptance, wang_metadata = load_wang(wang_path)
+    write_columns(
+        output / "figure9_wang_landau.csv",
+        "J,estimated_Omega_J,acceptance_weight",
+        np.arange(len(acceptance)),
+        np.pad(np.asarray(omega), (0, max(0, len(acceptance) - len(omega))), constant_values=np.nan)[:len(acceptance)],
+        acceptance,
+    )
+
+    metadata = {
+        "source_sample_pickle": str(data_path),
+        "source_wang_pickle": str(wang_path),
+        "accepted_samples": nsamp,
+        "figure6_samples": vib_nsamp,
+        "molecule_order": ["NH3", "H2O"],
+        "temperature_K": 500.0,
+        "beam_centres_m_per_s": [600.0, 800.0],
+        "beam_fwhm_m_per_s": [100.0, 100.0],
+        "beam_angle_degrees": 90.0,
+        "figure6_frequency_cm_inverse": freq_cm,
+        "figure6_seed": args.vibrational_seed,
+        "wang_landau": wang_metadata,
+        "scope": "Histogram data for manuscript Figures 6, 7, and 9; Figure 8 is a separate fixed-J benchmark.",
+    }
+    (output / "metadata.json").write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n")
+    print("Wrote paper validation data to", output.resolve())
+
+
+if __name__ == "__main__":
+    main()
+'''
+    if include_paper:
+        _write_file(out_dir / "export_paper_histogram_data.py", exporter, executable=True)
+
+    paper_plotter = r'''#!/usr/bin/env python3
+"""Plot the compact validation data for manuscript Figures 6, 7, and 9."""
+
+from __future__ import annotations
+
+import argparse
+import json
+from math import comb, gamma
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def read_csv(path: Path):
+    if not path.exists():
+        raise SystemExit("Missing " + str(path) + ". Run export_paper_histogram_data.py first.")
+    return np.genfromtxt(path, delimiter=",", names=True)
+
+
+def normalize(y, x):
+    area = np.trapz(y, x)
+    return y / area if area > 0.0 else y
+
+
+def hermite_values(n: int, x):
+    if n == 0:
+        return np.ones_like(x)
+    if n == 1:
+        return 2.0 * x
+    hm2 = np.ones_like(x)
+    hm1 = 2.0 * x
+    for k in range(1, n):
+        hn = 2.0 * x * hm1 - 2.0 * k * hm2
+        hm2, hm1 = hm1, hn
+    return hn
+
+
+def hermite_density(n: int, x):
+    return normalize(hermite_values(n, x) ** 2 * np.exp(-(x**2)), x)
+
+
+def leading_wigner_projection(n: int, x):
+    order = 2 * n
+    poly = np.zeros_like(x)
+    for j in range(order + 1):
+        poly += comb(order, j) * gamma(j + 0.5) * x ** (2 * (order - j))
+    return normalize(np.exp(-(x**2)) * poly / (np.pi * gamma(order + 1)), x)
+
+
+def plot_figure6(data_dir: Path, output: Path) -> None:
+    samples = read_csv(data_dir / "figure6_mode1_vibrations.csv")
+    grid = np.linspace(-5.5, 5.5, 1400)
+    fig, axes = plt.subplots(1, 3, figsize=(12.0, 3.2))
+    for ax, state in zip(axes, (1, 2, 3)):
+        q = samples["Q"][samples["state"].astype(int) == state]
+        if len(q):
+            ax.hist(q, bins=100, density=True, color="tab:blue", edgecolor="black", linewidth=0.3, alpha=0.55)
+        ax.plot(grid, leading_wigner_projection(state, grid), color="tab:red", lw=1.8, label="leading-Wigner")
+        ax.plot(grid, hermite_density(state, grid), color="black", lw=1.5, label="HO density")
+        label = rf"$n={state}$" + "\n" + rf"$N_{{MC}}={len(q)}$"
+        ax.text(0.04, 0.95, label, transform=ax.transAxes, va="top")
+        ax.set_xlim(-5.0, 5.0)
+        ax.set_xlabel(r"$Q$")
+    axes[0].set_ylabel(r"$\rho(Q)$")
+    axes[-1].legend(frameon=False, fontsize=8)
+    fig.tight_layout()
+    fig.savefig(output / "figure6_validation.png", dpi=180)
+    fig.savefig(output / "figure6_validation.pdf")
+    plt.close(fig)
+
+
+def state_bars(ax, table, title):
+    ax.bar(table["state"], table["probability"], width=0.9, color="tab:blue", edgecolor="black", linewidth=0.35)
+    ax.set_title(title)
+    ax.set_xlabel(r"$J$")
+    ax.set_ylabel("probability")
+
+
+def projection_panel(ax, data_dir: Path, molecule: str):
+    values = read_csv(data_dir / f"figure7_{molecule}_J5_projection.csv")
+    bins = np.linspace(-5.5, 5.5, 25)
+    ax.hist(values["sampled_Jz"], bins=bins, density=True, alpha=0.55, color="tab:blue", label="sampled")
+    ax.hist(values["analysed_Jz"], bins=bins, density=True, histtype="step", color="tab:red", lw=1.5, label="reconstructed")
+    ax.set_title(molecule + r" projection, $J=5$")
+    ax.set_xlabel(r"body-fixed $J_z$")
+    ax.set_ylabel("density")
+    ax.legend(frameon=False, fontsize=8)
+
+
+def plot_figure7(data_dir: Path, output: Path) -> None:
+    fig, axes = plt.subplots(2, 2, figsize=(9.0, 6.8))
+    state_bars(axes[0, 0], read_csv(data_dir / "figure7_NH3_J_histogram.csv"), r"NH$_3$ rotational states")
+    projection_panel(axes[0, 1], data_dir, "NH3")
+    state_bars(axes[1, 0], read_csv(data_dir / "figure7_H2O_J_histogram.csv"), r"H$_2$O rotational states")
+    projection_panel(axes[1, 1], data_dir, "H2O")
+    fig.tight_layout()
+    fig.savefig(output / "figure7_validation.png", dpi=180)
+    fig.savefig(output / "figure7_validation.pdf")
+    plt.close(fig)
+
+
+def histogram_bars(ax, table, title, xlabel):
+    centres = 0.5 * (table["bin_left"] + table["bin_right"])
+    widths = table["bin_right"] - table["bin_left"]
+    ax.bar(centres, table["density"], width=widths, color="tab:blue", edgecolor="black", linewidth=0.35, alpha=0.65)
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("density")
+    return centres
+
+
+def plot_figure9(data_dir: Path, output: Path) -> None:
+    fig, axes = plt.subplots(2, 2, figsize=(9.2, 6.8))
+    l_table = read_csv(data_dir / "figure9_L_histogram.csv")
+    j_table = read_csv(data_dir / "figure9_J_histogram.csv")
+    l_grid = histogram_bars(axes[0, 0], l_table, "Orbital angular momentum", r"$L$")
+    j_grid = histogram_bars(axes[0, 1], j_table, "Total angular momentum", r"$J$")
+    for ax, grid, label in ((axes[0, 0], l_grid, r"$1+2L$"), (axes[0, 1], j_grid, r"$1+2J$")):
+        target = 1.0 + 2.0 * grid
+        target /= np.trapz(target, grid)
+        ax.plot(grid, target, color="tab:red", lw=1.5, label=label)
+        ax.legend(frameon=False, fontsize=8)
+    v_table = read_csv(data_dir / "figure9_relative_velocity_histogram.csv")
+    v_grid = histogram_bars(axes[1, 0], v_table, "Relative beam speed", r"$|v_{AB}|$ / m s$^{-1}$")
+    sigma = 100.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    gaussian = np.exp(-0.5 * ((v_grid - 1000.0) / sigma) ** 2) / (sigma * np.sqrt(2.0 * np.pi))
+    axes[1, 0].plot(v_grid, gaussian, color="tab:red", lw=1.5, label="beam reference")
+    axes[1, 0].legend(frameon=False, fontsize=8)
+    wl = read_csv(data_dir / "figure9_wang_landau.csv")
+    axes[1, 1].plot(wl["J"], wl["acceptance_weight"], color="tab:red", lw=1.8)
+    axes[1, 1].set_title("Wang-Landau acceptance weight")
+    axes[1, 1].set_xlabel(r"$J$")
+    axes[1, 1].set_ylabel(r"$W(J)$")
+    fig.tight_layout()
+    fig.savefig(output / "figure9_validation.png", dpi=180)
+    fig.savefig(output / "figure9_validation.pdf")
+    plt.close(fig)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-dir", default="paper_histogram_data")
+    parser.add_argument("--output-dir", default="paper_histogram_plots")
+    args = parser.parse_args()
+    data_dir = Path(args.data_dir)
+    output = Path(args.output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    metadata = json.loads((data_dir / "metadata.json").read_text())
+    plot_figure6(data_dir, output)
+    plot_figure7(data_dir, output)
+    plot_figure9(data_dir, output)
+    print("Wrote validation plots for", metadata["accepted_samples"], "accepted samples to", output.resolve())
+
+
+if __name__ == "__main__":
+    main()
+'''
+    if include_paper:
+        _write_file(out_dir / "plot_paper_histograms.py", paper_plotter, executable=True)
+
+    if include_paper:
+        _write_file(
+            out_dir / "run_paper_slurm.sh",
+        "#!/usr/bin/env bash\n"
+        "#SBATCH --job-name=icats-paper-100k\n"
+        "#SBATCH --partition=nodes\n"
+        "#SBATCH --nodes=1\n"
+        "#SBATCH --ntasks=1\n"
+        "#SBATCH --cpus-per-task=16\n"
+        "#SBATCH --mem=32G\n"
+        "#SBATCH --time=12:00:00\n"
+        "#SBATCH --output=icats-paper-%j.out\n"
+        "#SBATCH --error=icats-paper-%j.err\n\n"
+        "set -euo pipefail\n"
+        "cd \"$(dirname \"${BASH_SOURCE[0]}\")\"\n"
+        "export OMP_NUM_THREADS=1\n"
+        "export OPENBLAS_NUM_THREADS=1\n"
+        "export MKL_NUM_THREADS=1\n"
+        "export NUMEXPR_NUM_THREADS=1\n"
+        "export NUMBA_CACHE_DIR=\"${NUMBA_CACHE_DIR:-/tmp/numba_cache_${USER:-user}}\"\n"
+        "export MPLCONFIGDIR=\"${MPLCONFIGDIR:-/tmp/mpl_cache_${USER:-user}}\"\n"
+        "mkdir -p \"$NUMBA_CACHE_DIR\" \"$MPLCONFIGDIR\"\n"
+        "ICATS_ENV=\"${ICATS_ENV:-icats_clean}\"\n"
+        "if command -v conda >/dev/null 2>&1; then\n"
+        "  eval \"$(conda shell.bash hook)\"\n"
+        "  conda activate \"$ICATS_ENV\"\n"
+        "fi\n"
+        "if ! command -v icats.init >/dev/null 2>&1; then\n"
+        "  echo \"icats.init is not available. Activate the environment containing the frozen ICATS release.\" >&2\n"
+        "  exit 1\n"
+        "fi\n"
+        "WORKERS=\"${SLURM_CPUS_PER_TASK:-1}\"\n"
+        "sed -i -E \"s/^[[:space:]]*workers[[:space:]]*=.*/workers = ${WORKERS}/\" tutorial_input.txt\n"
+        "printf 'ICATS commit: '; python -c 'import pathlib, subprocess; p=pathlib.Path(__import__(\"icats\").__file__).resolve().parent.parent; print(subprocess.run([\"git\", \"-C\", str(p), \"rev-parse\", \"HEAD\"], text=True, capture_output=True).stdout.strip() or p)'\n"
+        "echo \"ICATS workers: $WORKERS\"\n"
+        "icats.init tutorial_input.txt\n"
+        "python export_paper_histogram_data.py --vibrational-samples 100000\n"
+        "python plot_paper_histograms.py\n",
+            executable=True,
+        )
 
     _write_file(
         hist_dir / "plot_sampled.sh",
@@ -384,15 +847,48 @@ def _write_histogram_helpers(out_dir: Path, run_tag: str = "tutorial_input") -> 
         "export MPLCONFIGDIR=\"${MPLCONFIGDIR:-/tmp/mpl_cache_${USER:-user}}\"\n"
         "mkdir -p \"$MPLCONFIGDIR\"\n"
         "mkdir -p \"$HROOT/plots/sampled\"\n"
-        "for metric in sl sj sjab; do\n"
+        "for metric in sl sj sjab cosljab_thet; do\n"
         "  f=\"$HROOT/sampled/system/hist_sam_sys_orb_${metric}.py\"\n"
         "  if [ ! -f \"$f\" ]; then\n"
+        "    if [ \"$metric\" = cosljab_thet ]; then\n"
+        "      echo \"Skipping missing optional $f (no nonzero L/Jab angles recorded).\" >&2\n"
+        "      continue\n"
+        "    fi\n"
         "    echo \"Missing $f. Run icats.init with hist_sampled = True first.\" >&2\n"
         "    exit 1\n"
         "  fi\n"
         "  python \"$f\" --no-show --outfile \"$HROOT/plots/sampled/hist_sam_sys_orb_${metric}\"\n"
         "done\n"
-        "echo \"Orbital J/L/Jab plots written to $HROOT/plots/sampled/\"\n",
+        "echo \"Orbital J/L/Jab/cos(theta) plots written to $HROOT/plots/sampled/\"\n",
+        executable=True,
+    )
+
+    _write_file(
+        hist_dir / "plot_orbital_correlation.sh",
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n"
+        "HROOT=\"${HIST_ROOT:-$SCRIPT_DIR}\"\n"
+        "RROOT=\"$(dirname \"$HROOT\")\"\n"
+        "CONV=\"$RROOT/convergence\"\n"
+        "export MPLCONFIGDIR=\"${MPLCONFIGDIR:-/tmp/mpl_cache_${USER:-user}}\"\n"
+        "mkdir -p \"$MPLCONFIGDIR\"\n"
+        "mkdir -p \"$HROOT/plots/sampled\"\n"
+        "f=\"$HROOT/sampled/system/hist_sam_sys_orb_cosljab_thet.py\"\n"
+        "if [ -f \"$f\" ]; then\n"
+        "  python \"$f\" --no-show --outfile \"$HROOT/plots/sampled/hist_sam_sys_orb_cosljab_thet\"\n"
+        "else\n"
+        "  echo \"Missing optional $f (no nonzero L/Jab angles recorded).\" >&2\n"
+        "fi\n"
+        "if [ -f \"$CONV/costheta_j_vs_costheta_plot.py\" ]; then\n"
+        "  (cd \"$CONV\" && python costheta_j_vs_costheta_plot.py --no-show --outfile \"$HROOT/plots/sampled/costheta_j_vs_costheta\")\n"
+        "else\n"
+        "  echo \"Missing $CONV/costheta_j_vs_costheta_plot.py. Run icats.init first.\" >&2\n"
+        "fi\n"
+        "if [ -f \"$CONV/wl_costheta_last_iter_j_vs_costheta_plot.py\" ]; then\n"
+        "  (cd \"$CONV\" && python wl_costheta_last_iter_j_vs_costheta_plot.py --no-show --outfile \"$HROOT/plots/sampled/wl_costheta_last_iter_j_vs_costheta\")\n"
+        "fi\n"
+        "echo \"Orbital correlation plots written to $HROOT/plots/sampled/\"\n",
         executable=True,
     )
 
@@ -817,8 +1313,9 @@ def _generate_tutorial(
     cfg = TUTORIALS[name]
     nsamp = int(nsamp_override) if nsamp_override is not None else int(cfg["nsamp"])
     ntraj = int(ntraj_override) if ntraj_override is not None else int(cfg["ntraj"])
-    hist_enabled = hist_samples is not None and hist_samples > 0
+    hist_enabled = (hist_samples is not None and hist_samples > 0) or bool(cfg.get("hist_by_default", False))
     is_wl = any(line.strip().lower() == "wang = true" for line in cfg.get("extra", []))
+    is_paper = name == "paper_nh3_h2o_100k"
     ex_dir = _examples_dir()
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -995,13 +1492,28 @@ def _generate_tutorial(
         "- Changing the frame changes vector components, SF/BF Euler angles, and exported xyz/vel coordinates, so regenerate samples after changing it.\n\n"
     )
 
-    run_order = (
-        "Run sequence:\n"
-        "1) Read this file and inspect tutorial_input.txt.\n"
-        "2) Run initial-condition generation:\n"
-        "   icats.init tutorial_input.txt\n"
-    )
-    if is_wl:
+    if is_paper:
+        run_order = (
+            "Run sequence:\n"
+            "1) Read this file and inspect tutorial_input.txt.\n"
+            "2) Submit to a configured SLURM compute node:\n"
+            "   sbatch run_paper_slurm.sh\n"
+            "   Alternatively, on a suitable interactive compute node run:\n"
+            "   icats.init tutorial_input.txt\n"
+            "3) For an interactive run, export the paper data after sampling:\n"
+            "   python export_paper_histogram_data.py\n"
+            "4) Create the paper-validation plots:\n"
+            "   python plot_paper_histograms.py\n"
+            "   The SLURM wrapper performs all three commands automatically.\n\n"
+        )
+    else:
+        run_order = (
+            "Run sequence:\n"
+            "1) Read this file and inspect tutorial_input.txt.\n"
+            "2) Run initial-condition generation:\n"
+            "   icats.init tutorial_input.txt\n"
+        )
+    if is_wl and not is_paper:
         run_order += (
             "3) For Wang-Landau tutorials, the first run may mainly build rd_tutorial_input/wang.pkl.\n"
             "   If sampled histogram scripts are missing after the first run, run the same command again:\n"
@@ -1010,15 +1522,16 @@ def _generate_tutorial(
         )
         dynamics_step = 4
         analysis_step = 5
-    else:
+    elif not is_paper:
         dynamics_step = 3
         analysis_step = 4
-    run_order += (
-        f"{dynamics_step}) Optional cheap dynamics demonstration:\n"
-        "   ./run_cheap_dynamics.sh\n"
-        f"{analysis_step}) Optional trajectory analysis after cheap dynamics:\n"
-        "   ./run_analysis.sh\n\n"
-    )
+    if not is_paper:
+        run_order += (
+            f"{dynamics_step}) Optional cheap dynamics demonstration:\n"
+            "   ./run_cheap_dynamics.sh\n"
+            f"{analysis_step}) Optional trajectory analysis after cheap dynamics:\n"
+            "   ./run_analysis.sh\n\n"
+        )
 
     expected_text = (
         "Main outputs to expect:\n"
@@ -1037,10 +1550,22 @@ def _generate_tutorial(
             "- rd_tutorial_input/histograms/sampled/\n"
             "- rd_tutorial_input/histograms/plots/\n"
         )
-    expected_text += (
-        "- rd_tutorial_input/outputs/out_*.xyz and out_*.vel when printout requests trajectory files\n"
-        "- rd_tutorial_input/outputs/dynamics*.analinfo after ./run_analysis.sh\n\n"
-    )
+    if is_paper:
+        expected_text += (
+            "- rd_tutorial_input/dat_tutorial_input.txt.pkl\n"
+            "- paper_histogram_data/figure6_*.csv\n"
+            "- paper_histogram_data/figure7_*.csv\n"
+            "- paper_histogram_data/figure9_*.csv\n"
+            "- paper_histogram_data/metadata.json\n\n"
+            "- paper_histogram_plots/figure6_validation.png and .pdf\n"
+            "- paper_histogram_plots/figure7_validation.png and .pdf\n"
+            "- paper_histogram_plots/figure9_validation.png and .pdf\n\n"
+        )
+    else:
+        expected_text += (
+            "- rd_tutorial_input/outputs/out_*.xyz and out_*.vel when printout requests trajectory files\n"
+            "- rd_tutorial_input/outputs/dynamics*.analinfo after ./run_analysis.sh\n\n"
+        )
 
     after_init_note = ""
     if hist_enabled:
@@ -1052,7 +1577,7 @@ def _generate_tutorial(
             "  ./rd_tutorial_input/histograms/plot_sampled.sh\n"
             "  ./rd_tutorial_input/histograms/plot_compare_pairs.sh\n\n"
             "- For a quick intermolecular check, plot only system L, J, and Jab:\n"
-            "  ./rd_tutorial_input/histograms/plot_orbital_jljab.sh\n\n"
+            "  ./rd_tutorial_input/histograms/plot_orbital_jljab.sh\n  ./rd_tutorial_input/histograms/plot_orbital_correlation.sh\n\n"
             "- Open the resulting PNGs in:\n"
             "  rd_tutorial_input/histograms/plots/sampled/\n\n"
         )
@@ -1070,6 +1595,45 @@ def _generate_tutorial(
             "  cd ../../..\n\n"
         )
 
+    if is_paper:
+        general_advice = (
+            "General Advice\n"
+            "==============\n\n"
+            "Environment setup:\n"
+            "1) Install and activate the frozen ICATS release used for the paper.\n"
+            "2) Confirm that `icats.init --help` resolves inside that environment.\n\n"
+            "Cluster note:\n"
+            "- Do not run the 100,000-sample calculation on a login node.\n"
+            "- Inspect the CPU, memory, wall-time, account, and partition directives in run_paper_slurm.sh before submission.\n"
+            "- The wrapper places numba and matplotlib caches under writable /tmp paths.\n\n"
+            "Rebuilding the umbrella:\n"
+            "- A compatible rd_tutorial_input/wang.pkl is reused on rerun.\n"
+            "- Move or rename it before rerunning only when the WL settings have changed.\n"
+            "- ICATS refuses metadata-incompatible umbrellas rather than silently overwriting them.\n\n"
+            "Interpreting the validation plots:\n"
+            "- Figure 6: sampled Q histograms should follow the smooth leading-Wigner curves; the black curves are the oscillatory harmonic-oscillator densities.\n"
+            "- Figure 7: sampled and Cartesian-reconstructed Jz histograms should overlap within Monte-Carlo noise.\n"
+            "- Figure 9: L and J should follow the triangular reference over most of the requested range, relative speed should peak near 1000 m/s, and the WL correction should become comparatively flat once L dominates Jab.\n"
+            "- Retain wang.pkl and metadata.json. A visually poor or strongly structured result should be diagnosed rather than hidden by replotting.\n\n"
+        )
+    else:
+        general_advice = (
+            "General Advice\n"
+            "==============\n\n"
+            "Environment setup:\n"
+            "1) ./setup_conda_env.sh icats_clean\n"
+            "2) conda activate icats_clean\n\n"
+            "Cluster/sandbox note:\n"
+            "- ICATS entry points and tutorial scripts set writable /tmp cache paths by default.\n"
+            "- This avoids numba/matplotlib cache errors on restricted/shared filesystems.\n\n"
+            "Spin/charge note for dynamics:\n"
+            "- Defaults are CHARGE=0 and SPIN=0.\n"
+            "- For open-shell systems set env vars, e.g.:\n"
+            "- CHARGE=0 SPIN=1 ./run_cheap_dynamics.sh\n\n"
+            "Continue sampling (adds more initial conditions):\n"
+            "- ./run_continue.sh 10\n\n"
+        )
+
     readme_text = (
         f"Tutorial: {name}\n"
         f"{cfg['desc']}\n\n"
@@ -1082,31 +1646,31 @@ def _generate_tutorial(
         f"{wl_umbrella_note}"
         f"{after_init_note}"
         f"{expected_text}"
-        "General Advice\n"
-        "==============\n\n"
-        "Environment setup:\n"
-        "1) ./setup_conda_env.sh icats_clean\n"
-        "2) conda activate icats_clean\n\n"
-        "Cluster/sandbox note:\n"
-        "- ICATS entry points and tutorial scripts set writable /tmp cache paths by default.\n"
-        "- This avoids numba/matplotlib cache errors on restricted/shared filesystems.\n\n"
-        "Spin/charge note for dynamics:\n"
-        "- Defaults are CHARGE=0 and SPIN=0.\n"
-        "- For open-shell systems set env vars, e.g.:\n"
-        "- CHARGE=0 SPIN=1 ./run_cheap_dynamics.sh\n\n"
-        "Continue sampling (adds more initial conditions):\n"
-        "- ./run_continue.sh 10\n\n"
+        f"{general_advice}"
     )
-    if not hist_enabled:
+    if not hist_enabled and not is_paper:
         readme_text += (
             "Optional histogram-heavy setup:\n"
             "- Regenerate this tutorial with --histograms [--hist-samples 10000].\n"
             "- Then run icats.init tutorial_input.txt to populate rd_tutorial_input/histograms/.\n\n"
         )
     _write_file(out_dir / "tutorial_README.txt", readme_text)
-    _write_histogram_helpers(out_dir, run_tag="tutorial_input")
+    _write_histogram_helpers(
+        out_dir,
+        run_tag="tutorial_input",
+        include_paper=name == "paper_nh3_h2o_100k",
+    )
     if name == "polarized_orientation_he_no":
         _write_polarization_histogram_helper(out_dir, run_tag="tutorial_input")
+    if is_paper:
+        for helper in (
+            "run_analysis.sh",
+            "run_cheap_dynamics.sh",
+            "run_continue.sh",
+            "run_tutorial_dyn.py",
+            "setup_conda_env.sh",
+        ):
+            (out_dir / helper).unlink(missing_ok=True)
 
 
 def _default_tutorial_dir(name: str) -> str:

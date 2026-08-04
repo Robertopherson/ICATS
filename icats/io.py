@@ -89,6 +89,8 @@ KNOWN_KEYS = {
     "wl-wn",
     "wl-j-bins",
     "wl-j-range",
+    "wl-j-min",
+    "wl-low-j-scale",
     "wl-l-cap",
     "wl-angular-sampler",
     "wl-audit-angular-sampler",
@@ -237,6 +239,8 @@ wlmode = default
 # wl-wn = 80
 # wl-j-bins = 80
 # wl-j-range = 60
+# wl-j-min = 0.0
+# wl-low-j-scale = 0.25
 # wl-l-cap = 60
 # wl-tol = 1.000001
 # wl-max-iter = 0

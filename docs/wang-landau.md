@@ -48,8 +48,8 @@ One could try to force both one-dimensional distributions by choosing the angle
 between `L` and `Jab` by hand. That would make the histogram look tidy, but it
 would also introduce an artificial correlation between the incoming collision
 geometry and the molecular internal rotation. Wang-Landau avoids that manual
-choice. It first estimates the trial total-`J` density `Omega_t(J)` generated
-by the chosen `L` proposal and independent `Jab` sampling, then uses an
+choice. During the Wang-Landau optimization, `Omega_t(J)` is the running trial estimate generated
+by the chosen `L` proposal and independent `Jab` sampling. After convergence, it is used as the estimated `J`-density of states (`J`-DOS) in the
 acceptance weight of the form
 
 ```text
@@ -78,7 +78,11 @@ This mode is useful when the user wants to sample low and high `L` more evenly
 and later apply their own `L`/`b` reweighting. It should not be read as a
 guarantee that the final one-dimensional `L` and `J` histograms will be
 perfectly flat; a one-dimensional acceptance in `J` still couples `L`, `J`, and
-`Jab`, especially near `J,L = 0`.
+`Jab`. Very low `J` is the hardest region: if `Jab` is nonzero, near-zero
+`J` can require rare cancellation geometries where `L` and `Jab` are
+anti-aligned. For this reason flat-`J` tutorials use `wl-j-min` and
+`wl-low-j-scale` to favour a less correlated ensemble over perfect very-low-`J`
+flatness.
 
 For typical crossed-beam conditions, the larger-`L` part of the ensemble is
 dominated by orbital angular momentum and already resembles the geometric
@@ -87,6 +91,13 @@ where `L` and `Jab` mix appreciably. The practical aim is balanced sampling:
 the accepted `L` and `J` histograms should both remain close to their intended
 forms for the selected target, while the angle between `L` and `Jab` is not
 being chosen artificially.
+
+Atom-containing systems, especially atom-diatom tests, are useful stress cases
+but not ideal examples of a successful flat-`J` WL target. With only one
+molecular rotor, low total `J` can be populated mainly by accepting
+near-cancellation geometries where `L` and `Jab` are anti-aligned. ICATS warns
+about this case and writes `cos(theta_L,Jab)` diagnostics so the accepted
+ensemble can be inspected directly.
 
 ## NH3 + H2O Example
 
@@ -103,7 +114,7 @@ of a finite requested angular-momentum window.
 <img src="assets/figures/wl-nh3-h2o-umbrella.png" alt="NH3 H2O Wang-Landau umbrella" style="width: 50%; min-width: 320px;">
 
 The corresponding Wang-Landau umbrella is largest at small `J`, where the
-molecular rotor sum `Jab` strongly affects the total `J` trial density. At
+molecular rotor sum `Jab` strongly affects the estimated `J`-DOS. At
 larger `J`, the umbrella becomes much flatter because the orbital angular
 momentum dominates and `J` increasingly tracks `L`.
 
@@ -209,6 +220,8 @@ This avoids accidentally overwriting a useful precomputed umbrella.
 | `wl-flatness` | Histogram flatness target | Higher is stricter |
 | `wl-tol` | Stopping tolerance for modification factor | Lower tolerance takes longer |
 | `wl-j-range` | Upper `J` range for the explicit WL density estimate | Increase if `Jab` has a useful tail beyond the default range |
+| `wl-j-min` | Low-`J` boundary for the explicit WL fit | Use cautiously when rare near-zero-`J` cancellations dominate the WL fit |
+| `wl-low-j-scale` | Rejection-weight scale below `wl-j-min` | Default `0.25`; values around `0.15` can be useful for flat-`J` diagnostics; decrease to protect `L`/`Jab` independence, increase to force flatter very-low `J` |
 | `wl-j-bins` | Number of explicit WL density bins | Increase to resolve the selected WL range more finely |
 | `wl-l-cap` | Orbital `L` cap used while building the WL umbrella | Match the production `maxl` when testing broad `J` ranges |
 | `wl-wn` | Old alias for `wl-j-bins` | Kept for existing inputs |
@@ -220,9 +233,20 @@ changes the selected upper range itself. If the sampled `Jab` histogram has a
 long tail, inspect the WL and `Jab` histograms before relying on the flattened
 high-`J` correction.
 
+`wl-j-min` excludes very low `J` bins from the WL flatness fit. The production
+correction below that boundary is obtained from the boundary value and then
+scaled by `wl-low-j-scale` (`0.25` by default). This is different from rejecting
+all low-`J` production samples: low-`J` events can still be generated, but the
+WL fit is not forced to spend most of its effort on rare near-cancellation
+geometries where `L` and `Jab` nearly cancel. The same caution applies in principle to
+`wl-target = linear-j`, but the triangular `(2J + 1)` target already assigns
+small weight to very low `J`, so the low-`J` region is usually less demanding
+than in flat-`J` runs. Increasing `wl-low-j-scale` makes the very-low-`J`
+histogram flatter; decreasing it usually gives a more natural `L` distribution
+and weaker `L`/`Jab` anti-correlation.
+
 `wl-target = linear-j` uses the default geometric target
-`(2J + 1) / Omega_t(J)`, where `Omega_t(J)` is the WL-estimated trial `J`
-density.
+`(2J + 1) / Omega_t(J)`, where the converged `Omega_t(J)` is the WL-estimated `J`-DOS.
 This is intended for the usual geometric impact-parameter proposal. For
 flat-`L` trajectory-budgeting runs, use `wl-target = flat-j`; this uses
 `1 / Omega_t(J)` and therefore does not add the extra `2J + 1` factor. ICATS
@@ -239,7 +263,7 @@ python wl_wl_plot.py
 ```
 
 These write `wl_td_plot.png` and `wl_wl_plot.png` in the same directory.
-The `wl_wl_plot` figure is the estimated natural sampled density
+The `wl_wl_plot` figure is the estimated `J`-DOS,
 `Omega_t(J)`, shown in normalized plotting units. It is a normalized diagnostic curve, not an absolute physical density of states.
 The `wl_td_plot` figure is the normalized sampling correction used to target
 the requested total-`J` distribution: `(2J + 1) / Omega_t(J)` for
@@ -260,6 +284,7 @@ For the focused system angular-momentum check, generated tutorials also include:
 
 ```bash
 ./rd_tutorial_input/histograms/plot_orbital_jljab.sh
+./rd_tutorial_input/histograms/plot_orbital_correlation.sh
 ```
 
 These plots are a practical sanity check that the requested `J` and `L` ranges

@@ -57,6 +57,8 @@ OPTIONAL_INPUT_KEYS = [
     ("wl-flatness", "Override Wang-Landau flatness criterion."),
     ("wl-wn-factor", "Override Wang-Landau wn density factor (wn ~ PeakJab * factor)."),
     ("wl-j-range", "Override explicit Wang-Landau J range."),
+    ("wl-j-min", "Low-J boundary for the explicit WL fit; lower J uses the boundary correction."),
+    ("wl-low-j-scale", "Scale applied to rejection weights below wl-j-min (default 0.25)."),
     ("wl-j-bins", "Override number of Wang-Landau J bins."),
     ("wl-l-cap", "Override orbital L cap during Wang-Landau construction."),
     ("wl-wn", "Old alias for wl-j-bins."),
@@ -161,7 +163,11 @@ def main() -> int:
     sc.ip.logfile_path = logfile_path
     # Flush parsed/setup information before sampling starts.
     write_run_log(logfile_path, sc.log)
-    sc.GenSamples()
+    try:
+        sc.GenSamples()
+    except ValueError as exc:
+        print("ERROR:", exc)
+        return 2
     live_lines = []
     try:
         live_lines = [

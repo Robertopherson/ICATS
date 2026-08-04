@@ -317,16 +317,6 @@ def IsoRotorTotBoltzICDF(rng,T,A,Jmax):
     sigma = 1/(np.sqrt(2*A/(kboltz*T))+1e-10 )
     return np.round(J), (2J+1)*GaussianF2(J+0.5,0.0,sigma)
 
-def AniRotorTotBoltzICDF(rng,T,A,Jmax):
-    sigma = 1/(np.sqrt(2*A/(kboltz*T))+1e-10)
-    J = 1000000 
-    while J > Jmax:
-     u1 = rng[0].random()
-     u2 = rng[0].random()
-     r = np.sqrt(-2*np.log(u1)) * sigma
-     theta = 2*np.pi*u2
-     J = abs(r * np.cos(theta)) - 0.5
-    return np.round(J), GaussianF2(J+0.5,0.0,sigma)
 
 def SymRotorProjBoltzICDF(rng,T,A,J):
     if A > 0.0:   #for prolates 

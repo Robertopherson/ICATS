@@ -1705,11 +1705,10 @@ class imolecule:
                 MaxR = ip.MaxR
                 sa.dist['rotJ']['MaxR'] = ip.MaxR
                 log += ["Maximum rigid rotor state " + str(MaxR) + "\n"]
-                #if polarization, then dont include the 2J+1 factor..
-                if ip.isotropic == False:
-                   func = AniRotorTotBoltzICDF
-                else: 
-                   func = IsoRotorTotBoltzICDF
+                # The field-free J manifold always carries the 2J+1
+                # projection-state count. Orientation PDFs bias Euler angles,
+                # not the underlying molecular J state count.
+                func = IsoRotorTotBoltzICDF
                 sa.dist['rotJ']['cont'] = InitICDF(1,func,[T,sp.J2c,ip.MaxR ],seed=seed*17)
                 if nsamp != 0:
                   vv = np.round([ICDFsample(sa.dist['rotJ']['cont']) for _ in range(nsamp)])

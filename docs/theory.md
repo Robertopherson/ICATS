@@ -65,7 +65,7 @@ ensemble radial moment preserves the oscillator ladder,
 The name is deliberately not just "Husimi". The textbook Husimi function is the
 Gaussian-smoothed Wigner function and is positive, but in these scaled
 coordinates its direct radial form does not reproduce the oscillator energy
-moment used by the sampler. ICATS instead uses a positive leading-Wigner form:
+moment used by the sampler. ICATS instead uses a positive leading-Wigner form, denoted `f_LW` in the manuscript:
 it keeps the Wigner Gaussian envelope and uses the radial density
 `x^(2v) exp(-x)` with `x = Q^2 + P^2`, so `x` follows a Gamma distribution with
 shape `2v + 1`.
@@ -97,8 +97,7 @@ J_AB          = J_A + J_B
 P_acc(J)      proportional to (2J + 1) / Omega_t(J)
 ```
 
-Here `Omega_t(J)` denotes the Wang-Landau estimate of the density
-of trial samples produced at total angular momentum `J`. The expression above
+During the Wang-Landau optimization, `Omega_t(J)` is the running trial estimate of the `J` density produced by the proposal samples. After convergence, the same array is used as the estimated `J`-density of states (`J`-DOS). The expression above
 is the default `wl-target = linear-j` form used with geometric orbital
 sampling. For `orbital-sampling = flat-l`, ICATS uses `wl-target = flat-j` and
 therefore
@@ -120,7 +119,7 @@ logs, histogram file names, or input options.
 | --- | --- | --- |
 | Vibrational state | normal-mode quantum numbers `vstat` | Boltzmann harmonic-oscillator populations, `P(v) proportional to exp[-E_v/(k_B T_vib)]` |
 | Vibrational phase space | normal-mode `Q, P` | Energy-matched leading-Wigner harmonic-oscillator phase-space density for the sampled `vstat` |
-| Rigid-rotor total angular momentum | molecular `J` | Boltzmann rotor populations, with `(2J + 1)` degeneracy for isotropic tops and state-specific weights for anisotropic/asymmetric tops |
+| Rigid-rotor total angular momentum | molecular `J` | Boltzmann rotor populations with the field-free `(2J + 1)` projection-state count; asymmetric tops add state-specific projection/eigenstate sampling at fixed `J` |
 | Symmetric-top projection | body-fixed `K` or projection-like coordinate | Boltzmann projection distribution at fixed `J` |
 | Asymmetric-top state | Wang-basis eigenstate at fixed `J` | Boltzmann distribution over asymmetric-rotor eigenenergies and symmetry labels |
 | Asymmetric vector model | projection spread and unresolved azimuth | rejection-sampled Gaussian-sine, azimuthal, or Bingham-like auxiliary distributions chosen from the Wang-state expectation values |
@@ -171,6 +170,10 @@ The user function should not include the `sin(beta)` measure itself. It must
 return a finite, non-negative value for every sampled orientation. This keeps
 the user PDF as the statement of the physical preparation, while ICATS handles
 the angular coordinate measure.
+
+A user orientation PDF biases the sampled Euler angles after the field-free
+rotor state has been selected. It does not remove the molecular `(2J + 1)`
+projection-state count used when sampling the rotor quantum number `J`.
 
 The current frame option is `orientation-frame = scattering`. This means that
 the PDF is expressed in the ICATS space-fixed scattering frame, where the

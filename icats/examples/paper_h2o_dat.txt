@@ -1,0 +1,5 @@
+# H2O settings used by the manuscript validation ensemble
+xyz  = h2o_geom.xyz
+hess = h2o_hessian.txt
+w    = h2o_freq.txt
+vel  = 800 100 3

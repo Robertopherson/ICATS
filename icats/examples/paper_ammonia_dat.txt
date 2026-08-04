@@ -1,0 +1,5 @@
+# NH3 settings used by the manuscript validation ensemble
+xyz  = ammonia_geom.xyz
+hess = ammonia_hessian.txt
+w    = ammonia_freq.txt
+vel  = 600 100 3

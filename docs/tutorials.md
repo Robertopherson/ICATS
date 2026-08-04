@@ -45,7 +45,12 @@ Current tutorials cover:
   `orbital-sampling = flat-l`. This is the direct companion to
   `single_atom_diatom_he_n2_wl`, but the base orbital proposal is uniform in
   `L` rather than geometric.
+- `flat_l_diatom_diatom_n2_n2_wl`: N2 + N2 flat-L Wang-Landau diagnostic with
+  two molecular rotors. This is the recommended cheap tutorial for inspecting a
+  more balanced flat-`J` WL correction.
 - `wang_landau_nh3_h2o`: NH3 + H2O with Wang-Landau weighting.
+- `paper_nh3_h2o_100k`: the 100,000-sample NH3 + H2O validation ensemble
+  used to export the histogram data underlying manuscript Figures 6, 7, and 9.
 - `npz_output_co2_co2`: dual xyz/vel and NPZ output.
 
 Tutorials are feature demonstrations. Some use inexpensive mock or
@@ -93,8 +98,71 @@ toy dynamics with more serious calculations.
    uniform `L` proposals. This is a diagnostic for low-`L` coverage and
    reweighting strategy, not a two-dimensional Wang-Landau calculation.
 
-10. `wang_landau_nh3_h2o`
+10. `flat_l_diatom_diatom_n2_n2_wl`
+   Uses the same flat-L/flat-J idea for N2 + N2. With two molecular rotors, the
+   sampled `Jab` has more angular freedom, so this is a better cheap example of
+   the intended balanced WL compromise.
+
+11. `wang_landau_nh3_h2o`
    Demonstrates Wang-Landau sampling in a more demanding polyatomic system.
+
+12. `paper_nh3_h2o_100k`
+   Reproduces the paper-scale NH3 + H2O validation settings and exports compact,
+   inspectable CSV data. Run this only after the shorter tutorials are working.
+
+## Paper Validation Ensemble
+
+Generate the paper-scale tutorial without starting it on the login node:
+
+```bash
+icats --tutorial paper_nh3_h2o_100k --setup-only
+cd tutorial_paper_nh3_h2o_100k
+```
+
+The input uses 100,010 accepted collision samples, `Tvib = Trot = 500 K`, a
+90 degree crossed-beam angle, `maxj = 70`, and NH3/H2O beam-speed distributions
+centred at 600 and 800 m/s with 100 m/s FWHM. The orbital cap reproduces the
+range shown in Figure 9; `J` extends slightly further through the molecular
+`Jab` contribution. The tutorial suppresses Cartesian trajectory files because
+the purpose is distribution validation rather than dynamics propagation.
+
+Run it interactively only on a suitable compute machine:
+
+```bash
+icats.init tutorial_input.txt
+python export_paper_histogram_data.py
+python plot_paper_histograms.py
+```
+
+On a configured SLURM cluster, inspect the resource directives and submit:
+
+```bash
+sbatch run_paper_slurm.sh
+```
+
+The exporter writes `paper_histogram_data/` containing raw CSV samples,
+histogram tables, and `metadata.json`. The plotter then writes inspectable PNG
+and PDF composites to `paper_histogram_plots/`. The files are grouped as follows:
+
+- `figure6_*`: 100,000 samples of the selected 652.27 cm^-1 NH3 mode at 500 K,
+  sampled with the energy-matched leading-Wigner distribution used by ICATS.
+- `figure7_*`: NH3 and H2O rotational `J` values plus the sampled and
+  reconstructed body-fixed projection records for `J = 5`.
+- `figure9_*`: accepted `J`, `L`, `Jab`, relative speed, the estimated
+  `Omega(J)`, and the final Wang-Landau acceptance weight.
+
+Figure 8 is not part of this ensemble. It is a fixed-`J`, fixed-eigenstate
+asymmetric-top benchmark against Wigner-matrix densities, whereas Figures 6,
+7, and 9 test distributions produced by the full collision sampler.
+
+The generated `run_paper_slurm.sh` requests one node, one task, 16 CPUs, and
+32 GB on DMOG's `nodes` partition. It sets `workers` from
+`SLURM_CPUS_PER_TASK`, prevents nested BLAS thread pools, and runs sampling,
+CSV export, and plotting in sequence. The normal Wang-Landau profile uses 500
+trial steps per active bin, flatness `0.90`, and tolerance `1.00001`; these are
+the paper tutorial's compromise between a stable umbrella and practical wall
+time. Keep the resulting `wang.pkl` with the exported metadata so the exact
+umbrella can be inspected and reused.
 
 ## Running A Tutorial
 
@@ -335,10 +403,10 @@ wang = True
 wlmode = default
 wl-target = flat-j
 wl-j-range = 60
-wl-j-bins = 80
+wl-j-bins = 60
 wl-l-cap = 59
-wl-flatness = 0.90
-wl-nstep = 500
+wl-flatness = 0.95
+wl-nstep = 1000
 run-mode = fresh
 ```
 
@@ -355,8 +423,17 @@ a one-dimensional WL correction on `J`, and the accepted ensemble can retain
 small structure where `L`, `J`, and the atom-diatom `Jab` distribution overlap
 strongly, especially near `J,L = 0`.
 
+Atom-diatom systems are deliberately stringent tests for this idea. With only
+one molecular rotor, a flat low-`J` target can be achieved mainly by accepting
+near-cancellation geometries where `L` and `Jab` are anti-aligned. This is not a
+generic failure of the WL machinery, but it is a warning that atom-diatom
+flat-`J` runs should be interpreted as diagnostics rather than ideal production
+examples. Molecule-molecule systems usually have a broader `Jab` distribution
+and more angular degrees of freedom, so the same one-dimensional WL correction
+can give a more balanced compromise.
+
 The WL controls are deliberately explicit in this tutorial. `wl-j-range = 60`
-sets the upper `J` range for the explicit WL density estimate, `wl-j-bins = 80`
+sets the upper `J` range for the explicit WL density estimate, `wl-j-bins = 60`
 sets the resolution within that range, and `wl-l-cap = 59` makes the WL-building
 orbital proposal cover the same scale as the production `maxl`. The tutorial
 uses the `default` WL profile, with explicit flatness and step settings for a
@@ -401,6 +478,7 @@ For the sampled orbital histograms, the most useful quick check is:
 
 ```bash
 ./rd_tutorial_input/histograms/plot_orbital_jljab.sh
+./rd_tutorial_input/histograms/plot_orbital_correlation.sh
 ```
 
 Inspect:
@@ -419,8 +497,9 @@ For a sensible diagnostic run:
 - `Jab` should remain a molecular-rotor distribution, not something manually
   forced by the WL machinery.
 - If `J` only looks acceptable because of rare cancellations between `L` and
-  `Jab`, inspect `cos(theta_{L,Jab})` with
-  `hist_sam_sys_orb_cosljab_thet.py` before treating the run as useful.
+  `Jab`, inspect `cos(theta_{L,Jab})` and the `J` versus
+  `cos(theta_{L,Jab})` heatmap before treating the run as useful. Run:
+  `./rd_tutorial_input/histograms/plot_orbital_correlation.sh`.
 
 If you want to compare against the default geometric proposal, generate and run
 the sibling tutorial:
@@ -432,3 +511,50 @@ icats --tutorial single_atom_diatom_he_n2_wl --histograms --hist-samples 5000 --
 Compare the sampled `L`, `J`, and `Jab` plots between the two directories. The
 flat-L tutorial is mainly a coverage and weighting diagnostic; it should not be
 used as a production scattering ensemble without an explicit weighting strategy.
+
+## Flat-L N2 + N2 Wang-Landau Diagnostic
+
+Use this tutorial when you want a cheaper molecule-molecule flat-WL example
+where the balanced representation is more likely to work than in the
+atom-diatom stress case:
+
+```bash
+icats --tutorial flat_l_diatom_diatom_n2_n2_wl --histograms --hist-samples 5000 --setup-only
+cd tutorial_flat_l_diatom_diatom_n2_n2_wl
+```
+
+The generated input uses:
+
+```text
+orbital-sampling = flat-l
+wang = True
+wl-target = flat-j
+wl-j-range = 100
+wl-j-bins = 50
+wl-j-min = 5.0
+wl-low-j-scale = 0.15
+wl-l-cap = 100
+wl-flatness = 0.95
+wl-nstep = 1500
+```
+
+N2 + N2 has two molecular rotors, so `Jab = Ja + Jb` has more angular freedom
+than in He + N2. The flat-`J` target should therefore require fewer
+near-cancellation geometries at low `J`. The `wl-j-min = 5.0` and
+`wl-low-j-scale = 0.15` settings keep the WL fit from chasing the rare
+near-zero-`J` cancellation bin too aggressively. Accepted production samples
+below that boundary are still allowed, but with a reduced rejection weight so
+that the tutorial favours weaker `L`/`Jab` correlation over perfect very-low-`J`
+flatness. This is the intended lesson of the tutorial: for very low `J`, a
+visible deficit is often preferable to a flat-looking histogram produced by
+strong artificial anti-correlation between `L` and `Jab`.
+
+After running `icats.init`, inspect the same orbital and correlation plots:
+
+```bash
+./rd_tutorial_input/histograms/plot_orbital_jljab.sh
+./rd_tutorial_input/histograms/plot_orbital_correlation.sh
+```
+
+This is the recommended cheap tutorial for checking whether flat-`L` proposals
+and flat-`J` WL weighting can produce a reasonably balanced accepted ensemble.
