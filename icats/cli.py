@@ -582,7 +582,7 @@ def main() -> None:
         relative_velocity,
     )
     angular_max = max(float(np.max(orb["sJ"])), float(np.max(orb["sL"])))
-    angular_edges = np.arange(0.0, 2.0 * np.ceil(angular_max / 2.0) + 4.0, 2.0)
+    angular_edges = np.arange(0.0, 4.0 * np.ceil(angular_max / 4.0) + 8.0, 4.0)
     write_histogram(output / "figure9_J_histogram.csv", orb["sJ"], angular_edges)
     write_histogram(output / "figure9_L_histogram.csv", orb["sL"], angular_edges)
     write_histogram(output / "figure9_relative_velocity_histogram.csv", relative_velocity, 100)
@@ -806,7 +806,15 @@ def plot_figure9(data_dir: Path, output: Path, metadata) -> None:
     axes[1, 0].plot(v_grid, relative_speed_target(v_grid, metadata), color="tab:red", lw=1.5, label="analytic target")
     axes[1, 0].legend(frameon=False, fontsize=8)
     wl = read_csv(data_dir / "figure9_wang_landau.csv")
-    axes[1, 1].plot(wl["J"], wl["acceptance_weight"], color="tab:red", lw=1.8)
+    learned = np.isfinite(wl["estimated_Omega_J"])
+    axes[1, 1].bar(
+        wl["J"][learned],
+        wl["acceptance_weight"][learned],
+        width=0.9,
+        color="tab:blue",
+        edgecolor="black",
+        linewidth=0.35,
+    )
     axes[1, 1].set_title("Wang-Landau acceptance weight")
     axes[1, 1].set_xlabel(r"$J$")
     axes[1, 1].set_ylabel(r"$W(J)$")
