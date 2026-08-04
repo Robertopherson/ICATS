@@ -633,6 +633,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+def trapezoid(y, x):
+    implementation = getattr(np, "trapezoid", None)
+    if implementation is None:
+        implementation = np.trapz
+    return implementation(y, x)
+
+
 def read_csv(path: Path):
     if not path.exists():
         raise SystemExit("Missing " + str(path) + ". Run export_paper_histogram_data.py first.")
@@ -640,7 +647,7 @@ def read_csv(path: Path):
 
 
 def normalize(y, x):
-    area = np.trapz(y, x)
+    area = trapezoid(y, x)
     return y / area if area > 0.0 else y
 
 
@@ -739,7 +746,7 @@ def plot_figure9(data_dir: Path, output: Path) -> None:
     j_grid = histogram_bars(axes[0, 1], j_table, "Total angular momentum", r"$J$")
     for ax, grid, label in ((axes[0, 0], l_grid, r"$1+2L$"), (axes[0, 1], j_grid, r"$1+2J$")):
         target = 1.0 + 2.0 * grid
-        target /= np.trapz(target, grid)
+        target /= trapezoid(target, grid)
         ax.plot(grid, target, color="tab:red", lw=1.5, label=label)
         ax.legend(frameon=False, fontsize=8)
     v_table = read_csv(data_dir / "figure9_relative_velocity_histogram.csv")
@@ -1158,6 +1165,13 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+
+def trapezoid(y, x):
+    implementation = getattr(np, "trapezoid", None)
+    if implementation is None:
+        implementation = np.trapz
+    return implementation(y, x)
+
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "plots" / "polarization"
 OUT.mkdir(parents=True, exist_ok=True)
@@ -1205,7 +1219,7 @@ fig, axs = plt.subplots(1, 2, figsize=(11, 4.2))
 alpha_grid = np.linspace(-np.pi, np.pi, 500)
 alpha_pdf = 1.0 + A * (np.pi / 4.0) * np.sin(field_theta) * np.cos(alpha_grid - field_phi)
 axs[0].hist(alpha, bins=40, density=True, alpha=0.72, edgecolor="k", label="sampled")
-axs[0].plot(alpha_grid, alpha_pdf / np.trapz(alpha_pdf, alpha_grid), "r-", lw=2, label="expected")
+axs[0].plot(alpha_grid, alpha_pdf / trapezoid(alpha_pdf, alpha_grid), "r-", lw=2, label="expected")
 axs[0].set_xlabel("alpha / rad")
 axs[0].set_ylabel("density")
 axs[0].set_title("Azimuthal bias from tilted field")
