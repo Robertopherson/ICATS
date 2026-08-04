@@ -61,7 +61,11 @@ def test_paper_tutorial_generation_and_export(tmp_path):
     metadata = json.loads((tutorial / "paper_histogram_data" / "metadata.json").read_text())
     assert metadata["accepted_samples"] == 4
     assert metadata["figure6_samples"] == 20
-    assert (tutorial / "paper_histogram_data" / "figure7_NH3_J5_projection.csv").exists()
+    projection_path = tutorial / "paper_histogram_data" / "figure7_NH3_J5_projection.csv"
+    assert projection_path.exists()
+    assert projection_path.read_text().splitlines()[0] == (
+        "projection_centre_Jz,reconstructed_vector_Jz,quantum_rms_Jz"
+    )
     assert (tutorial / "paper_histogram_data" / "figure9_wang_landau.csv").exists()
 
     subprocess.run([sys.executable, "plot_paper_histograms.py"], cwd=tutorial, check=True)

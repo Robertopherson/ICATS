@@ -546,8 +546,9 @@ def main() -> None:
         write_histogram(output / f"figure6_n{state}_Q_histogram.csv", vib_q[vib_n == state], 100)
 
     # Figure 7 uses the sampled molecular J distributions and the J=5
-    # body-fixed projection records. Both the sampled and Cartesian-reconstructed
-    # projection values are retained so the initial-condition audit is visible.
+    # body-fixed projection records. For asymmetric tops, `jz` is the selected
+    # eigenstate projection centre, whereas `sjz` is the vector-model projection
+    # reconstructed from the sampled Cartesian coordinates.
     nh3_rot = sampled["rot"]["m0"]
     h2o_rot = sampled["rot"]["m1"]
     nh3_j = np.asarray(nh3_rot["J"], dtype=int)
@@ -560,13 +561,13 @@ def main() -> None:
         nproj = min(len(jz), len(analysed_jz), len(rms_jz))
         write_columns(
             output / f"figure7_{label}_J5_projection.csv",
-            "sampled_Jz,analysed_Jz,quantum_rms_Jz",
+            "projection_centre_Jz,reconstructed_vector_Jz,quantum_rms_Jz",
             jz[:nproj],
             analysed_jz[:nproj],
             rms_jz[:nproj],
         )
         if nproj:
-            write_histogram(output / f"figure7_{label}_J5_sampled_projection_histogram.csv", jz[:nproj], 30)
+            write_histogram(output / f"figure7_{label}_J5_sampled_projection_histogram.csv", analysed_jz[:nproj], 30)
 
     # Figure 9 is taken directly from the accepted bimolecular ensemble.
     orb = sampled["orb"]
@@ -603,7 +604,13 @@ def main() -> None:
         "temperature_K": 500.0,
         "beam_centres_m_per_s": [600.0, 800.0],
         "beam_fwhm_m_per_s": [100.0, 100.0],
+        "beam_speed_power": [3, 3],
         "beam_angle_degrees": 90.0,
+        "rotational_constants_hartree": {
+            "NH3_C": 5.0407924631164556e-05,
+            "NH3_Cz": -2.3489116084713895e-05,
+            "H2O_Cbar": 8.533146923414483e-05,
+        },
         "figure6_frequency_cm_inverse": freq_cm,
         "figure6_seed": args.vibrational_seed,
         "wang_landau": wang_metadata,
@@ -698,30 +705,52 @@ def plot_figure6(data_dir: Path, output: Path) -> None:
     plt.close(fig)
 
 
-def state_bars(ax, table, title):
+def rotational_target(states, rotational_constant, temperature):
+    kb_hartree_per_k = 3.166811563e-6
+    weights = (2.0 * states + 1.0) * np.exp(
+        -rotational_constant * states * (states + 1.0) / (kb_hartree_per_k * temperature)
+    )
+    return weights / weights.sum()
+
+
+def state_bars(ax, table, title, rotational_constant, temperature):
     ax.bar(table["state"], table["probability"], width=0.9, color="tab:blue", edgecolor="black", linewidth=0.35)
+    states = np.asarray(table["state"], dtype=float)
+    ax.plot(states, rotational_target(states, rotational_constant, temperature), color="tab:red", lw=1.5)
     ax.set_title(title)
     ax.set_xlabel(r"$J$")
     ax.set_ylabel("probability")
 
 
-def projection_panel(ax, data_dir: Path, molecule: str):
+def projection_panel(ax, data_dir: Path, molecule: str, temperature: float, nh3_cz: float):
     values = read_csv(data_dir / f"figure7_{molecule}_J5_projection.csv")
-    bins = np.linspace(-5.5, 5.5, 25)
-    ax.hist(values["sampled_Jz"], bins=bins, density=True, alpha=0.55, color="tab:blue", label="sampled")
-    ax.hist(values["analysed_Jz"], bins=bins, density=True, histtype="step", color="tab:red", lw=1.5, label="reconstructed")
+    if molecule == "NH3":
+        bins = np.arange(-5.5, 6.5, 1.0)
+        projection = np.asarray(values["reconstructed_vector_Jz"])
+        ax.hist(projection, bins=bins, density=True, alpha=0.65, color="tab:blue", edgecolor="black", linewidth=0.35)
+        k = np.arange(-5.0, 6.0)
+        kb_hartree_per_k = 3.166811563e-6
+        target = np.exp(-nh3_cz * k**2 / (kb_hartree_per_k * temperature))
+        target /= target.sum()
+        ax.plot(k, target, color="tab:red", lw=1.5)
+        ax.set_xlabel(r"body-fixed $K$")
+    else:
+        bins = np.linspace(-np.sqrt(30.0), np.sqrt(30.0), 12)
+        projection = np.asarray(values["reconstructed_vector_Jz"])
+        ax.hist(projection, bins=bins, density=True, alpha=0.65, color="tab:blue", edgecolor="black", linewidth=0.35)
+        ax.set_xlabel("selected body-fixed projection")
     ax.set_title(molecule + r" projection, $J=5$")
-    ax.set_xlabel(r"body-fixed $J_z$")
     ax.set_ylabel("density")
-    ax.legend(frameon=False, fontsize=8)
 
 
-def plot_figure7(data_dir: Path, output: Path) -> None:
+def plot_figure7(data_dir: Path, output: Path, metadata) -> None:
+    temperature = float(metadata["temperature_K"])
+    constants = metadata["rotational_constants_hartree"]
     fig, axes = plt.subplots(2, 2, figsize=(9.0, 6.8))
-    state_bars(axes[0, 0], read_csv(data_dir / "figure7_NH3_J_histogram.csv"), r"NH$_3$ rotational states")
-    projection_panel(axes[0, 1], data_dir, "NH3")
-    state_bars(axes[1, 0], read_csv(data_dir / "figure7_H2O_J_histogram.csv"), r"H$_2$O rotational states")
-    projection_panel(axes[1, 1], data_dir, "H2O")
+    state_bars(axes[0, 0], read_csv(data_dir / "figure7_NH3_J_histogram.csv"), r"NH$_3$ rotational states", constants["NH3_C"], temperature)
+    projection_panel(axes[0, 1], data_dir, "NH3", temperature, constants["NH3_Cz"])
+    state_bars(axes[1, 0], read_csv(data_dir / "figure7_H2O_J_histogram.csv"), r"H$_2$O rotational states", constants["H2O_Cbar"], temperature)
+    projection_panel(axes[1, 1], data_dir, "H2O", temperature, constants["NH3_Cz"])
     fig.tight_layout()
     fig.savefig(output / "figure7_validation.png", dpi=180)
     fig.savefig(output / "figure7_validation.pdf")
@@ -738,22 +767,43 @@ def histogram_bars(ax, table, title, xlabel):
     return centres
 
 
-def plot_figure9(data_dir: Path, output: Path) -> None:
+def weighted_beam_speed(v, centre, fwhm, power):
+    sigma = fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    return np.where(v >= 0.0, v**power * np.exp(-0.5 * ((v - centre) / sigma) ** 2), 0.0)
+
+
+def relative_speed_target(grid, metadata):
+    centres = metadata["beam_centres_m_per_s"]
+    fwhm = metadata["beam_fwhm_m_per_s"]
+    powers = metadata["beam_speed_power"]
+    theta = np.linspace(0.0, 0.5 * np.pi, 2401)
+    normalization_grid = np.linspace(0.0, max(centres) + 10.0 * max(fwhm), 30001)
+    norm_a = trapezoid(weighted_beam_speed(normalization_grid, centres[0], fwhm[0], powers[0]), normalization_grid)
+    norm_b = trapezoid(weighted_beam_speed(normalization_grid, centres[1], fwhm[1], powers[1]), normalization_grid)
+    va = grid[:, None] * np.cos(theta)[None, :]
+    vb = grid[:, None] * np.sin(theta)[None, :]
+    density = grid * trapezoid(
+        weighted_beam_speed(va, centres[0], fwhm[0], powers[0])
+        * weighted_beam_speed(vb, centres[1], fwhm[1], powers[1]),
+        theta,
+    ) / (norm_a * norm_b)
+    return normalize(density, grid)
+
+
+def plot_figure9(data_dir: Path, output: Path, metadata) -> None:
     fig, axes = plt.subplots(2, 2, figsize=(9.2, 6.8))
     l_table = read_csv(data_dir / "figure9_L_histogram.csv")
     j_table = read_csv(data_dir / "figure9_J_histogram.csv")
-    l_grid = histogram_bars(axes[0, 0], l_table, "Orbital angular momentum", r"$L$")
-    j_grid = histogram_bars(axes[0, 1], j_table, "Total angular momentum", r"$J$")
-    for ax, grid, label in ((axes[0, 0], l_grid, r"$1+2L$"), (axes[0, 1], j_grid, r"$1+2J$")):
+    j_grid = histogram_bars(axes[0, 0], j_table, "Total angular momentum", r"$J$")
+    l_grid = histogram_bars(axes[0, 1], l_table, "Orbital angular momentum", r"$L$")
+    for ax, grid, label in ((axes[0, 0], j_grid, r"$1+2J$"), (axes[0, 1], l_grid, r"$1+2L$")):
         target = 1.0 + 2.0 * grid
         target /= trapezoid(target, grid)
         ax.plot(grid, target, color="tab:red", lw=1.5, label=label)
         ax.legend(frameon=False, fontsize=8)
     v_table = read_csv(data_dir / "figure9_relative_velocity_histogram.csv")
     v_grid = histogram_bars(axes[1, 0], v_table, "Relative beam speed", r"$|v_{AB}|$ / m s$^{-1}$")
-    sigma = 100.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
-    gaussian = np.exp(-0.5 * ((v_grid - 1000.0) / sigma) ** 2) / (sigma * np.sqrt(2.0 * np.pi))
-    axes[1, 0].plot(v_grid, gaussian, color="tab:red", lw=1.5, label="beam reference")
+    axes[1, 0].plot(v_grid, relative_speed_target(v_grid, metadata), color="tab:red", lw=1.5, label="analytic target")
     axes[1, 0].legend(frameon=False, fontsize=8)
     wl = read_csv(data_dir / "figure9_wang_landau.csv")
     axes[1, 1].plot(wl["J"], wl["acceptance_weight"], color="tab:red", lw=1.8)
@@ -776,8 +826,8 @@ def main() -> None:
     output.mkdir(parents=True, exist_ok=True)
     metadata = json.loads((data_dir / "metadata.json").read_text())
     plot_figure6(data_dir, output)
-    plot_figure7(data_dir, output)
-    plot_figure9(data_dir, output)
+    plot_figure7(data_dir, output, metadata)
+    plot_figure9(data_dir, output, metadata)
     print("Wrote validation plots for", metadata["accepted_samples"], "accepted samples to", output.resolve())
 
 
@@ -1635,8 +1685,8 @@ def _generate_tutorial(
             "- ICATS refuses metadata-incompatible umbrellas rather than silently overwriting them.\n\n"
             "Interpreting the validation plots:\n"
             "- Figure 6: sampled Q histograms should follow the smooth leading-Wigner curves; the black curves are the oscillatory harmonic-oscillator densities.\n"
-            "- Figure 7: sampled and Cartesian-reconstructed Jz histograms should overlap within Monte-Carlo noise.\n"
-            "- Figure 9: L and J should follow the triangular reference over most of the requested range, relative speed should peak near 1000 m/s, and the WL correction should become comparatively flat once L dominates Jab.\n"
+            "- Figure 7: the rotational J distributions should follow their thermal reference curves. The NH3 K distribution has an analytic symmetric-top reference; the H2O panel shows the sampled projection along the Wang-state-selected body axis.\n"
+            "- Figure 9: L and J should follow the triangular reference over most of the requested range, the relative-speed histogram should follow the transformed pair of weighted molecular-beam distributions, and the WL correction should become comparatively flat once L dominates Jab.\n"
             "- Retain wang.pkl and metadata.json. A visually poor or strongly structured result should be diagnosed rather than hidden by replotting.\n\n"
         )
     else:

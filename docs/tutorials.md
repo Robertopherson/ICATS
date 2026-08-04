@@ -146,8 +146,9 @@ and PDF composites to `paper_histogram_plots/`. The files are grouped as follows
 
 - `figure6_*`: 100,000 samples of the selected 652.27 cm^-1 NH3 mode at 500 K,
   sampled with the energy-matched leading-Wigner distribution used by ICATS.
-- `figure7_*`: NH3 and H2O rotational `J` values plus the sampled and
-  reconstructed body-fixed projection records for `J = 5`.
+- `figure7_*`: NH3 and H2O rotational `J` values, the selected asymmetric-top
+  projection centres, and the vector-model body-fixed projections reconstructed
+  from the sampled Cartesian coordinates for `J = 5`.
 - `figure9_*`: accepted `J`, `L`, `Jab`, relative speed, the estimated
   `Omega(J)`, and the final Wang-Landau acceptance weight.
 
