@@ -2,7 +2,7 @@
 from .constants import *
 from .functions import *
 from .dist import *
-from .mc import ICDFsample, InitICDF
+from .mc import ICDFsample, ICDFscalar, InitICDF
 from .molecules import imolecule
 from . import wang
 from .histograms import write_histogram_helpers_runtime
@@ -979,7 +979,7 @@ class icats:
             sa.slog += [str(hist) +'\n']
             if getattr(ip, "orbital_sampling", "geometric") == "flat-l":
               flat_l_cont = InitICDF(1, uniform, [0, 1.0], seed=seed * 73)
-              vv = [float(ICDFsample(flat_l_cont)) * ip.MaxL for _ in range(nsamp)]
+              vv = [ICDFscalar(flat_l_cont) * ip.MaxL for _ in range(nsamp)]
             else:
               vv = [ICDFsample(sa.dist['L']['cont']) for _ in range(nsamp)]
             sa.dist['L']['samp'] = vv
@@ -2201,7 +2201,7 @@ class icats:
         # if the user chose intermolecular energy/velocity directly
         if 'vel' in sa.dist.keys():
             if 'cont' in sa.dist['vel']:
-                V = abs(ICDFsample(sa.dist['vel']['cont']))
+                V = abs(ICDFscalar(sa.dist['vel']['cont']))
             else:
                 V = abs(sa.dist['vel']['v'])
             sa.sV  = V 
@@ -2240,13 +2240,13 @@ class icats:
           mxL = float(cap if cap is not None else self.ip.MaxL)
           if mxL <= 0:
             raise ValueError("flat-l orbital sampling requires a positive maxl/cap")
-          L = float(ICDFsample(sa.dist['gen']['cont'])) * mxL
+          L = ICDFscalar(sa.dist['gen']['cont']) * mxL
         else:
-          L = ICDFsample(sa.dist['L']['cont'])
+          L = ICDFscalar(sa.dist['L']['cont'])
           if cap is not None:
             mxL = cap
             while L > mxL:
-              L = ICDFsample(sa.dist['L']['cont'])
+              L = ICDFscalar(sa.dist['L']['cont'])
         sa.sL = L
         nL = np.sqrt(L*(L+1))
         sa.snL = nL
@@ -2268,7 +2268,7 @@ class icats:
         ip = self.ip
         if ip.ImpactPhi is not None:
             return float(ip.ImpactPhi)
-        return float(ICDFsample(sa.dist['gen']['cont'])) * tpi
+        return ICDFscalar(sa.dist['gen']['cont']) * tpi
 
     def SampleFixedImpactOrbital(self, sa):
         ip = self.ip

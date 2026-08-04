@@ -369,3 +369,12 @@ def ICDFsample(cont,*lis):
     cont[3] = [rng[i].bit_generator.state for i in range(dim)]
     return xx   
 
+
+def ICDFscalar(cont, *args):
+    """Return a scalar from a one-dimensional ICDF sampler."""
+    sampled = np.asarray(ICDFsample(cont, *args))
+    if sampled.size != 1:
+        raise ValueError(
+            "Expected a scalar ICDF sample, received shape " + str(sampled.shape)
+        )
+    return sampled.reshape(-1)[0].item()

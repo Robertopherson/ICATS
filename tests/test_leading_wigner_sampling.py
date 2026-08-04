@@ -1,7 +1,14 @@
 import numpy as np
 
-from icats.dist import HusimiFuncICDF as LeadingWignerFuncICDF
-from icats.mc import ICDFsample, InitICDF
+from icats.dist import HusimiFuncICDF as LeadingWignerFuncICDF, uniform
+from icats.mc import ICDFsample, ICDFscalar, InitICDF
+
+
+def test_scalar_icdf_returns_python_scalar():
+    cont = InitICDF(1, uniform, [0.0, 1.0], seed=8123)
+    sampled = ICDFscalar(cont)
+    assert isinstance(sampled, float)
+    assert 0.0 <= sampled <= 1.0
 
 
 def test_leading_wigner_icdf_preserves_oscillator_energy_moment():

@@ -5,7 +5,7 @@ from .dist import *
 from .angmom import Pz2, Py2, Px2, Pz, Px, Py, WangTran, Wz2, Wy2, Wx2
 from spherical import Wigner
 import quaternionic as quat
-from .mc import MCsample, ICDFsample, InitMC, InitICDF
+from .mc import MCsample, ICDFsample, ICDFscalar, InitMC, InitICDF
 
 INFO_LABEL_WIDTH = 22
 
@@ -516,7 +516,7 @@ class imolecule:
 
 
     def SampleTotMolAngMom(self,sa):
-        J  = int(ICDFsample(sa.dist['rotJ']['cont']))
+        J = int(ICDFscalar(sa.dist['rotJ']['cont']))
         if 'rot' not in sa.SampInfo.keys():
            sa.SampInfo['rot'] = {}
         sa.SampInfo['rot']['J'] = J
@@ -561,7 +561,7 @@ class imolecule:
            eek = 0.0
         elif 'asym' not in sp.rsym:  # symmetric top 
            ax = 'z'
-           jz = ICDFsample(sa.dist['srotJz']['cont'],J)  
+           jz = ICDFscalar(sa.dist['srotJz']['cont'], J)
            bet = np.arccos(jz/np.sqrt(J*(J+1)))
            gamm = ICDFsample(sa.dist['srotGam']['cont'])[0] 
            eek = sp.Jzc*jz**2
@@ -643,7 +643,7 @@ class imolecule:
             log += ["    No velocity sample \n"]
             return -1, log
         if 'cont' in sa.dist['vel'].keys():
-          v = ICDFsample(sa.dist['vel']['cont'])
+          v = ICDFscalar(sa.dist['vel']['cont'])
         else:
           v = sa.dist['vel']['v']
         log += [ "    Molecular COM Velocity " + "{0:10.5f}".format(v)
