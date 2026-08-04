@@ -21,6 +21,9 @@ def test_paper_tutorial_generation_and_export(tmp_path):
     assert (tutorial / "export_paper_histogram_data.py").exists()
     assert (tutorial / "plot_paper_histograms.py").exists()
     assert (tutorial / "run_paper_slurm.sh").exists()
+    slurm_text = (tutorial / "run_paper_slurm.sh").read_text()
+    assert "#SBATCH --cpus-per-task=16" in slurm_text
+    assert "set +u\n  eval \"$(conda shell.bash hook)\"" in slurm_text
     assert not (tutorial / "run_cheap_dynamics.sh").exists()
 
     run_dir = tutorial / "rd_tutorial_input"
