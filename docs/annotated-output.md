@@ -226,19 +226,18 @@ oscillator information:
 
 ```text
 [vibration]
-  :ammonia_dat :
-    mode   freq  vstat    Q         P         QE        PE        EE (eV)
-    0     652.3  1     1.075534  0.926277  0.046775  0.034693  0.081468
-    1    1816.3  0     0.220889  0.101438  0.005494  0.001159  0.006652
-    2    1819.8  0    -0.138505  0.519897  0.002164  0.030493  0.032657
-    ...
-    5    4005.3  0    -0.242543  0.227095  0.014607  0.012805  0.027412
-
-  :h2o_dat :
-    mode   freq  vstat    Q         P         QE        PE        EE (eV)
-    0    1756.9  0     0.486248  0.110618  0.025751  0.001333  0.027084
-    1    4009.6  0     0.752618 -0.399297  0.140794  0.039630  0.180424
-    2    4168.4  0    -0.267557  0.735079  0.018499  0.139629  0.158128
+ammonia_dat            = sampled vibrational state
+ mode   freq  vstat    Q         P         QE        PE        EE (eV)
+   0     652.3  1     1.075534  0.926277  0.046775  0.034693  0.081468
+   1    1816.3  0     0.220889  0.101438  0.005494  0.001159  0.006652
+   2    1819.8  0    -0.138505  0.519897  0.002164  0.030493  0.032657
+   ...
+   5    4005.3  0    -0.242543  0.227095  0.014607  0.012805  0.027412
+h2o_dat                = sampled vibrational state
+ mode   freq  vstat    Q         P         QE        PE        EE (eV)
+   0    1756.9  0     0.486248  0.110618  0.025751  0.001333  0.027084
+   1    4009.6  0     0.752618 -0.399297  0.140794  0.039630  0.180424
+   2    4168.4  0    -0.267557  0.735079  0.018499  0.139629  0.158128
 ```
 
 The `...` indicates that the excerpt has skipped middle modes. A nonlinear
@@ -431,7 +430,7 @@ A small NH3 + H2O run using the quickstart molecule files produced the
 following representative `.info` sample:
 
 ```text
-Nsamp = 12
+Nsamp = 4
 Tvib = 500.0
 Trot = 500.0
 Rz = 15
@@ -449,26 +448,26 @@ Cartesian coordinates and velocities.
 
 ```text
 Sample 3 | generation
- - Orbital Angular Q.N. L = : 169.52
+orbital quantum L      =          93.76
 
-[orientation]
+[rotation]
 ammonia_dat            = angular velocity from sampled rotor
-quantum J              =           11.0
-quantum J_z            =          9.000  au
-classical J            = [   -7.0537000,   -1.1159377,    9.0000000 ]  au, |J|     =     11.48913  (QM:  11.00)
-classical energy       =        0.12929  eV
+quantum J              =            6.0
+quantum J_z            =          0.000  au
+classical J            = [    6.4313203,   -0.7988234,    0.0000000 ]  au, |J|     =      6.48074  (QM:   6.00)
+classical energy       =        0.05761  eV
 
 h2o_dat                = angular velocity from sampled rotor
 quantum J              =            2.0
-classical J            = [   -2.2262829,    0.0424868,    1.0207152 ]  au, |J|     =      2.44949  (QM:   2.00)
-classical energy       =        0.02153  eV
+classical J            = [    2.0000000,   -1.3006621,    0.5552280 ]  au, |J|     =      2.44949  (QM:   2.00)
+classical energy       =        0.01958  eV
 ```
 
 `L` is the sampled orbital angular-momentum quantum number. The molecular
 `quantum J` lines are the rotor states selected for each monomer. The
 `classical J` vectors are the vector-model realisation of those quantum labels:
-the magnitude is approximately `sqrt(J(J+1))`, which is why `J = 11` appears
-with magnitude `|J| = 11.48913`.
+the magnitude is approximately `sqrt(J(J+1))`, which is why `J = 6` appears
+with magnitude `|J| = 6.48074`.
 
 Rotor-draw line meanings:
 
@@ -492,10 +491,10 @@ Rotor-draw line meanings:
 
 ```text
 ammonia_dat            = sampled orientation
-alpha,beta,gamma       = [  0.7452936,  0.7338185,  0.7312064 ]  pi rad
+alpha,beta,gamma       = [ -0.2266227,  0.4144974,  0.3815461 ]  pi rad
 h2o_dat                = sampled orientation
-alpha,beta,gamma       = [  0.6461051,  0.6799557, -0.2812087 ]  pi rad
-total J                =         172.24
+alpha,beta,gamma       = [ -0.8545259,  0.4648038,  0.9390437 ]  pi rad
+total J                =          90.34
 ```
 
 These `alpha,beta,gamma` triples are molecular Euler angles. They describe
@@ -507,14 +506,14 @@ each molecule's body-frame orientation before the Cartesian sample is written.
 
 ```text
 [vibration]
-  :ammonia_dat :
-    mode   freq  vstat    Q         P         QE        PE        EE (eV)
-    0     652.3  1     1.075534  0.926277  0.046775  0.034693  0.081468
-    1    1816.3  0     0.220889  0.101438  0.005494  0.001159  0.006652
+ammonia_dat            = sampled vibrational state
+ mode   freq  vstat    Q         P         QE        PE        EE (eV)
+   0     652.3  0    -0.217141  0.557355  0.001907  0.012561  0.014468
+   1    1816.3  0    -0.115419 -0.645534  0.001500  0.046919  0.048419
 ...
-  :h2o_dat :
-    mode   freq  vstat    Q         P         QE        PE        EE (eV)
-    0    1756.9  0     0.486248  0.110618  0.025751  0.001333  0.027084
+h2o_dat                = sampled vibrational state
+ mode   freq  vstat    Q         P         QE        PE        EE (eV)
+   0    1756.9  0    -0.147412  0.742391  0.002367  0.060027  0.062394
 ```
 
 `freq` is the harmonic normal-mode frequency. `vstat` is the sampled oscillator
@@ -527,16 +526,16 @@ the coordinate, momentum, and total harmonic energy for that mode.
 
 ```text
 [intermolecular]
-relative velocity      =   1435.6131231  m/s
-collision energy       =      0.0934994  eV
-ammonia_dat kinetic    =      0.0480626  eV
-h2o_dat kinetic        =      0.0454368  eV
-Ja, vector model       = [      5.42409,      0.00708,    -10.12814 ]  au, |Ja|    =     11.48913
-Jb, vector model       = [      0.14867,      2.36552,      0.61824 ]  au, |Jb|    =      2.44949
-L                      = [      0.00000,    170.01775,      0.00000 ]  au, |L|     =    170.01775
-J = L + Jab            = [      5.57276,    172.39035,     -9.50990 ]  au, |J|     =    172.74237
-b                      =        8.59126  Ang
-impact phi             =       -0.00000  pi rad
+relative velocity      =   1425.0434232  m/s
+collision energy       =      0.0921277  eV
+ammonia_dat kinetic    =      0.0473574  eV
+h2o_dat kinetic        =      0.0447703  eV
+Ja, vector model       = [      5.19629,     -2.48303,     -2.97206 ]  au, |Ja|    =      6.48074  (QM:   6.00)
+Jb, vector model       = [     -1.35028,     -1.02743,      1.76667 ]  au, |Jb|    =      2.44949  (QM:   2.00)
+L                      = [     -0.00000,     94.25668,      0.00000 ]  au, |L|     =     94.25668  (QM:  93.76)
+J = L + Jab            = [      3.84601,     90.74622,     -1.20539 ]  au, |J|     =     90.83568  (QM:  90.34)
+b                      =        4.79826  Ang
+impact phi             =        0.00000  pi rad
 ```
 
 The relative velocity and collision energy are the incoming two-body channel.
@@ -547,10 +546,10 @@ impact parameter follows from `L = mu v_rel b`.
 ```text
 [energy summary]
 component              =   ammonia_dat/eV     h2o_dat/eV       total/eV
-vibrational            =           0.2478         0.3656         0.6135
-rotational             =           0.1293         0.0215         0.1508
-velocity               =           0.0481         0.0454         0.0935
-total                  =           0.4252         0.4326         0.8578
+vibrational            =           1.3878         0.5470         1.9348
+rotational             =           0.0576         0.0196         0.0772
+velocity               =           0.0474         0.0448         0.0921
+total                  =           1.4928         0.6114         2.1042
 ```
 
 Read this as the sampled model budget: harmonic vibration, vector-model
@@ -563,11 +562,11 @@ Sample 3 | analysis
 
 [rotation]
 ammonia_dat            = oblate, symmetry constant =   1.00
-full J, space          = [      6.78943,     -0.28659,     -9.65061 ]  au, |J|     =     11.80309
-vector J, space        = [      5.42514,      0.00672,    -10.12783 ]  au, |J|     =     11.48935
-vibrational J          = [     -0.51418,      1.38125,      0.05324 ]  au, |J|     =      1.47481
-vector rot. energy     = [      0.06826,      0.00171,      0.05933 ]  eV, |E|     =      0.12929
-full rot. energy       = [      0.00171,      0.07625,      0.05964 ]  eV, |E|     =      0.13759
+full J, space          = [      4.95809,     -2.08583,     -4.24012 ]  au, |J|     =      6.84923  (QM:   6.37)
+vector J, space        = [      5.19736,     -2.48225,     -2.96803 ]  au, |J|     =      6.47945  (QM:   6.00)
+vibrational J          = [      0.09334,     -1.19272,     -0.63350 ]  au, |J|     =      1.35374  (QM:   0.94)
+vector rot. energy     = [      0.05672,      0.00087,      0.00000 ]  eV, |E|     =      0.05759
+full rot. energy       = [      0.00009,      0.06451,      0.00032 ]  eV, |E|     =      0.06492
 ```
 
 The analysis block is reconstructed from the actual Cartesian coordinates and
@@ -582,10 +581,10 @@ distorted geometry changes the decomposition.
 [vibration]
 ammonia_dat            = vibrational analysis
  mode    freq     ~vstat       Q         P         QE        PE       EE (eV)
-   0    652.3     0.5073  1.075533  0.926191  0.046775  0.034687  0.081461
+   0    652.3    -0.3211 -0.217139  0.557446  0.001907  0.012565  0.014472
 ...
 h2o_dat                = vibrational analysis
-   0   1756.9    -0.3757  0.486248  0.110606  0.025751  0.001332  0.027083
+   0   1756.9    -0.2136 -0.147412  0.742386  0.002367  0.060026  0.062393
 ```
 
 The reconstructed `Q`, `P`, `QE`, and `PE` values should match the generated
@@ -594,12 +593,12 @@ classical reconstructed oscillator energy expressed as `E/omega - 0.5`.
 
 ```text
 [intermolecular]
-angular energy         =    2.30266e-02  eV
-radial energy          =    7.02990e-02  eV
-total energy           =        0.09333  eV
-L                      = [     -0.47993,   -169.76306,     -0.27488 ]  au, |L|     =    169.76396
-J = L + Jab            = [      5.09247,   -167.39197,     -9.78332 ]  au, |J|     =    167.75493
-b                      =        8.58642  Ang
+angular energy         =    8.67855e-03  eV
+radial energy          =    8.33464e-02  eV
+total energy           =        0.09202  eV
+L                      = [      0.54406,     94.95001,     -0.17403 ]  au, |L|     =     94.95173  (QM:  94.45)
+J = L + Jab            = [      4.38906,     91.44210,     -1.37509 ]  au, |J|     =     91.55770  (QM:  91.06)
+b                      =        4.83634  Ang
 ```
 
 The analysed collision energy, impact parameter, and angular-momentum
@@ -610,14 +609,14 @@ frame choices; start by comparing magnitudes and energies.
 ```text
 [energy summary]
 component              =   ammonia_dat/eV     h2o_dat/eV       total/eV
-vibrational            =           0.2500         0.3643         0.6143
-rotational             =           0.1376         0.0205         0.1581
-velocity               =           0.0480         0.0454         0.0933
-total                  =           0.4356         0.4302         0.8658
+vibrational            =           1.3811         0.5480         1.9291
+rotational             =           0.0649         0.0194         0.0843
+velocity               =           0.0474         0.0446         0.0920
+total                  =           1.4934         0.6119         2.1054
 ```
 
-This is the final round-trip check. The generation total was `0.8578 eV`; the
-analysis total is `0.8658 eV`. The small difference comes from reconstructing
+This is the final round-trip check. The generation total was `2.1042 eV`; the
+analysis total is `2.1054 eV`. The small difference comes from reconstructing
 the Cartesian geometry into instantaneous rotational and vibrational
 components. Large unexpected differences are a sign to inspect the vibrational
 table, the vector/full rotational split, and the intermolecular `L`, `Jab`,

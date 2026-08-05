@@ -638,16 +638,16 @@ class imolecule:
         """
         sp = self.sp 
         ip = self.ip 
-        log = ["   :" + ip.name + " : \n"]
+        log = []
         if 'vel' not in sa.dist.keys():
-            log += ["    No velocity sample \n"]
+            log += [f"{ip.name + ' COM speed':<{INFO_LABEL_WIDTH}} = no velocity sample\n"]
             return -1, log
         if 'cont' in sa.dist['vel'].keys():
           v = ICDFscalar(sa.dist['vel']['cont'])
         else:
           v = sa.dist['vel']['v']
-        log += [ "    Molecular COM Velocity " + "{0:10.5f}".format(v)
-            + ", Energy = " + "{0:10.5f}".format(0.5 * sum(sp.mass) * v**2 * au2ev) + " eV \n"]
+        log += [info_scalar(ip.name + " COM speed", v * au2mps, "m/s")]
+        log += [info_scalar(ip.name + " beam KE", 0.5 * sum(sp.mass) * v**2 * au2ev, "eV")]
         return v, log
 
     def SampleRotation(self,sa):
@@ -1029,22 +1029,22 @@ class imolecule:
                     ee += 0.5 * sp.w[j + sp.ntr] * (Q[j] ** 2 + P[j] ** 2)
                 print(j, " e = ",  au2cm * ee / float(N),  0.5 * au2cm * sp.w[j + sp.ntr])
             quit()
-        log = ["  :" + ip.name + " : \n"]
+        log = [f"{ip.name:<{INFO_LABEL_WIDTH}} = sampled vibrational state\n"]
         if 'nvib' not in sa.dist.keys():
-            log += ["    no vibrational state\n"]
+            log += [f"{'vibrational state':<{INFO_LABEL_WIDTH}} = none\n"]
             return log
         vi = ICDFsample(sa.dist['nvib']['cont']).astype(int)
         #print('VI = ', vi, 'max = ', len(sa.dist['wig']['cont']))
         Q, P = zeros(sp.nd), zeros(sp.nd)
         sa.sven = zeros(sp.nm)
-        log += ["    mode   freq  vstat    Q         P         QE        PE        EE (eV)      \n"]
+        log += [" mode   freq  vstat    Q         P         QE        PE        EE (eV)\n"]
         for j, ii in enumerate(vi, start=sp.ntr):
             i = int(ii)
             wi = ICDFsample(sa.dist['wig']['cont'][i])[0]
             if j - sp.ntr not in ip.nfreeze:
              Q[j], P[j] = wi
             sa.sven[j - sp.ntr] = 0.5 * sp.w[j] * (Q[j] ** 2 + P[j] ** 2)
-            st = "    " + str(j - sp.ntr).ljust(3) + "  "+ \
+            st = "   " + str(j - sp.ntr).ljust(3) + "  "+ \
                 "{0:6.1f}".format(sp.w[j]*au2cm) + "  " + str(i).ljust(4)
             st += "{0:10.6f}".format(Q[j])
             st += "{0:10.6f}".format(P[j])

@@ -1396,7 +1396,7 @@ class icats:
           debug and print('Sample InterMolZ...')
           self.SetInterZDist(sa,sp.Rz) # set z distance ...
           if ip.FixedB is None:
-            self.SampleInterMolZVeloc(sa) # need to get the magnitude of intermol v before getting impact parameter
+            self.SampleInterMolZVeloc(sa, add_section=False) # need to get the magnitude of intermol v before getting impact parameter
           debug and print('Sample Impact Param...')  
           if not hasattr(sa, "sb"):
             sa.sb = sa.snL/(sp.rmass*sa.sV)
@@ -2188,7 +2188,7 @@ class icats:
         sa.mol[0].svv -= sa.svel[0] 
         sa.mol[1].svv -= sa.svel[1]
         
-    def SampleInterMolZVeloc(self,sa):
+    def SampleInterMolZVeloc(self,sa,add_section=True):
         """Sample intermolecular z-velocity for the scattering event.
 
         This method samples the intermolecular z-velocity based on molecular velocities or direct input parameters.
@@ -2222,7 +2222,8 @@ class icats:
             sa.SampInfo['vel'] = {}
         sa.SampInfo['vel']['ivel'] = sa.sV*au2mps 
         sa.SampInfo['vel']['velen'] = [k*au2ev for k in sa.smkin]
-        sa.slog += info_section("intermolecular")
+        if add_section:
+            sa.slog += info_section("intermolecular")
         sa.slog += [info_scalar("relative velocity", sa.sV * au2mps, "m/s")]
         sa.slog += [info_scalar("collision energy", sum(sa.smkin) * au2ev, "eV")]
         sa.slog += [info_scalar(mol[0].ip.name + " z velocity", vv[0, 2] * au2mps, "m/s")]
@@ -2254,7 +2255,7 @@ class icats:
         cL = matmul(Rabout(phi,2),y)
         cL = nL*cL/norm(cL)
         sa.scL = cL
-        log = [" - Orbital Angular Q.N. L = : " + "{0:3.2f}".format(L)+"\n"]
+        log = [info_scalar("orbital quantum L", L, "", "{:14.2f}")]
         if 'orb' not in sa.SampInfo.keys():
             sa.SampInfo['orb'] = {}
         sa.SampInfo['orb']['sampling'] = mode
@@ -2305,7 +2306,8 @@ class icats:
 
     def SetStandardOrientation(self,sa):
          msa = sa.mol
-         sa.slog += ['   *** Setting to Standard Azimuthal Orientation (Chi=0) *** \n']
+         sa.slog += info_section("orientation convention")
+         sa.slog += [f"{'standard azimuth':<{INFO_LABEL_WIDTH}} = chi fixed to zero\n"]
          L = sa.scL
          if norm(L) >= 1e-8:
           uL = L/norm(L)
@@ -2324,9 +2326,9 @@ class icats:
             msa[mi].srpar[-1] = matmul(Rs,msa[mi].srpar[-1])
             msa[mi].sxx = matmul(msa[mi].sxx,Rs.T)
             msa[mi].svv = matmul(msa[mi].svv,Rs.T)
-          sa.slog += ['       delChi = '+"{0:10.5f}".format(chii/pi)+' pi rad  \n']
+          sa.slog += [info_scalar("delta chi", chii / pi, "pi rad", "{:14.5f}")]
          else:
-          sa.slog += ['       delChi = '+"{0:10.5f}".format(0.0/pi)+' pi rad  \n']
+          sa.slog += [info_scalar("delta chi", 0.0, "pi rad", "{:14.5f}")]
         
 
     def OutputFrameRotation(self):
@@ -2542,15 +2544,13 @@ class icats:
         This method samples the rigid rotor state for each molecule, considering their respective temperatures.
         """
         debug = False
-        log = info_section("rotation")
+        log = []
         mol = self.mol
         msa = sa.mol 
         for i in range(2):
             if mol[i].sp.na > 1 and 'rotJ' in msa[i].dist:
                 mol[i].SampleTotMolAngMom(msa[i])
                 log += mol[i].SampleRigidRotorState(msa[i])
-            else:
-                log += [f"{mol[i].ip.name:<{INFO_LABEL_WIDTH}} = no rotational state\n"]
         return log
 
     # sets angular velocity from angular momentum once :
@@ -2573,16 +2573,21 @@ class icats:
         debug = False
         mol = self.mol
         msa = sa.mol 
-        log = info_section("orientation")
+        log = []
         for i in range(2):
             if mol[i].sp.na > 1 and 'ori' in msa[i].dist:
                 mol[i].SampleRotation(msa[i])
             else:
                 msa[i].soR = np.eye(3)
-                log += [f"{mol[i].ip.name:<{INFO_LABEL_WIDTH}} = no orientational state\n"]
+                pass
         j0, j1 = matmul(msa[0].soR,msa[0].srpar[-1]), matmul(msa[1].soR,msa[1].srpar[-1])
         jab = j0+j1 
+        log += info_section("rotation")
         log += self.SetAngularVelocity(sa,printlog=True)
+        for i in range(2):
+            if mol[i].sp.na <= 1 or 'rotJ' not in msa[i].dist:
+                log += [f"{mol[i].ip.name:<{INFO_LABEL_WIDTH}} = no rotational state\n"]
+        log += info_section("orientation")
         for i in range(2):
             if mol[i].sp.na > 1:
                 log += mol[i].SetOrientat(msa[i],printlog=True)

@@ -13,7 +13,7 @@ def test_paper_tutorial_generation_and_export(tmp_path):
     _generate_tutorial("paper_nh3_h2o_100k", tutorial)
 
     input_text = (tutorial / "tutorial_input.txt").read_text()
-    assert "Nsamp = 100010" in input_text
+    assert "Nsamp = 100000" in input_text
     assert "maxj = 70" in input_text
     assert "beam-angle = 90.0" in input_text
     assert "workers = 4" in input_text
@@ -29,14 +29,21 @@ def test_paper_tutorial_generation_and_export(tmp_path):
     assert (tutorial / "export_paper_histogram_data.py").exists()
     assert (tutorial / "plot_paper_histograms.py").exists()
     assert (tutorial / "run_paper_tutorial.sh").exists()
+    assert (tutorial / "tutorial_environment.sh").exists()
+    assert (tutorial / "find_python.sh").exists()
     runner_text = (tutorial / "run_paper_tutorial.sh").read_text()
     assert "SBATCH" not in runner_text
     assert "SLURM" not in runner_text
     assert "icats.init tutorial_input.txt" in runner_text
+    assert "source ./tutorial_environment.sh" in runner_text
+    assert "source ./find_python.sh" in runner_text
+    assert "NUMBA_CACHE_DIR" not in runner_text
     assert '"$PYTHON" export_paper_histogram_data.py' in runner_text
     assert '"$PYTHON" plot_paper_histograms.py' in runner_text
     assert not (tutorial / "run_paper_slurm.sh").exists()
     assert not (tutorial / "run_cheap_dynamics.sh").exists()
+    assert "NUMBA_CACHE_DIR" in (tutorial / "tutorial_environment.sh").read_text()
+    assert "command -v python3" in (tutorial / "find_python.sh").read_text()
 
     run_dir = tutorial / "rd_tutorial_input"
     with (run_dir / "wang.pkl").open("rb") as handle:

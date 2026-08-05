@@ -333,7 +333,7 @@ TUTORIALS = {
         "desc": "NH3 + H2O 100k validation ensemble for manuscript Figures 6, 7, and 9",
         "mol0": "paper_ammonia_dat.txt",
         "mol1": "paper_h2o_dat.txt",
-        "nsamp": 100010,
+        "nsamp": 100000,
         "workers": 4,
         "ntraj": 1,
         "steps": 200,
@@ -359,7 +359,7 @@ TUTORIALS = {
         ],
         "notes": [
             "Paper-validation tutorial rather than a short introductory calculation.",
-            "Uses 100,010 collision samples, 500 K vibrational and rotational temperatures, and a 90 degree crossed-beam geometry.",
+            "Uses 100k collision samples, 500 K vibrational and rotational temperatures, and a 90 degree crossed-beam geometry.",
             "The NH3 and H2O beam-speed distributions are centred at 600 and 800 m/s, respectively, with 100 m/s FWHM.",
             "Uses an orbital cap of 70, giving the J/L support and upper-edge roll-off shown in manuscript Figure 9.",
             "Includes the converged WL umbrella used for Figure 9; the default four-worker run reuses it rather than rebuilding it.",
@@ -881,22 +881,24 @@ if __name__ == "__main__":
 
     if include_paper:
         _write_file(
-            out_dir / "run_paper_tutorial.sh",
+            out_dir / "tutorial_environment.sh",
             "#!/usr/bin/env bash\n"
-            "set -euo pipefail\n"
-            "cd \"$(dirname \"${BASH_SOURCE[0]}\")\"\n"
+            "# Keep numerical libraries single-threaded because ICATS uses four worker processes.\n"
             "export OMP_NUM_THREADS=1\n"
             "export OPENBLAS_NUM_THREADS=1\n"
             "export MKL_NUM_THREADS=1\n"
             "export NUMEXPR_NUM_THREADS=1\n"
             "export MPLBACKEND=Agg\n"
+            "# Use writable cache locations on desktops, clusters, and restricted filesystems.\n"
             "export NUMBA_CACHE_DIR=\"${NUMBA_CACHE_DIR:-/tmp/numba_cache_${USER:-user}}\"\n"
             "export MPLCONFIGDIR=\"${MPLCONFIGDIR:-/tmp/mpl_cache_${USER:-user}}\"\n"
-            "mkdir -p \"$NUMBA_CACHE_DIR\" \"$MPLCONFIGDIR\"\n"
-            "if ! command -v icats.init >/dev/null 2>&1; then\n"
-            "  echo \"icats.init is not available. Activate the environment containing ICATS.\" >&2\n"
-            "  exit 1\n"
-            "fi\n"
+            "mkdir -p \"$NUMBA_CACHE_DIR\" \"$MPLCONFIGDIR\"\n",
+            executable=True,
+        )
+        _write_file(
+            out_dir / "find_python.sh",
+            "#!/usr/bin/env bash\n"
+            "# Respect an explicit PYTHON setting, otherwise use the active environment.\n"
             "if [[ -z \"${PYTHON:-}\" ]]; then\n"
             "  if command -v python3 >/dev/null 2>&1; then\n"
             "    PYTHON=python3\n"
@@ -907,6 +909,16 @@ if __name__ == "__main__":
             "    exit 1\n"
             "  fi\n"
             "fi\n"
+            "export PYTHON\n",
+            executable=True,
+        )
+        _write_file(
+            out_dir / "run_paper_tutorial.sh",
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            "cd \"$(dirname \"${BASH_SOURCE[0]}\")\"\n"
+            "source ./tutorial_environment.sh\n"
+            "source ./find_python.sh\n"
             "echo \"Running the paper validation tutorial with the four workers set in tutorial_input.txt.\"\n"
             "echo \"The supplied rd_tutorial_input/wang.pkl will be reused.\"\n"
             "icats.init tutorial_input.txt\n"
@@ -1589,22 +1601,31 @@ def _generate_tutorial(
         f"- {cfg['mol0']}\n"
         f"- {cfg['mol1']}\n\n"
         "Output frame:\n"
-        "- output-frame = internal (default): incoming relative momentum points along space-fixed -Z. Use this to reproduce the bundled tutorials and paper examples.\n"
-        "- output-frame = incoming-k-plus-z: the complete sample is rotated so that incoming relative momentum points along space-fixed +Z. Use this when a downstream program requires that convention.\n"
-        "- Choose the frame before running icats.init. Changing it alters vector components, Euler angles, and exported xyz/vel coordinates, but not scalar energies, b, |L|, or |J|.\n\n"
+        "- output-frame = internal: incoming relative momentum points along space-fixed -Z; the paper uses this convention.\n"
+        "- output-frame = incoming-k-plus-z: incoming relative momentum points along space-fixed +Z.\n"
+        "- Choose the frame before generation. Scalar energies, b, |L|, and |J| are unchanged.\n\n"
     )
+    if is_paper:
+        inputs_text += (
+            "Main tutorial helpers:\n"
+            "- rd_tutorial_input/wang.pkl: converged Wang-Landau profile.\n"
+            "- export_paper_histogram_data.py: writes compact CSV data.\n"
+            "- plot_paper_histograms.py: creates the validation plots.\n"
+            "- run_paper_tutorial.sh: optional wrapper for the complete workflow.\n"
+            "- tutorial_environment.sh and find_python.sh: environment helpers used only by the wrapper.\n\n"
+        )
 
     if is_paper:
         run_order = (
             "Run sequence:\n"
             "1) Read this file and inspect tutorial_input.txt.\n"
-            "2) Run the complete four-worker desktop workflow:\n"
-            "   ./run_paper_tutorial.sh\n"
-            "   This reuses the supplied rd_tutorial_input/wang.pkl, generates 100,010 samples, exports the compact data, and plots the validation figures.\n"
-            "3) To run the stages manually instead:\n"
+            "2) Run the three stages normally:\n"
             "   icats.init tutorial_input.txt\n"
             "   python export_paper_histogram_data.py\n"
-            "   python plot_paper_histograms.py\n\n"
+            "   python plot_paper_histograms.py\n"
+            "3) Or run the same complete four-worker workflow with:\n"
+            "   ./run_paper_tutorial.sh\n"
+            "   The wrapper sources tutorial_environment.sh and find_python.sh, then runs the three commands above.\n\n"
         )
     else:
         run_order = (
@@ -1658,6 +1679,8 @@ def _generate_tutorial(
             "- paper_histogram_data/figure7_*.csv\n"
             "- paper_histogram_data/figure9_*.csv\n"
             "- paper_histogram_data/metadata.json\n\n"
+            "- tutorial_environment.sh (cache and thread settings used by the wrapper)\n"
+            "- find_python.sh (selects Python from the active environment)\n"
             "- paper_histogram_plots/figure6_validation.png and .pdf\n"
             "- paper_histogram_plots/figure7_validation.png and .pdf\n"
             "- paper_histogram_plots/figure9_validation.png and .pdf\n\n"

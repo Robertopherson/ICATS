@@ -49,7 +49,7 @@ Current tutorials cover:
   two molecular rotors. This is the recommended cheap tutorial for inspecting a
   more balanced flat-`J` WL correction.
 - `wang_landau_nh3_h2o`: NH3 + H2O with Wang-Landau weighting.
-- `paper_nh3_h2o_100k`: the 100,000-sample NH3 + H2O validation ensemble
+- `paper_nh3_h2o_100k`: the 100k-sample NH3 + H2O validation ensemble
   used to export the histogram data underlying manuscript Figures 6, 7, and 9.
 - `npz_output_co2_co2`: dual xyz/vel and NPZ output.
 
@@ -119,35 +119,42 @@ icats --tutorial paper_nh3_h2o_100k --setup-only
 cd tutorial_paper_nh3_h2o_100k
 ```
 
-The input uses 100,010 accepted collision samples, `Tvib = Trot = 500 K`, a
+The input uses 100k accepted collision samples, `Tvib = Trot = 500 K`, a
 90 degree crossed-beam angle, `maxj = 70`, and NH3/H2O beam-speed distributions
 centred at 600 and 800 m/s with 100 m/s FWHM. The orbital cap reproduces the
 range shown in Figure 9; `J` extends slightly further through the molecular
 `Jab` contribution. The tutorial suppresses Cartesian trajectory files because
 the purpose is distribution validation rather than dynamics propagation.
 
-Run the complete workflow on a Linux desktop:
+The ordinary ICATS command is:
+
+```bash
+icats.init tutorial_input.txt
+```
+
+Then export the compact data and make the diagnostic plots with:
+
+```bash
+python export_paper_histogram_data.py
+python plot_paper_histograms.py
+```
+
+Alternatively, run all three stages on a Linux desktop with:
 
 ```bash
 ./run_paper_tutorial.sh
 ```
 
-The input uses four workers. The wrapper reuses the supplied, validated
-`rd_tutorial_input/wang.pkl`, generates the accepted ensemble, exports the
-compact histogram data, and creates the validation plots. The same stages can
-be run manually:
-
-```bash
-icats.init tutorial_input.txt
-python export_paper_histogram_data.py
-python plot_paper_histograms.py
-```
+The input uses four workers. The wrapper sources `tutorial_environment.sh` for
+portable cache and thread settings and `find_python.sh` to select Python from
+the active environment. It then runs the same three commands shown above while
+reusing the supplied, validated `rd_tutorial_input/wang.pkl`.
 
 The exporter writes `paper_histogram_data/` containing raw CSV samples,
 histogram tables, and `metadata.json`. The plotter then writes inspectable PNG
 and PDF composites to `paper_histogram_plots/`. The files are grouped as follows:
 
-- `figure6_*`: 100,000 samples of the selected 652.27 cm^-1 NH3 mode at 500 K,
+- `figure6_*`: 100k samples of the selected 652.27 cm^-1 NH3 mode at 500 K,
   sampled with the energy-matched leading-Wigner distribution used by ICATS.
 - `figure7_*`: NH3 and H2O rotational `J` values, the selected asymmetric-top
   projection centres, and the vector-model body-fixed projections reconstructed
