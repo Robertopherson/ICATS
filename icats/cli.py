@@ -1588,11 +1588,10 @@ def _generate_tutorial(
         f"- tutorial_input.txt\n"
         f"- {cfg['mol0']}\n"
         f"- {cfg['mol1']}\n\n"
-        "Frame convention:\n"
-        "- tutorial_input.txt includes output-frame = internal by default.\n"
-        "- Keep this for the historical ICATS/tutorial convention.\n"
-        "- Change it to output-frame = incoming-k-plus-z before icats.init if an external scattering/QM code expects incoming k along space-fixed +Z.\n"
-        "- Changing the frame changes vector components, SF/BF Euler angles, and exported xyz/vel coordinates, so regenerate samples after changing it.\n\n"
+        "Output frame:\n"
+        "- output-frame = internal (default): incoming relative momentum points along space-fixed -Z. Use this to reproduce the bundled tutorials and paper examples.\n"
+        "- output-frame = incoming-k-plus-z: the complete sample is rotated so that incoming relative momentum points along space-fixed +Z. Use this when a downstream program requires that convention.\n"
+        "- Choose the frame before running icats.init. Changing it alters vector components, Euler angles, and exported xyz/vel coordinates, but not scalar energies, b, |L|, or |J|.\n\n"
     )
 
     if is_paper:

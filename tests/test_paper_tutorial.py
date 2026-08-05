@@ -20,6 +20,10 @@ def test_paper_tutorial_generation_and_export(tmp_path):
     assert "wl-nstep = 4000" in input_text
     assert "wl-flatness = 0.95" in input_text
     assert "wl-tol = 1.0000001" in input_text
+    readme_text = (tutorial / "tutorial_README.txt").read_text()
+    assert "incoming relative momentum points along space-fixed -Z" in readme_text
+    assert "incoming relative momentum points along space-fixed +Z" in readme_text
+    assert "historical ICATS/tutorial convention" not in readme_text
     assert "vel  = 600 100 3" in (tutorial / "paper_ammonia_dat.txt").read_text()
     assert "vel  = 800 100 3" in (tutorial / "paper_h2o_dat.txt").read_text()
     assert (tutorial / "export_paper_histogram_data.py").exists()
