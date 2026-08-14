@@ -694,12 +694,11 @@ b = |L| / (mu |v_rel|)
 phi = atan2(-L_x, L_y)
 ```
 
-The lines labelled `Tot. Mol Ja/Jb/Jab` use the full molecular angular momenta
-from the Cartesian analysis. The lines labelled `Vec Model Ja/Jb/Jab` use the
-reference-geometry vector-model molecular angular momenta. For checking the
-sampled total angular momentum distribution, the vector-model `Jab` is usually
-the more relevant quantity, because it corresponds to how the sample was
-generated.
+The `Ja/Jb/Jab, full` lines use the full molecular angular momenta from the
+Cartesian analysis. The `Ja/Jb/Jab, rigid J0` lines use the reconstructed
+reference-geometry contributions. For generated initial conditions these
+recover the sampled vector-model angular momenta and are usually the more
+relevant quantities for checking the sampled total angular momentum.
 
 ## Energy Summary Blocks
 

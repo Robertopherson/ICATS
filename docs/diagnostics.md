@@ -230,10 +230,10 @@ J = L + J_a + J_b
 ```
 
 The `Ja/Jb/Jab, full` lines use the full molecular angular momenta from the
-Cartesian analysis. The `Ja/Jb/Jab, vector model` lines use the
-reference-geometry vector-model molecular angular momenta and are usually the
-better comparison
-for the sampled total-`J` distribution.
+Cartesian analysis. The `Ja/Jb/Jab, rigid J0` lines use the reconstructed
+reference-geometry contributions. For generated initial conditions these
+recover the sampled vector-model angular momenta and are usually the better
+comparison for the sampled total-`J` distribution.
 
 ## Reading Energy Summary
 
