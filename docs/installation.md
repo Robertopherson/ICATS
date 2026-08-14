@@ -99,8 +99,9 @@ icats.init tutorial_input.txt
 ./run_analysis.sh
 ```
 
-The default quickstart runs one 20-step MINDO/3 trajectory and is intended to
-finish in seconds on an ordinary desktop.
+The default quickstart runs one 20-step MINDO/3 trajectory with a 10 a.u.
+timestep, reports the total-energy drift, and is intended to finish in seconds
+on an ordinary desktop.
 
 ## Cache Directories
 

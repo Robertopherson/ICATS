@@ -110,6 +110,7 @@ def run_one(geom_file, vel_file, dt_au, steps, charge, spin, ref_en):
     # Convert md.data to .dat in eV, optionally subtracting reference energy
     lines = Path(md_data).read_text().splitlines()
     out = [lines[0] + "\n"] if lines else []
+    total_energies = []
     for ln in lines[1:]:
         toks = ln.split()
         if len(toks) < 2:
@@ -120,6 +121,8 @@ def run_one(geom_file, vel_file, dt_au, steps, charge, spin, ref_en):
             vals[0] -= ref_en
             vals[2] -= ref_en
         vals *= AU2EV
+        if len(vals) >= 3:
+            total_energies.append(vals[2])
         out.append(step + "".join(f"{v:20.9f}" for v in vals) + "\n")
     Path(stem + ".dat").write_text("".join(out))
 
@@ -135,6 +138,12 @@ def run_one(geom_file, vel_file, dt_au, steps, charge, spin, ref_en):
             vout.append(f"{el[i]}  {vv[i,0]:13.9f}{vv[i,1]:13.9f}{vv[i,2]:13.9f}\n")
     Path(stem + ".md.vel").write_text("".join(vout))
 
+    if not total_energies:
+        return None
+    total_energies = np.asarray(total_energies)
+    energy_drift = total_energies - total_energies[0]
+    return float(energy_drift[-1]), float(np.max(np.abs(energy_drift)))
+
 
 def main():
     global gto, md, se_mindo3
@@ -144,7 +153,7 @@ def main():
     ap.add_argument("--outdir", default="outputs", help="Directory with ISCatter output .xyz/.vel files")
     ap.add_argument("--prefix", default="out", help="File prefix, e.g. out -> out_0.xyz")
     ap.add_argument("--ntraj", type=int, default=10, help="How many trajectories to run")
-    ap.add_argument("--dt", type=float, default=50.0, help="MD timestep in a.u.")
+    ap.add_argument("--dt", type=float, default=10.0, help="MD timestep in a.u.")
     ap.add_argument("--steps", type=int, default=500, help="Number of MD steps per trajectory")
     ap.add_argument("--charge", type=int, default=0, help="Total charge")
     ap.add_argument("--spin", type=int, default=0, help="2S spin multiplicity offset (0 singlet)")
@@ -185,7 +194,13 @@ def main():
     print(f"Running {nrun} cheap trajectories from {args.outdir} (prefix={args.prefix})")
     for i, (xf, vf) in enumerate(pairs[:nrun]):
         print(f"[{i+1}/{nrun}] {xf}")
-        run_one(xf, vf, args.dt, args.steps, args.charge, args.spin, ref_en)
+        energy_check = run_one(xf, vf, args.dt, args.steps, args.charge, args.spin, ref_en)
+        if energy_check is not None:
+            final_drift, max_drift = energy_check
+            print(
+                f"    total-energy drift: final={final_drift:+.6f} eV; "
+                f"max |drift|={max_drift:.6f} eV"
+            )
 
 
 if __name__ == "__main__":

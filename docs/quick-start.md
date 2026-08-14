@@ -109,8 +109,9 @@ With the optional dynamics dependencies installed, run:
 ./run_analysis.sh
 ```
 
-The quickstart uses one 20-step MINDO/3 trajectory. The resulting trajectory
-and analysis are written under `rd_tutorial_input/outputs/`.
+The quickstart uses one 20-step MINDO/3 trajectory with a 10 a.u. timestep and
+prints the final and maximum total-energy drift. The resulting trajectory and
+analysis are written under `rd_tutorial_input/outputs/`.
 
 ## 5. Run The Initial-Condition Audit
 
