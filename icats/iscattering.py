@@ -1412,7 +1412,7 @@ class icats:
           self.SummarizeLogEnergy(sa,False)
           self.CaptureInitialAuditState(sa, "generation")
           # summarize energy from calculated/analysed sample:
-          self.AnalyseSample(sa)
+          self.AnalyseSample(sa, rotation_model="reference")
           self.CaptureInitialAuditState(sa, "analysis")
           self.AuditInitialSample(sa)
 
@@ -1888,6 +1888,7 @@ class icats:
         molecule_vectors = {}
         molecule_scalars = {}
         vibrational = {}
+        decomposition = {}
 
         jac = sa.SampInfo.get("2bJac", {})
         if "R" in jac:
@@ -1906,10 +1907,11 @@ class icats:
             vectors["J"] = _arr(orb.get("cJ"))
             vectors["Jab"] = _arr(orb.get("Jab"))
             scalars["b"] = _scalar(orb.get("b"))
-            if self.ip.ImpactPhi is not None:
-                angles["impact_phi"] = _scalar(orb.get("sampled_impact_phi", orb.get("phi")))
-            else:
-                angles["impact_phi"] = _scalar(orb.get("phi"))
+            # Audit the azimuth in the exported frame. A fixed input azimuth
+            # can change when the output-frame convention rotates the sample.
+            angles["impact_phi"] = _scalar(
+                orb.get("phi", orb.get("sampled_impact_phi"))
+            )
             scalars["relative_velocity_mps"] = _scalar(sa.SampInfo.get("vel", {}).get("ivel"))
             energy = getattr(sa, "audit_energy_generation", {})
         else:
@@ -1950,6 +1952,9 @@ class icats:
                 molecule_vectors[label + "_J_vector"] = _arr(rot.get("svecJ0s"))
                 if rot.get("svecJ0s") is not None:
                     molecule_scalars[label + "_J"] = _scalar(norm(rot.get("svecJ0s")))
+                for key in ("svecJclosure", "seckart_leakage"):
+                    if rot.get(key) is not None:
+                        decomposition[label + "_" + key] = _scalar(norm(rot.get(key)))
             if stage == "generation":
                 if "Q" in vib:
                     vibrational[label + "_Q"] = _arr(vib.get("Q"))
@@ -1973,6 +1978,7 @@ class icats:
                 "molecule_vectors": molecule_vectors,
                 "molecule_scalars": molecule_scalars,
                 "vibrational": vibrational,
+                "decomposition": decomposition,
             },
         )
 
@@ -2107,6 +2113,16 @@ class icats:
             sa.slog.append(
                 "Audit {0:<10s} {1:>18s}: circular diff {2:10.3e} rad [{3}]\n".format(
                     "angle", key, diff, status
+                )
+            )
+        decomposition_tol = 1.0e-8
+        for key, value in sorted(ana.get("decomposition", {}).items()):
+            status = "OK" if value <= decomposition_tol else "FAIL"
+            if status == "FAIL":
+                failures.append(f"decomposition {key}: norm={value:.3g}")
+            sa.slog.append(
+                "Audit {0:<10s} {1:>18s}: norm {2:10.3e} au [{3}]\n".format(
+                    "decomp", key, value, status
                 )
             )
         if failures:
@@ -2372,7 +2388,11 @@ class icats:
                 msa.srpar[-1] = rot_vec(msa.srpar[-1])
             rotate_dict_vectors(
                 msa.SampInfo.get("rot", {}),
-                ("vecJ", "svecJs", "svecJm", "svecJc", "svecJ0", "svecJ0s"),
+                (
+                    "vecJ", "svecJs", "svecJm", "svecJ0", "svecJ0s",
+                    "svecJ1", "svecJ2", "svecJpi", "svecJclosure",
+                    "seckart_leakage", "somega", "sJref",
+                ),
             )
 
         for attr in ("scL", "scJ", "sjab"):
@@ -2608,7 +2628,7 @@ class icats:
         sa.slog += mol[0].SampleHOVibrState(msa[0])
         sa.slog += mol[1].SampleHOVibrState(msa[1])
 
-    def CalcRotEner(self,sa):
+    def CalcRotEner(self,sa, rotation_model="instantaneous"):
         """Calculate rotational energies.
 
         This method calculates rotational energies for each molecule and the overall system.
@@ -2617,8 +2637,8 @@ class icats:
         sa.slog += info_section("rotation")
         mol = self.mol
         msa = sa.mol 
-        sa.slog += mol[0].CalcRotEner(msa[0])
-        sa.slog += mol[1].CalcRotEner(msa[1])
+        sa.slog += mol[0].CalcRotEner(msa[0], rotation_model=rotation_model)
+        sa.slog += mol[1].CalcRotEner(msa[1], rotation_model=rotation_model)
         if 'rot' not in sa.SampInfo.keys(): 
            sa.SampInfo['rot'] = {}
         sa.SampInfo['rot']['m0'] = msa[0].SampInfo.get('rot', {}).copy()
@@ -2993,7 +3013,7 @@ class icats:
           
           
 
-    def AnalyseSample(self,sa):
+    def AnalyseSample(self,sa, rotation_model="instantaneous"):
         """
         Analyze a sample by performing various calculations and generating a summary.
 
@@ -3020,7 +3040,7 @@ class icats:
         # Calculates Euler orientation of molecular frame from xx and vv
         self.CalcOrient(sa)
         # Calculates Rotational information from xx and vv
-        self.CalcRotEner(sa)
+        self.CalcRotEner(sa, rotation_model=rotation_model)
         # Calculates Vibrational information from xx and vv
         self.CalcInterEner(sa)
         # Calculate InterMolecular information from xx and vv

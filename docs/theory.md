@@ -294,10 +294,10 @@ Several frames appear in the output:
 - Jacobi/intermolecular frame: the two molecular centres of mass treated as a
   two-body problem.
 
-The distinction between the Eckart frame and the instantaneous principal-axis
-frame matters. The vector-model rotor is defined with the reference geometry.
-The full instantaneous rotational analysis is defined from the actual distorted
-geometry at that snapshot.
+The distinction between the reference and instantaneous geometries matters.
+The sampled vector-model rotor is defined with the reference geometry. For a
+propagated snapshot, the Eckart rotational energy uses the recovered angular
+velocity and the inertia tensor of the realised distorted geometry.
 
 ## Euler Angles And Output Names
 
@@ -545,75 +545,65 @@ J_full_eckart = sum_i m_i (r_i^E cross v_i^E)
 The magnitude should match the space-frame value apart from numerical noise,
 but the components are expressed in the Eckart molecular frame.
 
-### `vector J, Eckart`
+### `rigid J0, Eckart`
 
-This is the reference-geometry rotor component extracted from the same Eckart
-velocities:
-
-```text
-J_vector_eckart = sum_i m_i (x_ref_i cross v_i^E)
-```
-
-The key difference is that the cross product uses the reference geometry
-`x_ref`, not the realised distorted geometry `r_i^E`. This is the analysis-side
-version of the rotor angular momentum assumed by the sampler.
-
-### `vector J, space`
-
-This is the same vector-model angular momentum rotated back to the space-fixed
-frame. It is useful when comparing molecular rotor vectors to the
-intermolecular `L` and total `J` vectors.
-
-### `vibrational J`
-
-The code defines this residual as:
+This is the reference-geometry rigid-rotor contribution
 
 ```text
-J_vib_eckart = J_full_eckart - J_vector_eckart
+J0 = I0 Omega_Eck
 ```
 
-It measures how much instantaneous molecular angular momentum is carried by
-the vibrational distortion and vibrational velocity in the realised snapshot.
-In the small-amplitude Eckart approximation, this term is expected to be small
-or to average away over vibrational phase, but it does not have to be exactly
-zero in a single Cartesian sample.
+where `I0` is the reference inertia tensor. For a generated initial condition,
+`J0` independently reconstructs the vector-model angular momentum imposed by
+the sampler. `rigid J0, space` is the same vector rotated back to the
+space-fixed frame.
 
-This label should not be read as a separately sampled conserved quantum number.
-It is a diagnostic of the difference between the full instantaneous angular
-momentum and the reference-geometry vector-model angular momentum.
+### Geometry And Intrinsic Contributions
 
-Do not read this residual as implying a simple scalar energy identity such as
-`E_full = E_vector + E_vib`. The angular momenta are useful diagnostic vectors,
-but the energy expressions use different inertia tensors and can contain
-cross/higher-order geometry effects.
-
-### `vector rot. energy`
-
-This is computed from `J_vector_eckart` and the reference principal moments of
-inertia:
+For a general propagated snapshot, ICATS writes
 
 ```text
-E_vector_i = 0.5 * J_vector_i^2 / I_ref_i
+J_full = J0 + J_geometry(1) + J_geometry(2) + pi
 ```
 
-The printed line gives the three principal-axis contributions and their sum.
+The two geometry terms are the first- and second-order changes in angular
+momentum caused by rotating the displaced geometry. The intrinsic vibrational
+angular momentum is
+
+```text
+pi = sum_i m_i (u_i cross du_i/dt)
+```
+
+where `u_i` is the Eckart displacement and `du_i/dt` is the internal velocity
+after subtracting the rotational field. These terms are diagnostics, not
+separately sampled conserved quantum numbers. `closure J, Eckart` is the
+residual after summing them and should be numerically zero.
+
+ICATS initial conditions deliberately impose the rigid rotational field
+`Omega_VM cross x_i^0`, rather than `Omega_VM cross (x_i^0 + u_i)`. The
+generated-sample analysis therefore uses the matching reference-rotation
+decomposition: the second-order geometry term is zero, while `J0` remains the
+direct round-trip test of the sampled vector model.
+
+### Rotational Energies
+
+`rigid rot. energy` uses `J0` and the reference principal moments:
+
+```text
+E_rigid = 0.5 * J0^T I0^-1 J0
+```
+
 This is the correct comparison to the sampled rotor energy at `t = 0`.
-
-### `full rot. energy`
-
-For this quantity, the code diagonalises the inertia tensor of the realised
-instantaneous geometry. It then computes a rigid-body rotational energy from
-the full instantaneous angular momentum in that instantaneous principal-axis
-frame:
+For a propagated snapshot, `Eckart rot. energy` instead uses the recovered
+angular velocity and instantaneous inertia tensor:
 
 ```text
-E_full_i = 0.5 * J_full_i^2 / I_inst_i
+E_Eckart = 0.5 * Omega_Eck^T I(u) Omega_Eck
 ```
 
-This is a real diagnostic of the Cartesian snapshot, but it is not the same
-quantity as the sampled vector-model rotor energy for a vibrating molecule. It
-can include instantaneous vibrational angular momentum and small higher-order
-geometry effects.
+It excludes intrinsic `pi`; treating the full angular momentum as a pure
+rigid-body angular momentum would mix vibrational motion into the rotational
+energy.
 
 ## Intermolecular Sampling
 
@@ -737,11 +727,10 @@ uses:
 - rotational energies from `molecules.CalcRotEner`,
 - intermolecular kinetic energies from `iscattering.CalcInterMolMomentum`.
 
-At present, the printed rotational total in this summary follows the full
-instantaneous rotational-energy analysis. For vibrating polyatomics, this means
-it may not be identical to the sampled vector-model rotor energy. To check the
-sampler itself, compare the sampled rotor energy to the explicit
-`vector rot. energy` line, not to the full instantaneous rotational energy.
+For a generated sample, the rotational row uses the reconstructed
+reference-geometry rigid-rotor energy. For a propagated snapshot, it uses the
+instantaneous Eckart rotational energy. Intrinsic vibrational angular momentum
+is not folded into either rigid-rotation expression.
 
 The `Velocity` row in these summaries is the translational/intermolecular COM
 kinetic contribution split between the two molecular partners. It is not a
@@ -760,6 +749,7 @@ The optional audit exists because of this distinction. When
 - generated and reconstructed `L`, `Jab`, and `J` vectors where those are
   directly comparable,
 - per-molecule vector-model angular momenta,
+- angular-decomposition closure and Eckart velocity leakage,
 - impact parameter, relative velocity, and defined vibrational `Q/P`
   coordinates.
 
@@ -770,24 +760,24 @@ the initial-condition conversion itself.
 
 ## What To Use For Which Question
 
-Use `vector rot. energy` when asking:
+Use `rigid rot. energy` when asking:
 
 ```text
 Did ICATS recover the rigid-rotor energy it sampled?
 ```
 
-Use `full rot. energy` when asking:
+Use `Eckart rot. energy` when asking:
 
 ```text
-What is the instantaneous rigid-body rotational energy of this Cartesian
-snapshot if I use the realised distorted geometry?
+What rotational energy follows from the Eckart angular velocity and realised
+geometry of this propagated snapshot?
 ```
 
-Use `vibrational J` when asking:
+Use `geometry J(1)`, `geometry J(2)`, and `intrinsic pi` when asking:
 
 ```text
-How much molecular angular momentum is not described by the reference-geometry
-vector-model component in this snapshot?
+How does the full molecular angular momentum separate into rigid,
+geometry-dependent, and intrinsic vibrational contributions?
 ```
 
 Use `angular energy`, `radial energy`, `L`, `P_R`, and `J = L + Jab` in the
@@ -813,7 +803,6 @@ motion, floppy modes, strong Coriolis coupling, centrifugal distortion, or a
 poor potential-energy surface can all make the decomposition less clean.
 
 ICATS tries to expose those limitations rather than hiding them. The separate
-vector-model, full-rotational, vibrational-angular-momentum, and
-intermolecular-analysis lines are there so that a user can see when the simple
-model remains self-consistent and when the Cartesian sample contains extra
-structure that the idealised model does not fully absorb.
+rigid, geometry-dependent, intrinsic-vibrational, and intermolecular analysis
+lines show when the model remains self-consistent and when a propagated
+Cartesian sample contains motion beyond the idealised initial model.

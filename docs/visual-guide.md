@@ -233,17 +233,16 @@ The corresponding `.info` lines include:
 ```text
 rotor type
 symmetry constant
-vector J, space
-vector J, Eckart
-vector rot. energy
-full rot. energy
+rigid J0, space
+rigid J0, Eckart
+rigid rot. energy
+Eckart rot. energy
 ```
 
-The `vector` entries are the intended rigid-rotor model. The `full` entries
-are reconstructed from the realised Cartesian geometry and velocities. For a
-vibrating polyatomic molecule these are not guaranteed to be identical because
-instantaneous vibrational displacement can carry residual vibrational angular
-momentum.
+The `rigid J0` entries are the reference-geometry rotor component. `full J` is
+reconstructed from all Cartesian coordinates and velocities. A propagated
+vibrating molecule can also contain geometry-dependent and intrinsic
+vibrational angular momentum.
 
 ## Vector Model And Asymmetric Tops
 
@@ -258,17 +257,19 @@ Cartesian sample actually contains.
 When reading output, compare:
 
 ```text
-vector J, Eckart
+rigid J0, Eckart
 full J, Eckart
-vibrational J
-vector rot. energy
-full rot. energy
+geometry J(1), Eckart
+geometry J(2), Eckart
+intrinsic pi, Eckart
+closure J, Eckart
+rigid rot. energy
+Eckart rot. energy
 ```
 
-The `vibrational J` line is the Eckart-frame residual between the full
-instantaneous angular momentum and the vector-model rigid-rotor part. It is a
-diagnostic of the generated Cartesian state, not a separate sampled quantum
-number.
+The full angular momentum is separated into `J0`, first- and second-order
+geometry terms, and intrinsic `pi`. The closure residual should be numerical
+zero. These are Cartesian diagnostics, not separately sampled quantum numbers.
 
 ## Vibrational Phase Space
 
@@ -317,7 +318,7 @@ Use this quick map when reading a tutorial `.info` file:
 | Impact plane | `fixed-b`, `maxb`, `impact-phi`, `orbital-sampling` | `b`, `impact phi`, `L` |
 | Total angular momentum | `maxl`, `maxj`, `wang`, `wl-target` | `Ja`, `Jb`, `Jab`, `L`, `J = L + Jab` |
 | Molecular orientation | `orientation-mode`, `orientation-frame`, `rot-param` | `alpha,beta,gamma`, `wx,wy,wz` |
-| Rotor model | `Trot`, molecule geometry/top type | `vector J`, `full J`, `vector rot. energy`, `full rot. energy` |
+| Rotor model | `Trot`, molecule geometry/top type | `rigid J0`, `full J`, geometry terms, `intrinsic pi`, rotational energies |
 | Vibrations | `Tvib`, `vib-mode`, `nfreeze`, Hessian/frequencies | `Q`, `P`, `vstat`, `internal residual` |
 
 For a new setup, inspect the annotated `.info` file first, then the histogram

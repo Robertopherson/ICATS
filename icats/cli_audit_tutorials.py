@@ -68,8 +68,8 @@ def _parse_audit(path: Path):
         r"analysis\s+([-+0-9.eE]+) eV, diff\s+([-+0-9.eE]+)"
     )
     generic_rx = re.compile(
-        r"Audit\s+(angular|vector|mol scalar|mol vector|scalar|vib|angle)\s+(.+?):.*?"
-        r"(?:diff|vector-norm diff|component-rms diff|circular diff)\s+([-+0-9.eE]+)"
+        r"Audit\s+(angular|vector|mol scalar|mol vector|scalar|vib|angle|decomp)\s+(.+?):.*?"
+        r"(?:diff|vector-norm diff|component-rms diff|circular diff|norm)\s+([-+0-9.eE]+)"
     )
     worst_energy = (0.0, "")
     worst_state = (0.0, "")

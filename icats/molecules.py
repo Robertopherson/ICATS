@@ -361,16 +361,16 @@ class imolecule:
         if sp.na == 1:
           log += [f"{'vibrational space':<{INFO_LABEL_WIDTH}} = none (atom)\n"]
           return log
+        decomposition = getattr(sa, "_eckart_analysis", None)
+        if decomposition is None:
+          raise ValueError("Vibrational analysis requires the Eckart angular decomposition")
+        uu = decomposition["u"]
+        du = decomposition["internal_velocity"]
         if sp.nm == 0:
-          xx = sa.sxx.copy() - COM(sa.sxx, sp.mass).T
-          vv = sa.svv.copy() - COM(sa.svv, sp.mass).T
-          U = EckartFrameTrans(sp.xxe, xx, sp.mass)
-          xx = matmul(U, xx.T).T
-          vv = matmul(U, vv.T).T
           RR = sp.c2m[:, : sp.ntr]
           PP = np.eye(sp.nd)-matmul(RR, matmul(inv(matmul(RR.T, RR)), RR.T))
-          dx = matmul(PP, reshape(xx - sp.xxe, (sp.nd)))
-          dv = matmul(PP, reshape(vv, (sp.nd)))
+          dx = matmul(PP, reshape(uu, (sp.nd)))
+          dv = matmul(PP, reshape(du, (sp.nd)))
           dp = sp.mass2 * dv
           ek = 0.5 * sum(sp.mass2 * dv**2)
           log += [f"{'vibrational modes':<{INFO_LABEL_WIDTH}} = unavailable; no Hessian/normal modes\n"]
@@ -381,26 +381,18 @@ class imolecule:
           return log
         debug = True
         debug = False
-        xx, vv = (
-            sa.sxx.copy() - COM(sa.sxx, sp.mass).T,
-            sa.svv.copy() - COM(sa.svv, sp.mass).T,)
         if debug:
             RR = sp.m2c[: sp.ntr, :]
             RR = mscale2(GetRotTransVec(
                 sp.xxe, sp.mass, sp.el), sp.mass, -1)
             print("ZEROy? = ", norm(RR), diag(
                 matmul(RR, sp.c2m[:, : sp.ntr])))
-        # move molecule to its eckart frame
-        U = EckartFrameTrans(sp.xxe, xx, sp.mass)
-        # move to eckart frame:
-        xx = matmul(U, xx.T).T
-        vv = matmul(U, vv.T).T
-        xe = sp.xxe
-        # project velocity to space of internals coordinates:
+        # Remove residual numerical translation/rotation before transforming
+        # the Eckart displacement and internal velocity to normal modes.
         RR = sp.c2m[:, : sp.ntr]
         PP = np.eye(sp.nd)-matmul(RR, matmul(inv(matmul(RR.T, RR)), RR.T))
-        xx = matmul(PP, reshape(xx - xe, (sp.nd)))
-        pp = matmul(PP, reshape(vv, (sp.nd))) * sp.mass2
+        xx = matmul(PP, reshape(uu, (sp.nd)))
+        pp = matmul(PP, reshape(du, (sp.nd))) * sp.mass2
         # Convert to mass, frequency scaled Normal coordinates:
         Np = matmul(sp.p2n.T, pp)
         Nq = matmul(sp.x2n.T, xx)
@@ -487,9 +479,14 @@ class imolecule:
                 'cenergy': 0.0,
                 'svecJs': np.zeros(3),
                 'svecJm': np.zeros(3),
-                'svecJc': np.zeros(3),
                 'svecJ0': np.zeros(3),
                 'svecJ0s': np.zeros(3),
+                'svecJ1': np.zeros(3),
+                'svecJ2': np.zeros(3),
+                'svecJpi': np.zeros(3),
+                'svecJclosure': np.zeros(3),
+                'seckart_leakage': np.zeros(3),
+                'somega': np.zeros(3),
                 'senergy': np.zeros(3),
                 'sjz': 0.0,
                 'sang': [0.0, 0.0],
@@ -888,55 +885,39 @@ class imolecule:
 
 
 
-    def CalcRotEner(self,sa):
-        """
-        Calculate the rotational energy of the system. s 
-
-        Returns:
-        list: Log messages.
-        """
+    def CalcRotEner(self,sa, rotation_model="instantaneous"):
+        """Decompose molecular angular momentum and rotational energy."""
         sp = self.sp 
         ip = self.ip 
         log = [f"{ip.name:<{INFO_LABEL_WIDTH}} = {sp.rsym}, symmetry constant = {getattr(sp, 'asymk', 0.0):6.2f}\n"]
-        asymk = getattr(sp, 'asymk', 0.0)
         if sp.na == 1:
          log += [f"{'rotational space':<{INFO_LABEL_WIDTH}} = none\n"]
          return log
-        def inertia_tensor(r, masses):
-           I = np.zeros((3,3))
-           for (ri, m) in zip(r, masses):
-               r2 = ri @ ri
-               I += m * (r2 * np.eye(3) - np.outer(ri, ri))
-           return I 
-
-        debug = True
-        debug = False
         xx, vv =  sa.sxx.copy() - COM(sa.sxx, sp.mass).T,\
                   sa.svv.copy() - COM(sa.svv, sp.mass).T
-        xx0 = xx.copy()
         Ls  = np.sum(cross(xx, vv).T * sp.mass, axis=1)
         # move molecule to its eckart frame
         U = EckartFrameTrans(sp.xxe, xx, sp.mass)
         xx = matmul(U, xx.T).T
         vv = matmul(U, vv.T).T
+        decomposition = EckartAngularDecomposition(
+            sp.xxe, xx, vv, sp.mass, rotation_model=rotation_model
+        )
+        sa._eckart_analysis = decomposition
         S2B, II, Is = iI(iX(xx), iX(xx), sp.mass)
-        Lm  = np.sum(cross(xx, vv).T * sp.mass, axis=1)
-        L0  = np.sum(cross(sp.xxe, vv).T * sp.mass, axis=1)
+        Lm = decomposition["Jfull"]
+        L0 = decomposition["J0"]
+        L1 = decomposition["delta_J1"]
+        L2 = decomposition["delta_J2"]
+        Lpi = decomposition["pi"]
+        Lclose = decomposition["closure"]
         E0  = 0.5*L0**2/(1.e-16+sp.Ib)
-        Lc  = Lm-L0
         L0s = matmul(U.T,L0)
-        # get projector
-        #PP = matmul(RR, matmul(inv(matmul(RR.T, RR)), RR.T))
-        #vv = reshape(matmul(PP, reshape(vv, (sp.nd))), (sp.na, 3))
-        #vv = ProjectRTSpace(vv,sp.xxe,sp.xxe,sp.mass,'r')
-        #vv = ProjectRTSpace(vv,xx,sp.xxe,sp.mass,'r')
-        xx = matmul(S2B.T, xx.T).T
-        vv = matmul(S2B.T, vv.T).T
-        LL = np.sum(cross(xx, vv).T * sp.mass, axis=1)
-        if any([e < 1e-12 for e in diag(II).tolist()]):
-         ee = 0.5 * LL**2 / (1.0e-16 + diag(II))
+        if rotation_model == "reference":
+         ee = E0.copy()
         else:
-         ee = 0.5 * LL**2 /  diag(II)
+         omega_principal = matmul(S2B.T, decomposition["omega"])
+         ee = 0.5 * diag(II) * omega_principal**2
         EE = sum(ee)
         axx = ['x','y','z']
         rot_info = sa.SampInfo.get('rot', {})
@@ -966,11 +947,17 @@ class imolecule:
          sa.SampInfo['rot'] = {} 
         sa.SampInfo['rot']["svecJs"]  = Ls  
         sa.SampInfo['rot']["svecJm"]  = Lm
-        sa.SampInfo['rot']["svecJc"]  = Lc
         sa.SampInfo['rot']["svecJ0"]  = L0
         sa.SampInfo['rot']["svecJ0s"]  = L0s
+        sa.SampInfo['rot']["svecJ1"] = L1
+        sa.SampInfo['rot']["svecJ2"] = L2
+        sa.SampInfo['rot']["svecJpi"] = Lpi
+        sa.SampInfo['rot']["svecJclosure"] = Lclose
+        sa.SampInfo['rot']["seckart_leakage"] = decomposition["eckart_leakage"]
+        sa.SampInfo['rot']["sJref"] = decomposition["Jref"]
+        sa.SampInfo['rot']["somega"] = decomposition["omega"]
+        sa.SampInfo['rot']["rotation_model"] = rotation_model
         sa.SampInfo['rot']["senergy"] = ee
-        sa.SampInfo['rot']["senergy_full"] = ee
         sa.SampInfo['rot']["senergy_vec"] = E0
         sa.SampInfo['rot']['sang']    = [bet,gamm]
         sa.SampInfo['rot']['sbet']    = bet
@@ -978,26 +965,28 @@ class imolecule:
         sa.SampInfo['rot']['sjz']     = jz
         nLs = norm(Ls) 
         nLm = norm(Lm)
-        nLc = norm(Lc)
         nL0 = norm(L0)
         nL0s = norm(L0s)
         qLs  = 0.5*(-1+sqrt(1+4*nLs**2))
         qLm  = 0.5*(-1+sqrt(1+4*nLm**2))
-        qLc  = 0.5*(-1+sqrt(1+4*nLc**2))
         qL0  = 0.5*(-1+sqrt(1+4*nL0**2))
         qL0s = 0.5*(-1+sqrt(1+4*nL0s**2))
 
         log += [info_vec("full J, space", Ls, "au", "J", nLs, qLs)]
         log += [info_vec("full J, Eckart", Lm, "au", "J", nLm, qLm)]
-        log += [info_vec("vector J, space", L0s, "au", "J", nL0s, qL0s)]
-        log += [info_vec("vector J, Eckart", L0, "au", "J", nL0, qL0)]
-        log += [info_vec("vibrational J", Lc, "au", "J", nLc, qLc)]
-        log += [info_vec("vector rot. energy", np.array(E0) * au2ev, "eV", "E", sum(E0) * au2ev)]
-        log += [info_vec("full rot. energy", np.array(ee) * au2ev, "eV", "E", EE * au2ev)]
-        log += [info_scalar("vector |J|", norm(L0), "au", "{:14.5f}")]
-        log += [info_scalar("vector beta", bet / pi, "pi rad", "{:14.5f}")]
-        log += [info_scalar("vector gamma", gamm / pi, "pi rad", "{:14.5f}")]
-        log += [info_scalar("vector axis J" + axx[ax], jz, "au", "{:14.5f}")]
+        log += [info_vec("rigid J0, space", L0s, "au", "J", nL0s, qL0s)]
+        log += [info_vec("rigid J0, Eckart", L0, "au", "J", nL0, qL0)]
+        log += [info_vec("geometry J(1), Eckart", L1, "au", "J", norm(L1))]
+        log += [info_vec("geometry J(2), Eckart", L2, "au", "J", norm(L2))]
+        log += [info_vec("intrinsic pi, Eckart", Lpi, "au", "J", norm(Lpi))]
+        log += [info_vec("closure J, Eckart", Lclose, "au", "J", norm(Lclose))]
+        log += [info_vec("rigid rot. energy", np.array(E0) * au2ev, "eV", "E", sum(E0) * au2ev)]
+        if rotation_model == "instantaneous":
+          log += [info_vec("Eckart rot. energy", np.array(ee) * au2ev, "eV", "E", EE * au2ev)]
+        log += [info_scalar("rigid |J0|", norm(L0), "au", "{:14.5f}")]
+        log += [info_scalar("rigid beta", bet / pi, "pi rad", "{:14.5f}")]
+        log += [info_scalar("rigid gamma", gamm / pi, "pi rad", "{:14.5f}")]
+        log += [info_scalar("rigid axis J" + axx[ax], jz, "au", "{:14.5f}")]
         return log
 
 

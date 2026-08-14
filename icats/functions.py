@@ -624,6 +624,80 @@ def iI(XX1, XX2, mass):
     return evc, diag(evl), II
 
 
+def EckartAngularDecomposition(x0, xx, vv, mass, rotation_model="instantaneous"):
+    """Decompose molecular angular momentum in an Eckart-aligned frame.
+
+    ``reference`` describes ICATS initial conditions, whose sampled rigid-rotor
+    velocity is Omega x x0. ``instantaneous`` describes a general snapshot,
+    whose rotational velocity is Omega x (x0 + u).
+    """
+    x0 = np.asarray(x0, dtype=float)
+    xx = np.asarray(xx, dtype=float)
+    vv = np.asarray(vv, dtype=float)
+    mass = np.asarray(mass, dtype=float)
+    uu = xx - x0
+
+    X0 = iX(x0)
+    Xu = iX(uu)
+    XX = iX(xx)
+
+    def metric(left, right):
+        out = np.zeros((3, 3))
+        for i, mi in enumerate(mass):
+            out += mi * left[i].T @ right[i]
+        return out
+
+    I0 = metric(X0, X0)
+    K1 = metric(X0, Xu)
+    I2 = metric(Xu, Xu)
+    Iinstant = metric(XX, XX)
+    Jref = np.sum(mass[:, None] * np.cross(x0, vv), axis=0)
+    Jfull = np.sum(mass[:, None] * np.cross(xx, vv), axis=0)
+
+    if rotation_model == "reference":
+        angular_metric = I0
+        rotation_geometry = x0
+        delta_I1 = K1.T
+        delta_I2 = np.zeros((3, 3))
+    elif rotation_model == "instantaneous":
+        angular_metric = I0 + K1
+        rotation_geometry = xx
+        delta_I1 = K1 + K1.T
+        delta_I2 = I2
+    else:
+        raise ValueError("rotation_model must be 'reference' or 'instantaneous'")
+
+    omega = svdsolve(angular_metric, Jref)
+    internal_velocity = vv - np.cross(omega, rotation_geometry)
+    J0 = I0 @ omega
+    delta_J1 = delta_I1 @ omega
+    delta_J2 = delta_I2 @ omega
+    pi = np.sum(mass[:, None] * np.cross(uu, internal_velocity), axis=0)
+    eckart_leakage = np.sum(
+        mass[:, None] * np.cross(x0, internal_velocity), axis=0
+    )
+    closure = Jfull - (J0 + delta_J1 + delta_J2 + pi)
+
+    return {
+        "rotation_model": rotation_model,
+        "u": uu,
+        "internal_velocity": internal_velocity,
+        "omega": omega,
+        "I0": I0,
+        "K1": K1,
+        "I2": I2,
+        "Iinstant": Iinstant,
+        "Jref": Jref,
+        "Jfull": Jfull,
+        "J0": J0,
+        "delta_J1": delta_J1,
+        "delta_J2": delta_J2,
+        "pi": pi,
+        "eckart_leakage": eckart_leakage,
+        "closure": closure,
+    }
+
+
 # rotate about some cartesian axis
 def Rabout(ang, d):
     """

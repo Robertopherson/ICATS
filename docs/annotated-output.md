@@ -179,26 +179,32 @@ rotational diagnostics from the Cartesian coordinates:
 ```text
 [rotation]
 ammonia_dat            = oblate, symmetry constant =   1.00
-full J, space          = [      6.78943,     -0.28659,     -9.65061 ]  au, |J|     =     11.80309  (QM:  11.31)
-vector J, space        = [      5.42514,      0.00672,    -10.12783 ]  au, |J|     =     11.48935  (QM:  11.00)
-vibrational J          = [     -0.51418,      1.38125,      0.05324 ]  au, |J|     =      1.47481  (QM:   1.06)
-vector rot. energy     = [      0.06826,      0.00171,      0.05933 ]  eV, |E|     =      0.12929
-full rot. energy       = [      0.00171,      0.07625,      0.05964 ]  eV, |E|     =      0.13759
+full J, space          = [      1.81290,     -0.35108,      1.60610 ]  au, |J|     =      2.44733  (QM:   2.00)
+full J, Eckart         = [      2.15946,     -1.09951,     -0.34243 ]  au, |J|     =      2.44733  (QM:   2.00)
+rigid J0, space        = [      1.41671,     -0.76470,      1.84691 ]  au, |J|     =      2.45008  (QM:   2.00)
+rigid J0, Eckart       = [      1.89920,     -1.54789,      0.00001 ]  au, |J|     =      2.45008  (QM:   2.00)
+geometry J(1), Eckart  = [      0.03034,      0.10807,      0.00454 ]  au, |J|     =      0.11234
+geometry J(2), Eckart  = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000
+intrinsic pi, Eckart   = [      0.22992,      0.34031,     -0.34699 ]  au, |J|     =      0.53766
+closure J, Eckart      = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000
+rigid rot. energy      = [      0.00495,      0.00329,      0.00000 ]  eV, |E|     =      0.00823
 
 h2o_dat                = asym-spherical, symmetry constant =  -0.66
-full J, space          = [     -0.23574,      2.04596,      0.82321 ]  au, |J|     =      2.21793  (QM:   1.77)
-vector J, space        = [      0.14725,      2.36438,      0.61940 ]  au, |J|     =      2.44859  (QM:   2.00)
-vibrational J          = [      0.06575,      0.06853,     -0.52971 ]  au, |J|     =      0.53815  (QM:   0.23)
-vector rot. energy     = [      0.02028,      0.00000,      0.00124 ]  eV, |E|     =      0.02152
-full rot. energy       = [      0.02024,      0.00005,      0.00026 ]  eV, |E|     =      0.02054
+full J, space          = [     -3.78963,     -1.82879,      1.36915 ]  au, |J|     =      4.42497  (QM:   3.95)
+full J, Eckart         = [     -2.60668,      3.34344,      1.26768 ]  au, |J|     =      4.42497  (QM:   3.95)
+rigid J0, space        = [     -3.81651,     -1.86794,      1.39488 ]  au, |J|     =      4.47221  (QM:   4.00)
+rigid J0, Eckart       = [     -2.64898,      3.37600,      1.25944 ]  au, |J|     =      4.47221  (QM:   4.00)
+geometry J(1), Eckart  = [      0.04230,     -0.03256,      0.06918 ]  au, |J|     =      0.08738
+geometry J(2), Eckart  = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000
+intrinsic pi, Eckart   = [     -0.00000,     -0.00000,     -0.06095 ]  au, |J|     =      0.06095
+closure J, Eckart      = [     -0.00000,     -0.00000,      0.00000 ]  au, |J|     =      0.00000
+rigid rot. energy      = [      0.02871,      0.01917,      0.00189 ]  eV, |E|     =      0.04977
 ```
 
 The most important comparison for sampler validation is the generated
-rigid-rotor energy against `vector rot. energy`. `full rot. energy` uses the
-instantaneous realised geometry, so for vibrating polyatomics it is a useful
-diagnostic but not always the exact sampled model energy. `vibrational J` is
-the angular-momentum part left after subtracting the vector-model rotation in
-the Eckart/body-fixed analysis.
+rigid-rotor energy against `rigid rot. energy`. The remaining lines show how
+the full Cartesian angular momentum separates into rigid, geometry-dependent,
+and intrinsic vibrational terms. `closure J, Eckart` should be numerical zero.
 
 Line meanings:
 
@@ -209,15 +215,16 @@ Line meanings:
   coordinates and velocities in the lab frame.
 - `full J, Eckart`: the same full angular momentum expressed in the molecule's
   Eckart/body-fixed frame.
-- `vector J, space`: angular momentum corresponding to the sampled vector-model
-  rigid-rotor part, expressed in the lab frame.
-- `vector J, Eckart`: the vector-model rigid-rotor angular momentum in the
-  Eckart/body-fixed frame.
-- `vibrational J`: residual vibrational angular momentum in the Eckart/body
-  frame, approximately `full J - vector J` in that frame.
-- `vector rot. energy`: rotational energy from the sampled vector-model rotor.
-- `full rot. energy`: rotational energy obtained from the instantaneous
-  geometry and full angular momentum.
+- `rigid J0`: the reference-geometry contribution `I0 Omega_Eck`, shown in
+  space and Eckart frames.
+- `geometry J(1)` and `geometry J(2)`: displacement-dependent first- and
+  second-order angular-momentum contributions.
+- `intrinsic pi`: intrinsic vibrational angular momentum
+  `sum_i m_i u_i cross du_i/dt`.
+- `closure J`: residual of the complete decomposition.
+- `rigid rot. energy`: rotational energy of the reference-geometry rotor.
+- `Eckart rot. energy`: for propagated snapshots, rotational energy from the
+  recovered Eckart angular velocity and instantaneous geometry.
 
 ## 5. Vibration
 
@@ -558,24 +565,24 @@ rotation, and incoming COM motion.
 ### Analysis: Reconstructing the Cartesian Sample
 
 ```text
-Sample 3 | analysis
+Sample N | analysis
 
 [rotation]
 ammonia_dat            = oblate, symmetry constant =   1.00
-full J, space          = [      4.95809,     -2.08583,     -4.24012 ]  au, |J|     =      6.84923  (QM:   6.37)
-vector J, space        = [      5.19736,     -2.48225,     -2.96803 ]  au, |J|     =      6.47945  (QM:   6.00)
-vibrational J          = [      0.09334,     -1.19272,     -0.63350 ]  au, |J|     =      1.35374  (QM:   0.94)
-vector rot. energy     = [      0.05672,      0.00087,      0.00000 ]  eV, |E|     =      0.05759
-full rot. energy       = [      0.00009,      0.06451,      0.00032 ]  eV, |E|     =      0.06492
+full J, Eckart         = [      2.15946,     -1.09951,     -0.34243 ]  au, |J|     =      2.44733  (QM:   2.00)
+rigid J0, Eckart       = [      1.89920,     -1.54789,      0.00001 ]  au, |J|     =      2.45008  (QM:   2.00)
+geometry J(1), Eckart  = [      0.03034,      0.10807,      0.00454 ]  au, |J|     =      0.11234
+geometry J(2), Eckart  = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000
+intrinsic pi, Eckart   = [      0.22992,      0.34031,     -0.34699 ]  au, |J|     =      0.53766
+closure J, Eckart      = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000
+rigid rot. energy      = [      0.00495,      0.00329,      0.00000 ]  eV, |E|     =      0.00823
 ```
 
 The analysis block is reconstructed from the actual Cartesian coordinates and
-velocities. `vector J` is the part corresponding to the intended rigid-rotor
-model. `full J` uses the instantaneous molecular geometry and therefore also
-sees vibrational angular momentum. Their difference is reported as
-`vibrational J`. For sampler checks, compare the generated rotor energy with
-`vector rot. energy`; inspect `full rot. energy` to see how the instantaneous
-distorted geometry changes the decomposition.
+velocities. For generated samples, `rigid J0` is the independent reconstruction
+of the intended vector-model rotor. The geometry and intrinsic terms account
+for the difference between `J0` and `full J` without combining unlike effects
+into one residual.
 
 ```text
 [vibration]

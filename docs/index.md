@@ -60,9 +60,9 @@ collision motion is represented with Jacobi coordinates, impact parameters, and
 orbital angular momentum.
 
 The important approximations are exposed in the output rather than hidden. The
-manual therefore distinguishes sampled vector-model rotation from full
-instantaneous rotational analysis, harmonic normal-mode vibration from internal
-residual motion, and orbital angular momentum `L` from total angular momentum
+manual therefore separates rigid, geometry-dependent, and intrinsic
+vibrational angular momentum; harmonic normal-mode vibration from residual
+internal motion; and orbital angular momentum `L` from total angular momentum
 `J = L + Jab`.
 
 ## What To Check In A New Calculation

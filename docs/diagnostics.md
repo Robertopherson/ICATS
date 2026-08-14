@@ -95,9 +95,9 @@ The `dynamics*.analinfo` files contain:
 - intermolecular analysis,
 - energy summary.
 
-For vibrating polyatomics, compare sampled rigid-rotor energy with the analysis
-`vector rot. energy` line. The `full rot. energy` line is a different
-decomposition that includes the realised instantaneous geometry.
+For an initial-condition round trip, compare the sampled rigid-rotor energy
+with `rigid rot. energy`. For a propagated snapshot, `Eckart rot. energy`
+uses the angular velocity and realised instantaneous geometry.
 
 ## Reading Rotational Analysis
 
@@ -106,10 +106,13 @@ They are all useful, but they are not interchangeable:
 
 ```text
 full J, Eckart
-vector J, Eckart
-vibrational J
-vector rot. energy
-full rot. energy
+rigid J0, Eckart
+geometry J(1), Eckart
+geometry J(2), Eckart
+intrinsic pi, Eckart
+closure J, Eckart
+rigid rot. energy
+Eckart rot. energy
 ```
 
 `full J, space` is the total instantaneous angular momentum of the
@@ -121,26 +124,28 @@ molecule has been rotated into the Eckart frame. The magnitude should be the
 same as the space-frame value, but the components are now molecular-frame
 components.
 
-`vector J, Eckart` is reconstructed with the reference geometry
-rather than the distorted instantaneous geometry. This is the component that
-corresponds most directly to the rigid-rotor vector sampled by ICATS.
+`rigid J0, Eckart` is the reference-geometry contribution
+`I0 Omega_Eck`. For generated initial conditions it independently
+reconstructs the vector-model angular momentum sampled by ICATS.
 
-`vibrational J` is the residual:
+`geometry J(1), Eckart` and `geometry J(2), Eckart` are the first- and
+second-order changes caused by applying the rotational velocity to a displaced
+geometry. `intrinsic pi, Eckart` is
 
 ```text
-full J, Eckart - vector J, Eckart
+pi = sum_i m_i u_i cross du_i/dt
 ```
 
-It is an instantaneous diagnostic of vibrational angular momentum and
-higher-order geometry effects. It is not a separately sampled rotor state.
+These are distinct physical contributions, not separately sampled rotor
+states. `closure J, Eckart` checks that their sum with `rigid J0, Eckart`
+recovers `full J, Eckart`.
 
-`vector rot. energy` uses the reference moments of inertia and the
-vector-model angular momentum. Use this line when checking the sampled rigid
-rotor.
+`rigid rot. energy` uses the reference moments of inertia and `J0`. Use this
+line when checking the sampled rigid rotor.
 
-`full rot. energy` uses the realised instantaneous geometry and its
-instantaneous inertia tensor. This can differ from the vector-model energy in
-vibrating polyatomics.
+For propagated snapshots, `Eckart rot. energy` is
+`0.5 Omega_Eck^T I(u) Omega_Eck`. It excludes the intrinsic angular momentum
+`pi`, which must not be treated as rigid rotation.
 
 ## Reading Vibrational Analysis
 
@@ -150,7 +155,11 @@ The vibrational block reports each normal mode:
 mode  freq  ~vstat  Q  P  QE  PE  EE
 ```
 
-`Q` and `P` are the reconstructed normal-mode coordinate and momentum. `EE` is
+For propagated snapshots ICATS first evaluates `Omega_Eck` from the angular
+decomposition and forms `du_i/dt = v_i^b - Omega_Eck cross x_i`. Residual
+linear rotational and translational leakage is projected out before the
+normal-mode transformation. `Q` and `P` are the resulting reconstructed
+normal-mode coordinate and momentum. `EE` is
 the corresponding harmonic oscillator energy. In a good initial-condition round
 trip, these values should agree with the generated sample within the audit
 tolerance.
@@ -241,18 +250,16 @@ harmonic vibrational energy, vector-model rotor energy, and sampled
 intermolecular velocity energy.
 
 The `[energy summary]` block under `analysis` is reconstructed from the
-Cartesian coordinates and velocities. Its rotational row follows the full
-instantaneous rotational-energy analysis. For vibrating polyatomics this row
-can differ from the sampled rotor energy because the realised geometry can
-carry vibrational angular momentum.
+Cartesian coordinates and velocities. For generated samples its rotational
+row is the recovered rigid-rotor energy. For propagated snapshots it uses the
+Eckart rotational velocity and instantaneous geometry.
 
 The `Velocity` row is the intermolecular centre-of-mass kinetic contribution.
 It is not the momentum part of the normal-mode vibrational energy; that is the
 `PE` column in the vibrational table.
 
-For the cleanest t=0 sampler check, use the initial-sample audit. It compares
-generated rotor energy to `vector rot. energy`, not to the full
-instantaneous rotational-energy row.
+For the cleanest `t = 0` sampler check, use the initial-sample audit. It also
+enforces the angular-decomposition closure and velocity Eckart condition.
 
 ## Histogram Checks
 
