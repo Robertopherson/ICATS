@@ -52,6 +52,10 @@ pyscf
 pyscf-semiempirical
 ```
 
+The dynamics extra constrains NumPy, SciPy, h5py, and PySCF to the combination
+tested for this release. This avoids binary incompatibilities caused by mixing
+an existing scientific Python environment with unrelated package versions.
+
 If the dynamics dependencies are not available, users can still generate initial
 conditions, inspect histograms, and analyse compatible trajectory files produced
 elsewhere.
@@ -84,6 +88,19 @@ This generates each bundled tutorial and verifies that the generated sample
 energies and comparable state variables are recovered by the immediate
 Cartesian-coordinate analysis. It does not run the cheap dynamics backend, and
 it keeps Wang-Landau disabled unless `--include-wl` is requested.
+
+To check the complete generation, dynamics, and reanalysis pipeline:
+
+```bash
+icats --tutorial quickstart --setup-only
+cd tutorial_quickstart
+icats.init tutorial_input.txt
+./run_cheap_dynamics.sh
+./run_analysis.sh
+```
+
+The default quickstart runs one 20-step MINDO/3 trajectory and is intended to
+finish in seconds on an ordinary desktop.
 
 ## Cache Directories
 

@@ -107,3 +107,8 @@ def test_standard_tutorial_keeps_general_histogram_helpers(tmp_path):
     assert (histograms / "plot_orbital_jljab.sh").exists()
     assert not (tutorial / "export_paper_histogram_data.py").exists()
     assert not (tutorial / "plot_paper_histograms.py").exists()
+    dynamics = (tutorial / "run_cheap_dynamics.sh").read_text()
+    assert "--ntraj 1 --steps 20" in dynamics
+    setup = (tutorial / "setup_conda_env.sh").read_text()
+    assert "ICATS.git@v0.1.1" in setup
+    assert "import icats, numpy, h5py, pyscf" in setup

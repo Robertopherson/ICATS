@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "icats"
-version = "0.1.0"
+version = "0.1.1"
 description = "Initial-condition and trajectory analysis tools for quasi-classical molecular scattering."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -23,8 +23,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dynamics = [
-  "pyscf",
-  "pyscf-semiempirical",
+  "numpy>=1.26,<2",
+  "scipy>=1.11,<1.12",
+  "h5py>=3.10,<3.11",
+  "pyscf>=2.4,<2.5",
+  "pyscf-semiempirical>=0.1.1,<0.2",
 ]
 
 [project.scripts]

@@ -5,6 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from . import __version__
+
 
 TUTORIAL_ORDER = [
     "quickstart",
@@ -30,8 +32,8 @@ TUTORIALS = {
         "mol0": "ammonia_dat.txt",
         "mol1": "h2o_dat.txt",
         "nsamp": 10,
-        "ntraj": 3,
-        "steps": 200,
+        "ntraj": 1,
+        "steps": 20,
         "maxl": 182,
         "maxb": 16,
         "extra": [
@@ -1580,10 +1582,13 @@ def _generate_tutorial(
         "eval \"$(conda shell.bash hook)\"\n"
         "conda activate \"$ENV_NAME\"\n"
         "pip install --upgrade pip\n"
-        "pip install pyscf-semiempirical spherical quaternionic\n\n"
+        "pip install pyscf-semiempirical spherical quaternionic\n"
+        f"pip install git+https://github.com/Robertopherson/ICATS.git@v{__version__}\n\n"
         "echo \"Verifying core imports...\"\n"
         "python - <<'PYCHECK'\n"
-        "import numpy, h5py, pyscf\n"
+        "import icats, numpy, h5py, pyscf\n"
+        "from pyscf.semiempirical import mindo3\n"
+        "print(\"icats\", icats.__version__)\n"
         "print(\"numpy\", numpy.__version__)\n"
         "print(\"h5py\", h5py.__version__)\n"
         "print(\"pyscf\", pyscf.__version__)\n"
@@ -1747,6 +1752,7 @@ def _generate_tutorial(
             "Environment setup:\n"
             "1) ./setup_conda_env.sh icats_clean\n"
             "2) conda activate icats_clean\n\n"
+            "The helper installs the tagged ICATS release and its tested PySCF/MINDO dependencies.\n\n"
             "Cluster/sandbox note:\n"
             "- ICATS entry points and tutorial scripts set writable /tmp cache paths by default.\n"
             "- This avoids numba/matplotlib cache errors on restricted/shared filesystems.\n\n"

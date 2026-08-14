@@ -39,7 +39,19 @@ python -m pip install -e ".[dynamics]"
 ```
 
 If a binary compatibility error mentions NumPy, create a fresh environment and
-reinstall ICATS there.
+reinstall ICATS there. Do not reuse the incompatible environment:
+
+```bash
+conda create -n icats-clean python=3.11
+conda activate icats-clean
+python -m pip install -e ".[dynamics]"
+```
+
+Verify the complete optional backend before running a trajectory:
+
+```bash
+python -c "import icats, numpy, h5py, pyscf; from pyscf.semiempirical import mindo3; print(icats.__version__, numpy.__version__, h5py.__version__, pyscf.__version__)"
+```
 
 ## Matplotlib or numba cache warnings
 

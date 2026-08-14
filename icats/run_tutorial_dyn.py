@@ -2,6 +2,7 @@
 import argparse
 import glob
 import os
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -44,6 +45,7 @@ def build_mindo3_scanner(mol):
         raise RuntimeError("Could not find RMINDO3/UMINDO3/MINDO3 in pyscf.semiempirical.")
     mf.conv_tol = 1e-6
     mf.max_cycle = 50
+    mf.verbose = 0
     mf.kernel()
     return mf.nuc_grad_method().as_scanner()
 
@@ -75,6 +77,7 @@ def run_one(geom_file, vel_file, dt_au, steps, charge, spin, ref_en):
     mol.charge = charge
     mol.spin = spin
     mol.symmetry = False
+    mol.verbose = 0
     mol.build()
 
     scanner = build_mindo3_scanner(mol)
@@ -97,7 +100,10 @@ def run_one(geom_file, vel_file, dt_au, steps, charge, spin, ref_en):
         callback=_cb,
         data_output=md_data,
         trajectory_output=md_xyz,
-    ).run()
+    )
+    with open(os.devnull, "w") as quiet:
+        integ.stdout = quiet
+        integ.run(verbose=0)
     integ.data_output.close()
     integ.trajectory_output.close()
 
@@ -145,6 +151,11 @@ def main():
     ap.add_argument("--ref-energy-file", default="ref.en", help="Optional reference energy file (Hartree)")
     args = ap.parse_args()
 
+    warnings.filterwarnings(
+        "ignore",
+        message=r"Since PySCF-2\.3, B3LYP.*",
+        category=UserWarning,
+    )
     try:
         from pyscf import gto as _gto, md as _md
         gto, md = _gto, _md

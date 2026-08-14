@@ -100,7 +100,19 @@ which writes `out_full.xyz` and `out_full.vel`.
 
 The initial-condition stage is independent of the cheap dynamics backend.
 
-## 4. Run The Initial-Condition Audit
+## 4. Run The Cheap Dynamics Check
+
+With the optional dynamics dependencies installed, run:
+
+```bash
+./run_cheap_dynamics.sh
+./run_analysis.sh
+```
+
+The quickstart uses one 20-step MINDO/3 trajectory. The resulting trajectory
+and analysis are written under `rd_tutorial_input/outputs/`.
+
+## 5. Run The Initial-Condition Audit
 
 For a quick check of all bundled tutorials:
 

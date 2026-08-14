@@ -15,6 +15,13 @@ From this directory:
 python -m pip install -e .
 ```
 
+For the optional quick MINDO/3 dynamics demonstration, use a clean environment
+and install the tested dynamics dependencies:
+
+```bash
+python -m pip install -e ".[dynamics]"
+```
+
 This installs the command-line tools:
 
 ```bash
