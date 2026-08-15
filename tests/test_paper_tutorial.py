@@ -110,5 +110,5 @@ def test_standard_tutorial_keeps_general_histogram_helpers(tmp_path):
     dynamics = (tutorial / "run_cheap_dynamics.sh").read_text()
     assert "--ntraj 1 --steps 20" in dynamics
     setup = (tutorial / "setup_conda_env.sh").read_text()
-    assert "ICATS.git@v0.1.3" in setup
+    assert "ICATS.git@v0.1.4" in setup
     assert "import icats, numpy, h5py, pyscf" in setup

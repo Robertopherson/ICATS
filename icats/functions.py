@@ -209,10 +209,24 @@ def GetRotTransVec(xx0, ms, el):
     if debug:
         print("OVER = ")
         print(matmul(ve, ve.T))
-    # smooth out blocks
-    Qr, _ = qr(ve[0:3,:].T)   
-    Qt, _ = qr(ve[3:6,:].T)   
-    ve = np.vstack([Qr.T, Qt.T]) 
+    # Orthonormalize each block while discarding rank-zero rotations. Linear
+    # molecules have two rotational directions, and atoms have none.
+    def independent_rows(rows):
+        basis = []
+        scale = max((norm(row) for row in rows), default=0.0)
+        tol = max(1.0, scale) * 1.0e-10
+        for row in rows:
+            vec = row.copy()
+            for unit in basis:
+                vec -= np.dot(unit, vec) * unit
+            length = norm(vec)
+            if length > tol:
+                basis.append(vec / length)
+        return np.asarray(basis).reshape((-1, rows.shape[1]))
+
+    rotations = independent_rows(ve[0:3, :])
+    translations = independent_rows(ve[3:6, :])
+    ve = np.vstack([rotations, translations])
     return ve
 
 def ScaleTransform2(VV, **dic):
@@ -498,7 +512,9 @@ def ProjectRTSpace(vvi,xxi,x0,mass,sp):
     #get rotations and translations 
     rt = GetRotTransVec(xx, mass, [])  
     # build projectors 
-    Pr, Pt = matmul(rt[:3,:].T,rt[:3,:]), matmul(rt[3:,:].T,rt[3:,:])
+    nrot = rt.shape[0] - 3
+    Pr = matmul(rt[:nrot, :].T, rt[:nrot, :])
+    Pt = matmul(rt[nrot:, :].T, rt[nrot:, :])
     Pi = np.eye(na*3) - Pr - Pt 
     #make final projector 
     PP = 0
