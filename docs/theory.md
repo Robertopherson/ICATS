@@ -119,7 +119,7 @@ logs, histogram file names, or input options.
 | --- | --- | --- |
 | Vibrational state | normal-mode quantum numbers `vstat` | Boltzmann harmonic-oscillator populations, `P(v) proportional to exp[-E_v/(k_B T_vib)]` |
 | Vibrational phase space | normal-mode `Q, P` | Energy-matched leading-Wigner harmonic-oscillator phase-space density for the sampled `vstat` |
-| Rigid-rotor total angular momentum | molecular `J` | Boltzmann rotor populations with the field-free `(2J + 1)` projection-state count; asymmetric tops add state-specific projection/eigenstate sampling at fixed `J` |
+| Rigid-rotor total angular momentum | molecular `J` | `(2J + 1)` times the sum of Boltzmann weights over all rotational sublevels at that `J` |
 | Symmetric-top projection | body-fixed `K` or projection-like coordinate | Boltzmann projection distribution at fixed `J` |
 | Asymmetric-top state | Wang-basis eigenstate at fixed `J` | Boltzmann distribution over asymmetric-rotor eigenenergies and symmetry labels |
 | Asymmetric vector model | projection spread and unresolved azimuth | rejection-sampled Gaussian-sine, azimuthal, or Bingham-like auxiliary distributions chosen from the Wang-state expectation values |
@@ -138,6 +138,21 @@ into Cartesian coordinates and velocities. Intermolecular distributions define
 the incoming collision geometry. Wang-Landau then acts on the combined trial
 sample, after `L`, `J_A`, and `J_B` have already produced a candidate total
 angular momentum.
+
+Thermal rotor sampling first draws `J` from
+`P(J) proportional to (2J+1) sum_tau exp[-E(J,tau)/(k_B Trot)]`, then draws
+the sublevel conditionally at that `J`. Here `tau` is `K` for a symmetric top
+or an eigenlevel index for an asymmetric top. A spherical top therefore has
+the unrestricted weight `(2J+1)^2 exp[-B J(J+1)/(k_B Trot)]`; a linear rotor
+has only one body-fixed level and one `(2J+1)` factor. Nuclear-spin statistical
+restrictions are not included. The automatic rotational cutoff uses a
+conservative Boltzmann-tail bound rather than a single-state probability.
+
+Runs made before this correction must be regenerated in a fresh run directory.
+Old worker checkpoints and Wang-Landau profiles cannot be reused with the new
+rotor and geometric-orbital sampling. Existing tutorial reference data and
+bundled profiles require regeneration before they can serve as references for
+the corrected sampler.
 
 ## User Orientation PDFs
 

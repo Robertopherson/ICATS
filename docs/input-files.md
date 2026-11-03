@@ -206,6 +206,7 @@ These options appear inside each molecule file referenced by `mol`.
 | `hess` | `hess = hessian.txt` | Full mass-weighted Cartesian Hessian used to construct normal modes. See the Hessian convention below. |
 | `w` | `w = freq.txt` | Optional frequency-file reference used by templates/validation; current normal-mode sampling is driven by `hess`. |
 | `trot` | `trot = 50.0` | Molecule-level rotational temperature override. |
+| `rotor-azimuth` | `rotor-azimuth = legacy` or `vonmises` | Experimental asymmetric-rotor azimuthal law. Default: `legacy`. |
 | `tvib` | `tvib = 50.0` | Molecule-level vibrational temperature override. |
 | `vel` | `vel = 1000 100 3` | Molecule beam-speed distribution: centre speed in m/s, FWHM in m/s, and velocity-power weight. |
 | `nfreeze` | `nfreeze = 1 2 3` | Normal-mode indices to leave at zero during vibrational sampling. |
@@ -218,6 +219,13 @@ These options appear inside each molecule file referenced by `mol`.
 
 For atoms, ICATS forces molecular `Trot` and `Tvib` to zero because there are no
 internal rotor or vibrational degrees of freedom.
+
+`rotor-azimuth = vonmises` uses a positive axial von Mises distribution whose
+mean `cos(gamma)^2` matches the quantum transverse moment ratio. It changes
+only the non-A asymmetric-rotor azimuthal sampler, not the polar Gaussian,
+axis selection, thermal populations, or A-irrep normalized-Gaussian sampler.
+Matching the azimuthal ratio does not ensure the full quantum projection
+distribution is reproduced. Use a fresh run when comparing these options.
 
 #### Hessian Convention
 

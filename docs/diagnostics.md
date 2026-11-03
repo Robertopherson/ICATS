@@ -308,3 +308,37 @@ Large `WL_rejects` indicate a low umbrella acceptance probability, large
 `J_cap_rejects` indicate hard total-`J` cutoff pressure, and nonzero
 `WL_range_rejects` indicate that generated `J` values are falling outside the
 stored WL table.
+
+## Finite-ensemble statistics
+
+After generation, convergence/ensemble_statistics.txt in the run directory
+summarizes how well the accepted samples represent the requested preparation.
+ensemble_statistics.json contains the same results and reference probabilities
+for further analysis. These files are generated even with histogram plotting off.
+
+The checks cover molecular rotational populations and eigenenergies, vibrational
+excitation populations, the leading-Wigner energy and phase distributions,
+orbital sampling, and (for unpolarized geometric sampling) quantum angular-channel
+counts for total J. The latter also writes ensemble_J.csv.
+Phase-space checks use the sampled dimensionless coordinates, pooled by excitation
+number; they do not compare against the signed exact Wigner function.
+
+TV is the total-variation discrepancy between bin probabilities; smaller is
+closer. The noise estimate describes independent finite samples, not a pass/fail
+threshold. Mean values include standard errors and reference means.
+Rare mass is the reference probability in bins with fewer than five expected
+samples. A zero observed standard error does not mean rare excited states are
+resolved: consult the reference standard error and rare mass.
+
+The quantum J comparison is a semiclassical consistency check, using classical
+magnitude bins [J,J+1). Orbital cells are matched by their geometric probability,
+including a partially occupied last cell. Finite-J/binning differences are not
+sampling errors. Partners are treated as distinguishable, without nuclear-spin
+or identical-particle exchange restrictions. Anisotropic, fixed-impact-parameter
+and biased runs explicitly skip reference comparisons that do not apply.
+
+Ordinary non-WL generation now limits L, not the resulting total J. The physical
+tail above the orbital cap is retained. Old worker checkpoints must not be mixed
+with this sampling convention; start a fresh run.
+Agreement of these marginals is not a guarantee of converged scattering observables
+or correct correlations. Continue to inspect closure and angular-correlation checks.

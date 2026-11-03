@@ -6,8 +6,10 @@ from .mc import ICDFsample, ICDFscalar, InitICDF
 from .molecules import imolecule
 from . import wang
 from .histograms import write_histogram_helpers_runtime
+from .ensemble_statistics import write_ensemble_statistics
 from .diagnostics import write_costheta_diagnostics
 import pickle
+from copy import deepcopy
 from scipy.interpolate import CubicSpline
 from joblib import Parallel, delayed
 from tqdm import tqdm
@@ -231,6 +233,7 @@ class icats:
 
 
         sa = self.sample(id,self)
+        sa.sampling_model = "canonical-sublevels-closest-axis-v3"
         self.InitialDist(sa,seed=sa.seed)
         sa.sdat = self.PrepareSdat()
         return sa 
@@ -750,7 +753,7 @@ class icats:
         mol = self.mol
         for i in range(2):
             if mol[i].sp.na > 1:
-                mol[i].ip.MaxR = mol[i].EstimateMaxR(self.ip.Trot)
+                mol[i].ip.MaxR = mol[i].EstimateMaxR(mol[i].ip.Trot)
                 mol[i].AsymRigidRotorProjEnergies(mol[i].ip.MaxR)
 
     def saveworkers(self,wks):
@@ -800,6 +803,9 @@ class icats:
               wks = pickle.load(f)
         else: 
            return False
+        if any(getattr(w, "sampling_model", None) != "canonical-sublevels-closest-axis-v3" for w in wks):
+            raise ValueError("Saved workers predate the corrected rotor/orbital sampling. "
+                             "Start a fresh run in a new run directory.")
         return wks
 
     def _log_maxb_equivalence(self):
@@ -1360,8 +1366,8 @@ class icats:
               log += self.SampleRigidRotorState0(sa)
               log += self.SampleOrientat0(sa)
               log += self.SampleJ(sa)
-              # Old-style gate: cap very large J before WL acceptance.
-              if ip.MaxL > 0 and sa.sJ >= ip.MaxL*ff:
+              # Retain the legacy window only for explicitly biased runs.
+              if ip.usewang and ip.MaxL > 0 and sa.sJ >= ip.MaxL*ff:
                 nreject_jcap += 1
                 continue
               if len(sp.td) == 0:
@@ -2763,6 +2769,9 @@ class icats:
          open(ip.fileout +"_full.xyz", "w").writelines(slog)
          open(ip.fileout +"_full.vel", "w").writelines(vslog)
         self.sdat = self.MergeSdats(wks)
+        statistics_path = write_ensemble_statistics(self, wks, self._runpath("convergence"))
+        self.log += ["Ensemble statistics: " + statistics_path + "\n"]
+        print("Ensemble statistics:", statistics_path)
         res = write_costheta_diagnostics(
             self._runpath("convergence"),
             self.sdat.get('orb', {}).get('cosLJab_thet', []),
@@ -2781,7 +2790,7 @@ class icats:
  
 
     def MergeSdats(self,wks): 
-      fsdat = wks[0].sdat.copy()
+      fsdat = deepcopy(wks[0].sdat)
       debug = True
       debug = False
       for sa in wks[1:]:
@@ -2793,6 +2802,7 @@ class icats:
             if 'm0' == ky or 'm1' == ky:
               if 'rot' == kys:
                 fsdat[kys][ky]['J'] += sdat[kys][ky]['J']
+                fsdat[kys][ky]['energy'] += sdat[kys][ky]['energy']
                 for J in set(sdat[kys][ky]['J']):
                   if J not in fsdat[kys][ky].keys():
                     fsdat[kys][ky][J] = {}
@@ -2809,7 +2819,8 @@ class icats:
                           fsdat[kys][ky][J][k1][k2] = []
                         fsdat[kys][ky][J][k1][k2] += sdat[kys][ky][J][k1][k2] 
               elif 'vib' == kys:
-                fsdat[kys][ky]['vi'] += sdat[kys][ky]['vi']
+                for mode, values in enumerate(sdat[kys][ky]['vi']):
+                  fsdat[kys][ky]['vi'][mode] += values
                 for vi in range(self.mol[int(ky[-1])].ip.MaxV+1):
                  for k in ['Q','sQ','P','sP']:
                    fsdat[kys][ky][k][vi] += sdat[kys][ky][k][vi]
@@ -2866,6 +2877,7 @@ class icats:
       for m in sdat[ky].keys():
         #molecular angular momentum J, projection and classical vector model 
         sdat[ky][m]['J'] = []
+        sdat[ky][m]['energy'] = []
       #molecular vibrational coordinates 
       ky = 'vib'
       sdat[ky] = {}
@@ -2909,6 +2921,7 @@ class icats:
               qjz = info[kys][ky]['qjz'] 
               J   = info[kys][ky]['J'] 
               sdat[kys][ky]['J'].append(J)
+              sdat[kys][ky]['energy'].append(info[kys][ky]['energy'])
               debug  and print('ky=',ky, 'append = ', len(sdat[kys][ky]['J']))
               if J not in sdat[kys][ky].keys(): 
                 sdat[kys][ky][J] = {}
