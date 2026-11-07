@@ -61,6 +61,38 @@ For the full polyatomic sampler:
   icats.init tutorial_input.txt
 Read rd_tutorial_input/convergence/ensemble_statistics.txt and ensemble_J.csv.
 
+Comparison with and without K broadening
+---------------------------------------
+Run separate fresh ensembles with s=0 and s=0.8. In each molecule's input
+file (not the system tutorial_input.txt), use:
+
+  rotor-polar = broadened
+  rotor-k-width = 0.0
+  rotor-azimuth = vonmises
+
+For the broadened run change only rotor-k-width to 0.8. Keep the temperatures,
+orbital sampling, axis rule, sample count and other settings identical. Use
+separate run directories and do not resume checkpoints from the other width.
+The same seed is useful for reproducibility but does not guarantee paired
+trajectories, since the sampling algorithms consume random numbers differently.
+
+s=0 samples discrete K without broadening, with |J|=sqrt(J(J+1)). For symmetric
+tops this gives the usual vector-model cones. For asymmetric tops it samples K
+from the eigenvector probabilities and retains the corrected von Mises azimuth;
+it is NOT the old polar-Gaussian/legacy-azimuth approximation. Keep rotor-polar
+set to broadened even for width 0 to select this discrete-K limit.
+
+Use revision_nh3_h2o for a meaningful width comparison. Add the options to
+both paper_ammonia_dat.txt and paper_h2o_dat.txt. Compare projection histograms,
+second-moment residuals and mean-energy residuals with their standard errors.
+Both widths should preserve the target second moments and mean rotor energy;
+their angular distributions need not be identical or exact quantum densities.
+
+For Ar+NO, NO is linear and its body-axis projection K is identically zero:
+changing s cannot broaden it while preserving its zero second moment. Thus
+the width comparison does not change this model's NO rotor distribution.
+No new width-comparison trajectory runs are implied by these instructions.
+
 Validation
 ----------
 Full regression suite: 118 tests passed (68.37 s in the clean runtime).
