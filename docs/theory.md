@@ -85,29 +85,22 @@ v_rot,i    = omega_ref cross x_ref,i
 For intermolecular scattering, the natural classical variable is the impact
 parameter, while the partial-wave view is organised by total angular momentum.
 For atoms these almost coincide because `J = L`. For molecules, however,
-`J = L + Jab`, where `Jab` comes from the molecular rotors. Wang-Landau sampling
-is used to balance these views without manually forcing the angle between `L`
-and `Jab`.
+`J = L + Jab`, where `Jab` comes from the molecular rotors. The revised model
+samples the incoming geometric measure without Wang-Landau reweighting.
 
 ```text
 d sigma       proportional to b db
 P(L) dL       proportional to (2L + 1) dL
 J             = L + J_AB
 J_AB          = J_A + J_B
-P_acc(J)      proportional to (2J + 1) / Omega_t(J)
 ```
 
-During the Wang-Landau optimization, `Omega_t(J)` is the running trial estimate of the `J` density produced by the proposal samples. After convergence, the same array is used as the estimated `J`-density of states (`J`-DOS). The expression above
-is the default `wl-target = linear-j` form used with geometric orbital
-sampling. For `orbital-sampling = flat-l`, ICATS uses `wl-target = flat-j` and
-therefore
-
-```text
-P_acc(J) proportional to 1 / Omega_t(J)
-```
-
-This second mode is intended for diagnostic or reweighting workflows where `L`
-is proposed uniformly and the user later applies the desired `L`/`b` weights.
+The molecular total-J marginal includes the allowed incoming angular channels;
+it is not generally proportional to 2J+1 alone. The ensemble statistics compare
+against those channel counts, including the orbital cutoff. Legacy WL options
+remain for reproducing older experiments, not as the revised physical measure.
+Uniform-L proposals require restoring the geometric L weight when estimating
+cross sections; no additional correction to force a triangular J marginal is needed.
 
 ## Distributions Used In ICATS
 
@@ -119,7 +112,7 @@ logs, histogram file names, or input options.
 | --- | --- | --- |
 | Vibrational state | normal-mode quantum numbers `vstat` | Boltzmann harmonic-oscillator populations, `P(v) proportional to exp[-E_v/(k_B T_vib)]` |
 | Vibrational phase space | normal-mode `Q, P` | Energy-matched leading-Wigner harmonic-oscillator phase-space density for the sampled `vstat` |
-| Rigid-rotor total angular momentum | molecular `J` | Boltzmann rotor populations with the field-free `(2J + 1)` projection-state count; asymmetric tops add state-specific projection/eigenstate sampling at fixed `J` |
+| Rigid-rotor total angular momentum | molecular `J` | `(2J + 1)` times the sum of Boltzmann weights over all rotational sublevels at that `J` |
 | Symmetric-top projection | body-fixed `K` or projection-like coordinate | Boltzmann projection distribution at fixed `J` |
 | Asymmetric-top state | Wang-basis eigenstate at fixed `J` | Boltzmann distribution over asymmetric-rotor eigenenergies and symmetry labels |
 | Asymmetric vector model | projection spread and unresolved azimuth | rejection-sampled Gaussian-sine, azimuthal, or Bingham-like auxiliary distributions chosen from the Wang-state expectation values |
@@ -138,6 +131,21 @@ into Cartesian coordinates and velocities. Intermolecular distributions define
 the incoming collision geometry. Wang-Landau then acts on the combined trial
 sample, after `L`, `J_A`, and `J_B` have already produced a candidate total
 angular momentum.
+
+Thermal rotor sampling first draws `J` from
+`P(J) proportional to (2J+1) sum_tau exp[-E(J,tau)/(k_B Trot)]`, then draws
+the sublevel conditionally at that `J`. Here `tau` is `K` for a symmetric top
+or an eigenlevel index for an asymmetric top. A spherical top therefore has
+the unrestricted weight `(2J+1)^2 exp[-B J(J+1)/(k_B Trot)]`; a linear rotor
+has only one body-fixed level and one `(2J+1)` factor. Nuclear-spin statistical
+restrictions are not included. The automatic rotational cutoff uses a
+conservative Boltzmann-tail bound rather than a single-state probability.
+
+Runs made before this correction must be regenerated in a fresh run directory.
+Old worker checkpoints and Wang-Landau profiles cannot be reused with the new
+rotor and geometric-orbital sampling. Existing tutorial reference data and
+bundled profiles require regeneration before they can serve as references for
+the corrected sampler.
 
 ## User Orientation PDFs
 
@@ -505,12 +513,13 @@ the angular momentum is sampled isotropically.
 Asymmetric tops require the most machinery. ICATS diagonalises the asymmetric
 rotor Hamiltonian in a Wang-state basis for each `J`. It stores the eigenstate
 energies, symmetry labels, and expectation values such as `<J_x^2>`, `<J_y^2>`,
-and `<J_z^2>`. The extended vector model then samples a classical vector whose
-projection spread is consistent with those eigenstate expectation values. For
-near-prolate or near-oblate asymmetric tops the sampling remains close to a
-single projection axis. For more spheroidal asymmetric tops, the code uses the
-Wang-state symmetry information to choose the relevant principal axis and then
-rotates the sampled vector back into the molecular frame.
+and `<J_z^2>`. The extended vector model broadens the discrete projection
+probabilities and corrects their second moment by exponential reweighting.
+A von Mises azimuthal distribution preserves the transverse second moments.
+The quantization axis is chosen from the closest pair of transverse rotational
+constants, not from the state's Wang irrep. The vector length is exact per draw;
+the mean rotational energy is correct within numerical and sampling errors.
+The full quantum angular density is only approximated.
 
 The point of this machinery is practical: the user can give a general
 polyatomic geometry and Hessian, and ICATS will choose the closest rotor model
@@ -627,29 +636,11 @@ J_total = L + Jab
 
 For atom-atom scattering, `J` and `L` are essentially the same. For molecular
 scattering, `Jab` can be comparable to `L`, especially at low collision angular
-momentum. This is why a good `L` or impact-parameter distribution does not
-automatically guarantee a good total-`J` distribution.
-
-This is also why Wang-Landau sampling appears in the code. The geometric
-incoming-flux measure naturally weights impact parameter, and therefore `L`.
-The partial-wave view naturally weights total angular momentum, and therefore
-`J`. For molecules these two one-dimensional distributions are coupled through
-`J = L + Jab`. ICATS uses Wang-Landau to estimate the `J` density generated by
-the selected `L` proposal and independent `Jab` sampling, then reweights
-accepted samples toward the selected target without manually forcing the angle
-between `L` and `Jab`. With default geometric `L` sampling the target is the
-usual `2J + 1` measure. With `orbital-sampling = flat-l` and
-`wl-target = flat-j`, the target omits the `2J + 1` factor so that the run can
-be used as a flatter-coverage diagnostic ensemble for later reweighting.
-
-More practically, the larger-`L` part of a crossed-beam ensemble is often
-dominated by orbital angular momentum and already resembles the geometric
-impact-parameter measure. Wang-Landau is most useful in the intermediate region
-where `L` and `Jab` mix appreciably. The intended outcome is a balanced accepted
-ensemble: the `L` and `J` histograms remain close to the intended forms for the
-selected target, without creating a strong artificial correlation between `L`
-and `Jab`. For the flat-`L` diagnostic mode, small residual structure near
-`J,L = 0` is expected because the WL correction remains one-dimensional in `J`.
+momentum. The total-J distribution therefore includes incoming-channel counts
+as well as the 2J+1 projection multiplicity. With `wang = False`, ICATS retains
+the physical J tail beyond the orbital cap and reports a quantum/classical
+channel-count comparison for isotropic geometric sampling. This tests the
+preparation, not the accuracy or convergence of subsequent cross sections.
 
 The semiclassical map used throughout the log is:
 

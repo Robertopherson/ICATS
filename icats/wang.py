@@ -12,6 +12,7 @@ def metadata_from_input(ip) -> Dict[str, Any]:
     return {
         "format": "icats-wang-umbrella",
         "version": 2,
+        "rotor_sampling": "canonical-sublevels-broadened-k-v4",
         "maxj": int(ip.MaxJ),
         "maxl": int(ip.MaxL),
         "orbital_sampling": str(getattr(ip, "orbital_sampling", "geometric")),
@@ -112,12 +113,16 @@ def validate(path: str, uu, iwld, td, metadata, expected_metadata: Dict[str, Any
         )
 
     if metadata is None:
+        if expected_metadata.get("rotor_sampling"):
+            raise ValueError("Wang-Landau umbrella predates canonical rotor sampling: "
+                             + path + ". Rebuild the umbrella for the corrected ensemble.")
         return (
             "WARNING: Wang-Landau umbrella has no metadata; "
             "only length/finite-value checks were possible.\n"
         )
 
     checks = [
+        ("rotor_sampling", str),
         ("maxj", int),
         ("version", int),
         ("maxl", int),

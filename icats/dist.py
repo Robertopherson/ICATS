@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 from .constants import *
 from .functions import *
+from functools import lru_cache
+from scipy.optimize import brentq
+from scipy.special import i0e, i1e
        
 def VibPartFunc(n, w, T, izpe):
     """
@@ -187,7 +190,7 @@ def JcrossICDFc(rng, iso, MaxJ):
     """ICDF for continuous 2J+1 weighting on [0, Jmax]."""
     u = rng[0].random()
     if iso:
-      J = sqrt(u * ((MaxJ + 1)**2 - 1) + 1) - 1
+      J = 0.5 * (sqrt(1 + 4*u*MaxJ*(MaxJ+1)) - 1)
     else:
       J = u*MaxJ 
     return J, J 
@@ -309,38 +312,46 @@ def HusimiFuncICDF(rng,n):
     P = r * np.sin(theta)
     return [[Q,P]], HarmHusimi([Q,P],n) 
 
+def RotorBoltzmannProbabilities(T, energies):
+    """P(J), summing rotor sublevels at each J and the space-fixed M multiplicity."""
+    from scipy.special import logsumexp
+
+    if T <= 0 or not np.isfinite(T):
+        raise ValueError("Thermal rotor probabilities require a finite positive temperature")
+    logw = np.array([np.log(2*J+1) + logsumexp(-np.asarray(ee)/(kboltz*T))
+                     for J, ee in enumerate(energies)])
+    if not np.all(np.isfinite(logw)):
+        raise ValueError("Rotor energies must give finite, nonempty state weights")
+    return np.exp(logw-logsumexp(logw))
+
+
+def RotorTotBoltzICDF(rng, probabilities):
+    J = np.int64(rng[0].choice(len(probabilities), p=probabilities))
+    return J, probabilities[J]
+
+
 def IsoRotorTotBoltzICDF(rng,T,A,Jmax):
-    abet = A/(kboltz*T)
-    J = 1000000 
-    while J > Jmax:
-     J =  np.sqrt( - np.log(1-rng[0].random()) / abet ) - 0.5
-    sigma = 1/(np.sqrt(2*A/(kboltz*T))+1e-10 )
-    return np.round(J), (2J+1)*GaussianF2(J+0.5,0.0,sigma)
+    """Discrete linear-rotor sampler retained for callers of the old interface."""
+    energies = [[A*J*(J+1)] for J in range(Jmax+1)]
+    return RotorTotBoltzICDF(rng, RotorBoltzmannProbabilities(T, energies))
 
 
 def SymRotorProjBoltzICDF(rng,T,A,J):
-    if A > 0.0:   #for prolates 
-      sigma = 1/np.sqrt(2*A/(kboltz*T))
-      u1 = rng[0].random()
-      u2 = rng[0].random()
-      r = np.sqrt(-2*np.log(u1)) * sigma
-      theta = 2*np.pi*u2
-      K = np.round(max(min(r * np.cos(theta),J),-J))
-      return K, GaussianF2(K,0.0,sigma)
-    else:  # for oblates 
-      beta = 1.0/(kboltz*T)
-      KK = np.arange(-J, J+1)
-      rho = np.exp(-beta * A * KK**2)   
-      prob = rho / rho.sum()
-      K = rng[0].choice(KK, p=prob)
-      return K, np.exp(-beta * A * K**2)
+    KK = np.arange(-J, J+1)
+    energy = A*KK**2
+    prob = np.exp(-(energy-energy.min())/(kboltz*T))
+    prob /= prob.sum()
+    index = rng[0].choice(len(KK), p=prob)
+    return KK[index], prob[index]
  
 
 def reject_bingham(rng,sigma):
     g = rng[0].multivariate_normal(mean=np.zeros(3), cov=np.diag(sigma), size=None)
-    # 2) Normalize each to unit length
+    # Normalize the Gaussian direction; this does not preserve its covariance.
     u = g / norm(g)
-    ang = iR2q(rot_match_vec(z.reshape((1,3)), u.reshape((1,3)) )[1])
+    # SampleRigidRotorState reconstructs the direction as R(0,beta,gamma).T @ z.
+    ang = np.array([0.0, np.arccos(np.clip(u[2], -1.0, 1.0)),
+                    np.arctan2(u[1], -u[0])])
     return ang, 1
 
 def reject_GaussSin(rng,jz,sig,J): 
@@ -360,6 +371,34 @@ def reject_GaussSin(rng,jz,sig,J):
               bet0 = pi-bet0
             return np.array([bet]), GaussianF2(bet,bet0,bets)*sin(bet) 
 
+@lru_cache(maxsize=8192)
+def _azimuth_concentration(r):
+    """Positive concentration with I1(kappa)/I0(kappa) = r, 0 <= r < 1."""
+    if r == 0:
+        return 0.0
+    upper = max(1.0, 1.0/(1.0-r))
+    return brentq(lambda k: i1e(k)/i0e(k)-r, 0.0, upper)
+
+
+def RotorAzimuthVonMises(rng, Jx2, Jy2):
+    """Axial von Mises law matching the transverse second-moment ratio."""
+    if not np.isfinite(Jx2+Jy2) or min(Jx2, Jy2) < 0:
+        raise ValueError("Rotational second moments must be finite and nonnegative")
+    total = Jx2+Jy2
+    r = (Jx2-Jy2)/total if total > 0 else 0.0
+    centre = 0.0 if r >= 0 else np.pi
+    if abs(r) >= 1.0:
+        # A zero transverse moment gives a discrete pair of opposite directions.
+        theta, weight = centre, 0.5
+    else:
+        kappa = _azimuth_concentration(abs(r))
+        theta = rng[0].vonmises(centre, kappa)
+        weight = np.exp(kappa*(np.cos(theta-centre)-1))/(2*np.pi*i0e(kappa))
+    gamma = theta/2 + np.pi*rng[0].integers(2)
+    gamma = (gamma+np.pi) % (2*np.pi)-np.pi
+    return np.array([gamma]), weight
+
+
 def reject_phi(rng, Jx2, Jy2):    #used as  arotGam key
     while True:
         phi = rng[0].random() * 2 * np.pi - np.pi
@@ -374,7 +413,8 @@ def AsymRotorProjBoltzICDF(rng,T,rr,J):
     if J >= len(rr):
       print('WARNING J = ',J, 'rr = ', len(rr))
     ee1 = rr[J][1]
-    pdf = np.exp(-ee1/(T*kboltz))
+    ee1 = np.asarray(ee1)
+    pdf = np.exp(-(ee1-ee1.min())/(T*kboltz))
     pdf = pdf/pdf.sum()
     #Build discrete inverse CDF (step-function CDF)
     cdf = np.concatenate(([0.0], np.cumsum(pdf)))  # length = len(ee1)+1

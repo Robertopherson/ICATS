@@ -2,6 +2,7 @@
 from .constants import *
 from .functions import *
 from .dist import *
+from .rotor_sampling import RotorProjectionICDF
 from .angmom import Pz2, Py2, Px2, Pz, Px, Py, WangTran, Wz2, Wy2, Wx2
 from spherical import Wigner
 import quaternionic as quat
@@ -157,6 +158,19 @@ class imolecule:
                 sp.nd = sp.na * 3
                 sp.mass = el2Mass(sp.el) * amu2au
                 sp.mass2 = np.repeat(sp.mass, 3)
+            if ky == "rotor-azimuth":
+                ip.rotor_azimuth = val[0].lower()
+                if ip.rotor_azimuth not in ("legacy", "vonmises"):
+                    raise ValueError("rotor-azimuth must be legacy or vonmises")
+                self.log.append("   Rotor azimuth sampling: " + ip.rotor_azimuth + "\n")
+            if ky == "rotor-polar":
+                ip.rotor_polar = val[0].lower()
+                if ip.rotor_polar not in ("broadened", "legacy"):
+                    raise ValueError("rotor-polar must be broadened or legacy")
+            if ky == "rotor-k-width":
+                ip.rotor_k_width = float(val[0])
+                if not np.isfinite(ip.rotor_k_width) or ip.rotor_k_width < 0:
+                    raise ValueError("rotor-k-width must be finite and nonnegative")
             if ky == "trot":
                 ip.Trot = float(val[0])
                 if sp.na == 1:
@@ -538,18 +552,17 @@ class imolecule:
            sa.SampInfo['rot'] = {}
         #assumes we have sampled J
         J = abs(sa.sJ)
+        broadened = getattr(ip, 'rotor_polar', 'broadened') == 'broadened'
         eej = sp.J2c*J*(J+1)
-    # If molecule is spherical top sample angles using isotropic distriobuition  
-        if sp.rsym == 'spherical': 
-           ax = 'A'
-           alp,bet,gamm = ICDFsample(sa.dist['arotJz']['cont'])
-           jz  = -1
-           eek = 0.0
-        # if symmetric top, then we pick projection analytically 
         if J == 0:
            ax = 'A'
            jz, bet, gamm, eek = [0.0]*4
            bet0,bets,sig = [0.0]*3
+        elif sp.rsym == 'spherical':
+           ax = 'A'
+           alp,bet,gamm = ICDFsample(sa.dist['arotJz']['cont'])
+           jz = np.sqrt(J*(J+1))*np.cos(bet)
+           eek = 0.0
         elif sp.rsym == 'linear':
            ax = 'z'
            jz = 0.0
@@ -562,11 +575,24 @@ class imolecule:
            bet = np.arccos(jz/np.sqrt(J*(J+1)))
            gamm = ICDFsample(sa.dist['srotGam']['cont'])[0] 
            eek = sp.Jzc*jz**2
+           if broadened:
+              probabilities = np.zeros(2*int(J)+1)
+              probabilities[int(J+jz)] = 1.
+              kc = ICDFscalar(sa.dist['rotK']['cont'], int(J), probabilities)
+              bet = np.arccos(np.clip(kc/np.sqrt(J*(J+1)), -1, 1))
         else:   #if its asymmetric top : 
            id, eek,ax,jx2,jy2,jz2,jz,sig = ICDFsample(sa.dist['arotJz']['cont'],int(J))  # sample projection state
+           if sp.Irep != 4:
+              ax = 'z'  # Wang symmetry labels do not select the sampling axis.
 #           print('jzcomp = ', sqrt(jz2), jz)
            # sample polar coordinate IMPORTANT: it only samples the first quadrant 0-pi/2, need to sample the other symmetric halg :  
-           if ax == 'A':  # if its an A irrep
+           if broadened:
+              ax = 'z'
+              probabilities = sp.rotor_projection_probabilities[int(J)][:, int(id)]
+              kc = ICDFscalar(sa.dist['rotK']['cont'], int(J), probabilities)
+              bet = np.arccos(np.clip(kc/np.sqrt(J*(J+1)), -1, 1))
+              gamm = ICDFsample(sa.dist['arotGam']['cont'],jx2,jy2)[0]
+           elif ax == 'A':  # legacy normalized Gaussian
               pars = [jx2,jy2,jz2] 
               alp,bet,gamm = ICDFsample(sa.dist['arotBing']['cont'],np.array(pars))   
               bet0,bets,sig = bet,sqrt(jz2), sqrt(jz2-jz**2) 
@@ -587,7 +613,11 @@ class imolecule:
         # although we are rotating the body fixed coordinate, this corresponds to the alpha coordinate in the euler angles (since its rotating the J in the body fixed frame)
         vecJ = matmul(iq2R(np.array([0.0,bet,gamm])).T,z*np.sqrt(J*(J+1)))
         # classical energy: (different when beta has uncertainty) 
-        cee = np.dot(np.array([sp.rA,sp.rB,sp.rC]),vecJ**2)
+        # rA/rB/rC are sorted physical constants, not necessarily body x/y/z.
+        body_constants = np.array([sp.J2c+2*getattr(sp, 'Jcc', 0.),
+                                   sp.J2c-2*getattr(sp, 'Jcc', 0.),
+                                   sp.J2c+sp.Jzc])
+        cee = np.dot(body_constants, vecJ**2)
         #vecJ = matmul(iang2R(np.array([0.0,bet,gamm]),'eul').T,z*np.sqrt(J*(J+1)))
         if sp.Irep == 4:  # for strongly asymmetric tops we chose to sample along someother axis, so we need to rotate back... 
            if ax[-1] == 'x':
@@ -614,11 +644,24 @@ class imolecule:
          sa.SampInfo['rot']['qjz']    = jz
         sa.SampInfo['rot']['ang']    = [bet,gamm]
         sa.SampInfo['rot']['bet']    = bet
-        if 'asym' in sp.rsym and J >0:
+        if 'asym' in sp.rsym and J >0 and not broadened:
           sa.SampInfo['rot']['asymd'] = [bet0,bets,sig]
+        if 'asym' in sp.rsym and J >0:
           sa.SampInfo['rot']['idjz'] = id
+        sa.SampInfo['rot']['polar_sampler'] = getattr(ip, 'rotor_polar', 'broadened')
+        sa.SampInfo['rot']['k_width'] = getattr(ip, 'rotor_k_width', 0.8)
         sa.SampInfo['rot']['gamm']   = gamm
         sa.SampInfo['rot']['vecJ']   = vecJ
+        if J == 0:
+            moments = np.zeros(3)
+        elif sp.rsym == 'spherical':
+            moments = np.full(3, J*(J+1)/3)
+        elif 'asym' in sp.rsym:
+            moments = np.array([jx2,jy2,jz2])
+        else:
+            moments = np.array([(J*(J+1)-jz*jz)/2]*2+[jz*jz])
+        sa.SampInfo['rot']['moment_error'] = vecJ**2-moments
+        sa.SampInfo['rot']['energy_error'] = cee-ee
         if debug: 
           print(ip.name,'VecJ = ', vecJ, 'J = ', J, 'Jz = ', jz )
           print(ip.name,'zero EE? = ', abs(np.dot(np.array([sp.rA,sp.rB,sp.rC]),vecJ**2)-ee)  )
@@ -869,8 +912,12 @@ class imolecule:
             log += [f"{'rotor state':<{INFO_LABEL_WIDTH}} = J = 0; angular momentum fixed at zero\n"]
             return log
         log += [info_scalar("quantum J", J, "", "{:14.1f}")]
-        log += [info_scalar("quantum J_" + ax[-1], jz, "au", "{:14.3f}")]
-        log += [info_scalar("equilibrium energy", sa.sren * au2ev, "eV", "{:14.5f}")]
+        if 'asym' in sp.rsym:
+            log += [info_scalar("quantum rms J_" + ax[-1], sa.SampInfo['rot']['qjz'], "au", "{:14.3f}")]
+        else:
+            label = "model J_" if sp.rsym == 'spherical' else "quantum J_"
+            log += [info_scalar(label + ax[-1], jz, "au", "{:14.3f}")]
+        log += [info_scalar("rotor eigenenergy", sa.sren * au2ev, "eV", "{:14.5f}")]
         log += [info_vec("classical J", cJ, "au", "J", norm(cJ), qJ, "{:12.7f}")]
         log += [info_scalar("classical J_" + ax[-1], cJ[aax[ax[-1]]], "au", "{:14.3f}")]
         log += [info_scalar("classical energy", sa.svren * au2ev, "eV", "{:14.5f}")]
@@ -1065,26 +1112,24 @@ class imolecule:
             Ib (list): The principal moments of inertia [Ia, Ib, Ic].
             Rep (int): The representation code for the orientation convention.
         """
-        # a b c are ordered with incresing 1/I eigenvalue (decreasing rotational constant)
+        # a b c have increasing principal inertia (decreasing rotational constant).
         # the space-body frame rotation matrix S2B is fixed so that the figure axis z (the  symmetry axis) is pointing along Z
         # prolate (sausage) x y z (b c a), Ib~Ic > Ia
         sp = self.sp 
         if Rep == 1:  # b c a
-            if sp.rB > sp.rC:
-                sp.J2c = 0.5 * (sp.rB + sp.rC)
-                sp.Jzc = sp.rA - 0.5 * (sp.rB + sp.rC)
-                sp.Jcc = 0.25 * (sp.rB - sp.rC)
-                Ib[0], Ib[1], Ib[2] = Ib[1], Ib[2], Ib[0]
-                R = matmul(Rabout(hpi, 0), Rabout(hpi, 1))
+            sp.J2c = 0.5 * (sp.rB + sp.rC)
+            sp.Jzc = sp.rA - 0.5 * (sp.rB + sp.rC)
+            sp.Jcc = 0.25 * (sp.rB - sp.rC)
+            Ib[0], Ib[1], Ib[2] = Ib[1], Ib[2], Ib[0]
+            R = matmul(Rabout(hpi, 0), Rabout(hpi, 1))
             sp.S2B = matmul(R.T, S2B.T)
             sp.Irep = 1
         elif Rep == 2:  # c a b
-            if sp.rC > sp.rA:
-                sp.J2c = 0.5 * (sp.rC + sp.rA)
-                sp.Jzc = sp.rB - 0.5 * (sp.rC + sp.rA)
-                sp.Jcc = 0.25 * (sp.rC - sp.rA)
-                Ib[0], Ib[1], Ib[2] = Ib[2], Ib[0], Ib[1]
-                R = matmul(Rabout(hpi, 2), Rabout(hpi, 1))
+            sp.J2c = 0.5 * (sp.rC + sp.rA)
+            sp.Jzc = sp.rB - 0.5 * (sp.rC + sp.rA)
+            sp.Jcc = 0.25 * (sp.rC - sp.rA)
+            Ib[0], Ib[1], Ib[2] = Ib[2], Ib[0], Ib[1]
+            R = matmul(Rabout(hpi, 2), Rabout(hpi, 1))
             sp.S2B = matmul(R.T, S2B.T)
             sp.Irep = 2
         # oblate (frizbee) x y z ( a b c ), Ic > Ia~Ib
@@ -1140,33 +1185,40 @@ class imolecule:
             S2B, Ibm, Is = iI(iX(sp.x0), iX(sp.x0), sp.mass)
             Ib = diag(Ibm).copy()
             sp.rA, sp.rB, sp.rC = 0.5 / (Ib + 1.0e-20)
-            asymk = (2 * sp.rB - sp.rA - sp.rC) / (sp.rA - sp.rC)
+            # Shape descriptors are separate from the choice of quantization axis.
+            linear = abs(Ib[0]) < 0.001
+            spread = sp.rA - sp.rC
+            spherical = not linear and spread <= 1e-5 * sp.rA
+            asymk = np.nan if linear or spherical else (2 * sp.rB - sp.rA - sp.rC) / spread
             sp.asymk = asymk
-            self.log.append( "   Asymmetry constant: " + "{0:14.9f}".format(asymk) + "\n")
-            if abs(Ib[0]) < 0.001:
+            sp.rotor_spread = np.nan if linear else spread / np.mean([sp.rA, sp.rB, sp.rC])
+            description = "N/A (linear)" if linear else ("undefined (spherical)" if spherical else "{0:14.9f}".format(asymk))
+            self.log.append("   Asymmetry constant: " + description + "\n")
+            if not linear:
+                self.log.append("   Departure from sphericity (A-C)/mean(C): {:.9g}\n".format(sp.rotor_spread))
+            if linear:
                 sp.rsym = "linear"
                 self.SetOrientatConvention(S2B, Ib, 0)
-            elif asymk > 0.666:
-            #elif asymk > 0.333:
+            elif spherical:
+                sp.rsym = "spherical"
                 self.SetOrientatConvention(S2B, Ib, 3)
-                if asymk - 0.98 > 0:
-                    sp.rsym = "oblate"
-                else:
-                    sp.rsym = "asym-oblate"
-            elif asymk < -0.666:
-            #elif asymk < -0.333:
-                self.SetOrientatConvention(S2B, Ib, 1)
-                if asymk + 0.98 < 0:
-                    sp.rsym = "prolate"
-                else:
-                    sp.rsym = "asym-prolate"
+                sp.J2c = (sp.rA + sp.rB + sp.rC) / 3.0
+                sp.Jzc = sp.Jcc = 0.0
             else:
-                if abs(asymk) < 0.02:
-                    self.SetOrientatConvention(S2B, Ib, 2)
-                    sp.rsym = "spherical"
+                ab, bc = sp.rA - sp.rB, sp.rB - sp.rC
+                # Resolve unequal pairs even near sphericity. At an equal-gap tie,
+                # choose axis a deterministically (the largest rotational constant).
+                if bc <= ab + 1e-12 * sp.rA:
+                    self.SetOrientatConvention(S2B, Ib, 1)
+                    sp.rsym = "prolate" if bc <= 1e-5 * spread else "asym-prolate"
+                    axis = "a (largest rotational constant)"
                 else:
-                    self.SetOrientatConvention(S2B, Ib, 4)
-                    sp.rsym = "asym-spherical"
+                    self.SetOrientatConvention(S2B, Ib, 3)
+                    sp.rsym = "oblate" if ab <= 1e-5 * spread else "asym-oblate"
+                    axis = "c (smallest rotational constant)"
+                if 'asym' not in sp.rsym:
+                    sp.Jcc = 0.0
+                self.log.append("   Quantization axis: " + axis + "; closest transverse constants; mapped to body z\n")
             self.log.append("   Rotor type : " + sp.rsym + "\n")
             x0 = matmul(sp.S2B, sp.x0.T).T
         sp.xxe, sp.x0 = x0.copy(), x0.copy()
@@ -1261,19 +1313,31 @@ class imolecule:
         ip = self.ip 
         if T <= 0:
             return 1
-        MaxR = 5
-        ii = np.arange(5000)
-        EE = sp.J2c * ii * (ii + 1)
-        if ip.isotropic:
-          rho = (2*ii+1)*Boltzmann(EE, T) 
-        else:
-          rho = Boltzmann(EE, T) 
-        rho = rho/sum(rho) 
-        for i in range(5000):
-            if rho[i] < 0.001:
-                MaxR = i 
-                break 
-        return int(MaxR)+1
+        # E(J,tau) >= Cmin*J*(J+1), with at most (2J+1)^2 states.
+        cmin = min(c for c in (sp.rA, sp.rB, sp.rC) if c > 0)
+        jj = np.arange(5000)
+        power = 1 if sp.rsym == 'linear' else 2
+        bound = (2*jj+1)**power * np.exp(-cmin*jj*(jj+1)/(kboltz*T))
+        tail = np.cumsum(bound[::-1])[::-1]
+        if tail[-1] > 1e-12:
+            raise ValueError("Rotational temperature requires more than 5000 J levels")
+        return int(np.flatnonzero(tail < 1e-12)[0])
+
+    def ThermalRotorProbabilities(self, T):
+        """Marginal J probabilities from the same energies used to sample sublevels."""
+        sp = self.sp
+        energies = []
+        for J in range(self.ip.MaxR+1):
+            if sp.rsym == 'linear':
+                projection = np.zeros(1)
+            elif sp.rsym == 'spherical':
+                projection = np.zeros(2*J+1)
+            elif 'asym' in sp.rsym:
+                projection = np.asarray(sp.RR[J][1])
+            else:
+                projection = sp.Jzc*np.arange(-J, J+1)**2
+            energies.append(sp.J2c*J*(J+1) + projection)
+        return RotorBoltzmannProbabilities(T, energies)
   
     def AsymRigidRotorProjEnergies(self, MaxR):
         """
@@ -1320,6 +1384,7 @@ class imolecule:
         if debug:
          np.set_printoptions(precision=4)
         RR = []
+        sp.rotor_projection_probabilities = []
         if sp.rsym == 'asym-spherical':
           # y-> z, x-> y, z-> x   by uising Ry(bet=pi/2) Rz(gam=pi/2)
           # x-> z, y-> x, z-> y   by using Rx(-pi/2) Rz(-pi/2) in XYZ ->  Rz(alp=pi/2)Ry(bet=pi/2)Rz(gam=pi) for wigner needs to be in euler angles 
@@ -1340,7 +1405,7 @@ class imolecule:
               print('&&&&&&&&&&&&&&&&&&&& i = ', j)
             U, irreps,idx = WangTran(j)
             HC = PHamil(Wx2(j),Wy2(j),Wz2(j))
-            HC = np.round(0.5*(HC +HC.conj().T),8) 
+            HC = 0.5*(HC +HC.conj().T)
             P1 = { 'x':Px(j) , 'y':Py(j),  'z':Pz(j) }
             P2 = { 'x':Px2(j), 'y':Py2(j), 'z':Pz2(j)}
             if sp.rsym == 'asym-spherical':
@@ -1545,11 +1610,18 @@ class imolecule:
                 pk1, pk2 = poshalve(j,WS[:,i])
                 akk1.append(pk1.real)
                 akk2.append(pk2.real)
+                asig.append(np.sqrt(max(0.0, pk2.real-pk1.real**2)))
+                evecs.append('J'+str(j)+' ev-'+str(i)+' ax-z : '+
+                             ' '.join('{:.8f}'.format(v.real) for v in WS[:,i])+'\n')
               for ax in ['x','y','z']:
                 kk1[ax] = diag(matmul(WS.conj().T,matmul( P1[ax],WS))).real +1e-10
                 kk2[ax] = diag(matmul(WS.conj().T,matmul( P2[ax],WS))).real +1e-10
                 sig[ax].append(sqrt( kk2[ax][-1]- kk1[ax][-1]**2 ))
+              for i in range(2*j+1):
+                infos.append('J{} ev-{} ax-z irrep-{} j2x: {:.8f} j2y: {:.8f} j2z: {:.8f}\n'.format(
+                    j, i, sirreps[i], kk2['x'][i], kk2['y'][i], kk2['z'][i]))
             oo += [kk2['x'],kk2['y'],kk2['z'],akk1,asig]
+            sp.rotor_projection_probabilities.append(np.abs(WS)**2)
 
             if debug:
               print('IRR = ', irreps) 
@@ -1686,7 +1758,16 @@ class imolecule:
             log += ["No vibrational state distro" ]
         # generate rotational dist:
         T = ip.Trot
+        azimuth_sampler = (RotorAzimuthVonMises
+                           if getattr(ip, 'rotor_azimuth', 'vonmises') == 'vonmises'
+                           else reject_phi)
         if sp.na > 1 and T >= 0:
+            width = getattr(ip, 'rotor_k_width', 0.8)
+            sa.dist['rotK'] = {'cont': InitICDF(1, RotorProjectionICDF, [width],
+                                             par0=[0, [1.]], seed=seed*821)}
+            log += ['Rotor direction: polar={}, K width={}, azimuth={}\n'.format(
+                getattr(ip, 'rotor_polar', 'broadened'), width,
+                getattr(ip, 'rotor_azimuth', 'vonmises'))]
             log += ["Generated rotational state distro temperature " + str(T) + "\n"]
             if T > 0:
                 sa.dist['rotJ'] = {} 
@@ -1697,8 +1778,10 @@ class imolecule:
                 # The field-free J manifold always carries the 2J+1
                 # projection-state count. Orientation PDFs bias Euler angles,
                 # not the underlying molecular J state count.
-                func = IsoRotorTotBoltzICDF
-                sa.dist['rotJ']['cont'] = InitICDF(1,func,[T,sp.J2c,ip.MaxR ],seed=seed*17)
+                prob = self.ThermalRotorProbabilities(T)
+                func = RotorTotBoltzICDF
+                sa.dist['rotJ']['probabilities'] = prob
+                sa.dist['rotJ']['cont'] = InitICDF(1,func,[prob],seed=seed*17)
                 if nsamp != 0:
                   vv = np.round([ICDFsample(sa.dist['rotJ']['cont']) for _ in range(nsamp)])
                   hist_emit(vv, "j", stage="initial", scope=f"molecule_m{ip.mi}")
@@ -1706,7 +1789,7 @@ class imolecule:
                   log += ['Total molecular angular momentum J Histogram  = \n']
                   log += [str(hist) +'\n']
                   log += [str(edg) + '\n']
-                  sa.dist['rotJ']['cont'] = InitICDF(1,func,[T,sp.J2c,ip.MaxR ],seed=seed*283)
+                  sa.dist['rotJ']['cont'] = InitICDF(1,func,[prob],seed=seed*283)
                 # the molecule is a symmetric top, we sammple analytically from vector model... 
                 #if True:
 
@@ -1794,11 +1877,25 @@ class imolecule:
                    sa.dist['arotBetB']['cont'] = InitICDF(1,reject_GaussSin,[],par0=pars ,seed=seed*409)
                    #extract dummy Jx2 and Jy2
                    sa.dist['arotGam'] = {}
-                   sa.dist['arotGam']['cont'] = InitICDF(1,reject_phi,[],par0=[*jxy],seed=seed*401)
+                   sa.dist['arotGam']['cont'] = InitICDF(1,azimuth_sampler,[],par0=[*jxy],seed=seed*401)
                    #for A irrep Wang eigenstates
                    sa.dist['arotBing'] = {}
                    sa.dist['arotBing']['cont'] = InitICDF(1,reject_bingham, [],par0=[sig3],seed=seed*311)
-                   if nsamp != 0:
+                   if nsamp != 0 and getattr(ip, 'rotor_polar', 'broadened') == 'broadened':
+                     # Diagnostic streams must use the production law without
+                     # advancing the production random-number streams.
+                     polar = InitICDF(1, RotorProjectionICDF, [width], par0=[0,[1.]], seed=seed*827)
+                     azimuth = InitICDF(1, azimuth_sampler, [], par0=[1.,1.], seed=seed*829)
+                     for iJ in range(1,MaxR+1):
+                       for state in range(2*iJ+1):
+                         probabilities = sp.rotor_projection_probabilities[iJ][:,state]
+                         kk = [ICDFscalar(polar,iJ,probabilities) for _ in range(nsamp)]
+                         beta = np.arccos(np.clip(np.array(kk)/sqrt(iJ*(iJ+1)), -1, 1))
+                         jxy = [col[state] for col in sp.RR[iJ][3:5]]
+                         gamma = [ICDFsample(azimuth,*jxy)[0] for _ in range(nsamp)]
+                         hist_emit(beta, f"rot_beta_J{iJ}_{state}", stage="initial", scope=f"molecule_m{ip.mi}")
+                         hist_emit(gamma, f"rot_gamma_J{iJ}_{state}", stage="initial", scope=f"molecule_m{ip.mi}")
+                   if nsamp != 0 and getattr(ip, 'rotor_polar', 'broadened') == 'legacy':
 
                      #example for J=Ji, ei eigenstate
                      for iJ in range(MaxR):
@@ -1842,7 +1939,7 @@ class imolecule:
                      jxy = [o[ei] for o in sp.RR[Ji][3:5]]
                      pars = [o[ei] for o in sp.RR[Ji][-2:]] + [Ji]
                      sa.dist['arotBetB']['cont'] = InitICDF(1,reject_GaussSin,[],par0=pars ,seed=seed*541)
-                     sa.dist['arotGam']['cont'] = InitICDF(1,reject_phi,[],par0=[*jxy],seed=seed*211)
+                     sa.dist['arotGam']['cont'] = InitICDF(1,azimuth_sampler,[],par0=[*jxy],seed=seed*211)
                      sa.dist['arotBing']['cont'] = InitICDF(1,reject_bingham, [],par0=[sig3],seed=seed*241)
             else:
                 sa.rotsamp = [0 for i in range(nsamp)]

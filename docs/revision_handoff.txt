@@ -1,0 +1,93 @@
+ICATS revised-paper development handoff (2026-11-07)
+==================================================
+
+Branch: revision/no-ar-handoff-20261107
+Repository: https://github.com/Robertopherson/ICATS
+This is a development snapshot, not a tagged release. Start fresh runs.
+
+Preparation implemented
+-----------------------
+Canonical molecular J populations include the sum over K/eigenstates and the
+space-fixed (2J+1) degeneracy. Spherical tops have (2J+1)^2; linear rotors have
+only (2J+1). Conditional K/eigenstate populations use Boltzmann weights.
+
+The default polar sampler broadens the discrete K probabilities with width
+s=0.8, bounded by sqrt(J(J+1)), then applies the minimum-relative-entropy
+second-moment correction. Asymmetric tops use the moment-matched axial von
+Mises azimuth; symmetric tops use a uniform azimuth. All Wang irreps use the
+same rule. The quantization axis leaves the closest pair of rotational
+constants transverse, regardless of irrep. Spherical tops are isotropic.
+Linear K=0 and zero-moment states remain sharp. No electronic or spin sampling.
+
+Molecule input options:
+  rotor-polar = broadened
+  rotor-k-width = 0.8
+  rotor-azimuth = vonmises
+Use width 0 for discrete K; explicit legacy options are comparisons only.
+The width is user-tunable, not automatically fitted during generation.
+Vector norms are fixed per draw; eigenenergy is preserved in the mean.
+
+The experimental width scans remain Fortran in the manuscript workspace.
+The installed ICATS engine was already Python. Its new cached numerical kernel
+uses its existing NumPy/SciPy dependencies; users do not need a Fortran compiler.
+
+Use wang=False and geometric orbital sampling for the revised preparation.
+The resulting total-J tail is retained, not rejected to impose 2J+1 alone.
+Leading-Wigner vibration, orientation PDFs, the Eckart angular decomposition,
+closure checks and thermal/channel-count ensemble statistics are available.
+The statistics include per-axis second-moment and mean rotor energy residuals.
+
+Reproduce / hand off
+-------------------
+git clone --branch revision/no-ar-handoff-20261107 https://github.com/Robertopherson/ICATS.git
+cd ICATS
+python -m pip install -e '.[test]'
+python -m pytest -q
+icats --tutorial thermal_atom_diatom_ar_no --tutorial-dir ar_no --setup-only
+cd ar_no
+icats.init tutorial_input.txt
+
+The Ar+NO tutorial samples thermal rotation at 50 K and geometric L, exporting
+out_full.xyz/vel. Its energy, separation and cutoff are illustrative: check
+them for the intended experiment. NO is a nuclear integer rigid rotor, not a
+resolved 2Pi/spin-orbit model. Its example input has no Hessian, so vibration is
+disabled. Supply a validated NO Hessian for vibrational sampling. A linear
+rotor has K=0 and no polar broadening; this is the correct limiting case, not
+a missing option. Use the external Ar+NO PES/propagator, not MINDO/3.
+
+For the full polyatomic sampler:
+  icats --tutorial revision_nh3_h2o --tutorial-dir revised_pair --setup-only
+  cd revised_pair
+  icats.init tutorial_input.txt
+Read rd_tutorial_input/convergence/ensemble_statistics.txt and ensemble_J.csv.
+
+Validation
+----------
+Full regression suite: 118 tests passed (68.37 s in the clean runtime).
+Tests include independent fine-grid quadrature, sampled second moments and
+energies, symmetric/asymmetric/spherical/linear limits, canonical populations,
+normal modes, Eckart decomposition, leading-Wigner sampling and tutorial export.
+The 15 pre-existing tutorial preparations passed four-sample audits with WL
+disabled. Those are tolerance-based checks, not machine-precision agreement:
+the largest energy discrepancy was 0.005761 eV in the CO2 vibrational audit.
+The fixed-plane Ar+NO frame smoke test passed, with zero printed-coordinate
+mismatch between internal and incoming-k-plus-z exports.
+
+Additional runs: 1000 NH3+H2O samples with two workers; 1000 thermal Ar+NO
+samples. Both produced the new ensemble diagnostics and channel-count files.
+NH3/H2O rotor mean-energy residuals were 0.26 and -0.34 standard errors;
+all six component moment residuals were within 2.3 standard errors.
+These checks do not demonstrate converged scattering cross sections.
+
+A 20-step NH3+H2O MINDO/3 trajectory ran and was reanalysed. Maximum absolute
+energy drift: 0.002911 eV; final drift: -0.000354 eV. This is a smoke test,
+not a timestep-convergence study or an Ar+NO propagation test.
+
+Still to update for publication
+------------------------------
+The old paper_nh3_h2o_100k and explicitly WL-named tutorials, reference plots,
+frozen logs and full manual narrative have not all been regenerated. Do not
+use their stored WL profiles or figures as revised-paper evidence. The new
+revision_nh3_h2o template replaces that workflow for this branch. Complete the
+large production ensembles, revised figures and manual/SI updates separately.
+The manuscript itself was not modified by this software handoff.

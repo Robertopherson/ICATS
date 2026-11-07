@@ -3,6 +3,11 @@
 ICATS generates initial conditions and analysis diagnostics for quasi-classical
 molecular scattering calculations.
 
+This branch contains the revised-paper development sampler (0.1.5.dev0).
+See [the handoff notes](docs/revision_handoff.txt) for its defaults, validation
+and Ar+NO instructions. Use `revision_nh3_h2o`, not the older WL paper tutorial,
+for revised-paper preparation.
+
 This repository contains the code package, small example molecule files, and
 tutorial-generation helpers. Generated tutorial outputs and run directories are
 not intended to be committed.

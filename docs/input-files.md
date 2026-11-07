@@ -206,6 +206,9 @@ These options appear inside each molecule file referenced by `mol`.
 | `hess` | `hess = hessian.txt` | Full mass-weighted Cartesian Hessian used to construct normal modes. See the Hessian convention below. |
 | `w` | `w = freq.txt` | Optional frequency-file reference used by templates/validation; current normal-mode sampling is driven by `hess`. |
 | `trot` | `trot = 50.0` | Molecule-level rotational temperature override. |
+| `rotor-azimuth` | `vonmises` or `legacy` | Asymmetric-rotor azimuthal law. Default: `vonmises`. |
+| `rotor-polar` | `broadened` or `legacy` | Projection sampler. Default: `broadened`. |
+| `rotor-k-width` | e.g. `0.8` | Gaussian width in projection units. Default: `0.8`; `0` selects discrete K. |
 | `tvib` | `tvib = 50.0` | Molecule-level vibrational temperature override. |
 | `vel` | `vel = 1000 100 3` | Molecule beam-speed distribution: centre speed in m/s, FWHM in m/s, and velocity-power weight. |
 | `nfreeze` | `nfreeze = 1 2 3` | Normal-mode indices to leave at zero during vibrational sampling. |
@@ -218,6 +221,18 @@ These options appear inside each molecule file referenced by `mol`.
 
 For atoms, ICATS forces molecular `Trot` and `Tvib` to zero because there are no
 internal rotor or vibrational degrees of freedom.
+
+`rotor-polar = broadened` convolves the eigenstate's discrete K probabilities
+with a bounded Gaussian of width `rotor-k-width`, then exponentially reweights
+the mixture to preserve its second moment. `rotor-azimuth = vonmises` preserves
+the transverse second-moment ratio. Both defaults apply to all asymmetric-top
+irreps, using the axis whose transverse rotational constants are closest.
+Symmetric tops use broadened K and a uniform transverse angle; linear rotors
+retain K=0, and spherical tops use an isotropic direction. A zero target second
+moment cannot be broadened. Vector length is fixed on every draw; eigenenergy
+is preserved in the ensemble mean, not necessarily on each trajectory.
+The legacy options are for comparisons, not the revised-paper calculation.
+Start a fresh run after changing sampling options; do not reuse old checkpoints.
 
 #### Hessian Convention
 

@@ -10,6 +10,8 @@ from . import __version__
 
 TUTORIAL_ORDER = [
     "quickstart",
+    "revision_nh3_h2o",
+    "thermal_atom_diatom_ar_no",
     "diatomic_n2_n2_fast",
     "mixed_h2o_n2",
     "methane_methane",
@@ -27,6 +29,39 @@ TUTORIAL_ORDER = [
 ]
 
 TUTORIALS = {
+    "thermal_atom_diatom_ar_no": {
+        "desc": "Ar + thermal rigid NO with geometric impact-parameter sampling",
+        "mol0": "ar_dat.txt", "mol1": "no_dat.txt",
+        "nsamp": 1000, "ntraj": 1, "steps": 20,
+        "maxl": 205, "maxb": 8., "tvib": 0., "trot": 50.,
+        "rz": 58.20949319933, "printout": "1 1 0 0",
+        "extra": ["vib-mode = rigid", "maxv = 0", "incoming-k = 13.615392",
+                  "wang = False", "orbital-sampling = geometric",
+                  "phisample = True", "audit-initial-sample = True"],
+        "notes": [
+            "Integer nuclear rigid-rotor model only; no electronic or spin-orbit state sampling.",
+            "The NO example has no Hessian; supply a validated NO Hessian to enable vibration.",
+            "Linear NO has K=0: its polar broadening is exactly zero and the transverse angle is uniform.",
+            "Use an external Ar+NO potential and propagator; MINDO/3 does not support Ar here.",
+            "Check the collision energy, orbital cap, separation and temperature for your intended experiment.",
+        ],
+    },
+    "revision_nh3_h2o": {
+        "desc": "Revised-paper NH3 + H2O preparation, without Wang-Landau",
+        "mol0": "paper_ammonia_dat.txt",
+        "mol1": "paper_h2o_dat.txt",
+        "nsamp": 1000, "ntraj": 1, "steps": 20,
+        "maxl": 70, "maxb": 16,
+        "extra": ["wang = False", "orbital-sampling = geometric",
+                  "phisample = True", "beam-angle = 90.0",
+                  "audit-initial-sample = True"],
+        "notes": [
+            "Uses canonical rotor populations, K width 0.8 and von Mises azimuths.",
+            "Limits L, retaining the physical total-J tail.",
+            "Read convergence/ensemble_statistics.txt and ensemble_J.csv in the run directory.",
+            "The older paper_nh3_h2o_100k tutorial reproduces an obsolete WL workflow, not this revision.",
+        ],
+    },
     "quickstart": {
         "desc": "NH3 + H2O minimal end-to-end (recommended first run)",
         "mol0": "ammonia_dat.txt",
@@ -1583,7 +1618,7 @@ def _generate_tutorial(
         "conda activate \"$ENV_NAME\"\n"
         "pip install --upgrade pip\n"
         "pip install pyscf-semiempirical spherical quaternionic\n"
-        f"pip install git+https://github.com/Robertopherson/ICATS.git@v{__version__}\n\n"
+        "pip install git+https://github.com/Robertopherson/ICATS.git@revision/no-ar-handoff-20261107\n\n"
         "echo \"Verifying core imports...\"\n"
         "python - <<'PYCHECK'\n"
         "import icats, numpy, h5py, pyscf\n"
