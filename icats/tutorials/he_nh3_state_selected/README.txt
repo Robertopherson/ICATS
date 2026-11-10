@@ -17,7 +17,7 @@ Compare fixed initial states and widths, for example:
 
 Paper configuration:
   python run.py --paper-task 0 --workers 8 --output paper
-Run task numbers 0 through 255 (paper.sbatch shows a Slurm example).
+Run task numbers 0 through 255 (paper.sbatch groups these into 16 Slurm jobs).
 Four cases: (j,|K|)=(3,2),(5,4), each at s=0 and s=0.8.
 16 one-bohr shells, four batches of 4096 trajectories per shell and case:
 262144 trajectories/case, 1048576 in total. Seed base 2026111017;

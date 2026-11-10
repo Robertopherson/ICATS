@@ -22,7 +22,10 @@ The program verifies NH3 composition and symmetric-top classification; it
 does not infer isotope-specific spin rules. Do not use these presets for
 isotopically modified systems or vibrationally excited symmetry species.
 At K=0, ortho-NH3 has one permitted inversion component rather than two:
-the thermal level count includes this factor, but neglects inversion splitting.
+the signed-K enumeration already supplies this relative count (one K=0 entry,
+two entries for nonzero |K|), so no additional K=0 factor is applied.
+Inversion splitting is neglected. These counts agree with the JPL/LAMDA
+ortho-NH3 level weights: https://home.strw.leidenuniv.nl/~moldata/datafiles/o-nh3.dat
 No inversion parity is propagated. Fixed K=0 consequently denotes only the
 allowed component in this unresolved model, not arbitrary parity selection.
 Constant nuclear-spin multiplicities cancel within a single specified species.

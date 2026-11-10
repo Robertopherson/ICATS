@@ -41,9 +41,9 @@ def state_tables(mol, temperature):
         if allowed is not None:keep &= np.isin(abs(ks), allowed)
         if fixed is not None:keep &= (j == fixed[0]) & (abs(ks) == fixed[1])
         w = keep.astype(float)
-        # K=0 has one allowed inversion component; |K|>0 has two.
-        # The common spin multiplicity cancels within a specified species.
-        if rule == 'nh3-ortho':w[ks == 0] *= .5
+        # Signed K already counts nonzero |K| twice versus K=0 once.
+        # For unresolved ortho NH3 this supplies the inversion count;
+        # the common spin multiplicity cancels within the species.
         weights.append(w)
         energies.append(sp.J2c*j*(j+1)+sp.Jzc*ks**2)
     valid = [ee[ww > 0] for ee, ww in zip(energies, weights) if np.any(ww > 0)]

@@ -38,11 +38,20 @@ def test_thermal_joint_normalization(rule):
     for j in range(len(p)):
         k=np.arange(-j,j+1)
         w=(k%3!=0 if rule=='nh3-para' else k%3==0).astype(float)
-        if rule=='nh3-ortho':w[k==0]*=.5
         expected.extend((2*j+1)*w*np.exp(-(m.sp.J2c*j*(j+1)+m.sp.Jzc*k*k)/(kboltz*100)))
         actual.extend(p[j]*q[j])
     expected=np.asarray(expected);expected/=expected.sum()
     np.testing.assert_allclose(actual,expected,atol=1e-15)
+
+
+def test_ortho_inversion_unresolved_level_count():
+    # JPL/LAMDA: j=3,K=3 has two inversion levels of weight 28 each;
+    # j=3,K=0 has one of weight 28. Neglecting splitting gives ratio 2.
+    m=molecule(rule='nh3-ortho')
+    _,q=state_tables(m,100)
+    ratio=(q[3][0]+q[3][6])/q[3][3]
+    expected=2*np.exp(-9*m.sp.Jzc/(kboltz*100))
+    assert np.isclose(ratio,expected)
 
 
 def test_forbidden_and_unsupported_states():
