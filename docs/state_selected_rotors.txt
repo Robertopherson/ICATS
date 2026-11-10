@@ -1,0 +1,63 @@
+STATE-SELECTED ROTORS AND INITIAL NUCLEAR-SPIN RESTRICTIONS
+
+Molecule input, for a linear or symmetric top:
+  rotor-state = 3 2
+selects J=3, |K|=2 instead of thermal rotational-level sampling. Signed K
+has equal +/- populations. The orientation distribution is unchanged.
+Linear rotors require K=0. Asymmetric and spherical tops are rejected:
+their eigenstate labels/symmetry axes require a different interface.
+  rotor-k-width = 0.8
+keeps the existing bounded, second-moment-preserving projection broadening;
+0 gives sharp K. The restrictions apply BEFORE this continuous broadening.
+
+Optional molecule input:
+  rotor-k-rule = all         (default)
+  rotor-k-rule = nh3-para    (K not divisible by 3)
+  rotor-k-rule = nh3-ortho   (K divisible by 3)
+  rotor-allowed-k = 0 2 4    (an explicit additional allowed-|K| list)
+Use only one rotor-k-rule line. A forbidden fixed state is an error.
+These NH3 presets describe the ground electronic/vibrational manifold and
+an inversion-unresolved rotor model, not a general nuclear-spin solver.
+The program verifies NH3 composition and symmetric-top classification; it
+does not infer isotope-specific spin rules. Do not use these presets for
+isotopically modified systems or vibrationally excited symmetry species.
+At K=0, ortho-NH3 has one permitted inversion component rather than two:
+the thermal level count includes this factor, but neglects inversion splitting.
+No inversion parity is propagated. Fixed K=0 consequently denotes only the
+allowed component in this unresolved model, not arbitrary parity selection.
+Constant nuclear-spin multiplicities cancel within a single specified species.
+An ortho/para mixture should be prepared as separate runs and combined using
+the specified species populations, NOT an assumed equilibrium mixture.
+
+For thermal runs, the same allowed levels enter both the marginal P(J)
+and conditional P(K|J), with the field-free (2J+1) M multiplicity.
+Trot=0 selects the lowest permitted level, not necessarily J=0.
+User-supplied K lists are restrictions, not inferred nuclear-spin weights.
+Initial restrictions do not force final classical trajectories into allowed
+quantum bins. Any final-state rejection/assignment is a separate analysis.
+
+Run input for uniform impact parameter:
+  orbital-sampling = flat-b
+  minb = 0
+  maxb = 8.466835374448
+  maxl = 0
+  wang = False
+Bounds are in Angstrom. This mode excludes fixed-b/orbital-channel settings.
+Each sample records area_weight_bohr2 = 2*pi*b*(bmax-bmin).
+For a cross section, average weight*outcome; for stratified intervals,
+sum those interval means. Do not multiply by another (2J+1) factor.
+This differs from flat-l, which is uniform in the continuous quantum-like
+L label; flat-b is uniform in the actual classical magnitude |L| at fixed k.
+
+Optional molecule masses:
+  masses = <one positive atomic mass in amu per atom>
+Overrides element defaults before normal modes and inertia are calculated.
+The caller must supply a Hessian consistent with these masses when using
+mass-weighted Hessian input. The rigid tutorial uses this to match the
+benchmark's reduced mass exactly; its model masses are not isotope claims.
+
+Tutorial export:
+  icats --tutorial he_nh3_state_selected --setup-only
+See its README.txt. It uses the public CLI, compact NPZ Cartesian exports,
+a separate analytic rigid dynamics driver, and bundled quantum reference data.
+Production default behavior is unchanged when the new options are absent.

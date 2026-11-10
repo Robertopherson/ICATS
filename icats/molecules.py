@@ -3,6 +3,7 @@ from .constants import *
 from .functions import *
 from .dist import *
 from .rotor_sampling import RotorProjectionICDF
+from .rotor_states import configured as state_selected, state_tables, projection_icdf
 from .angmom import Pz2, Py2, Px2, Pz, Px, Py, WangTran, Wz2, Wy2, Wx2
 from spherical import Wigner
 import quaternionic as quat
@@ -123,6 +124,9 @@ class imolecule:
               self.isotropic = True
               self.velfwhm = -1
               self.lowdin = False
+              self.rotor_state = None
+              self.rotor_k_rule = 'all'
+              self.rotor_allowed_k = None
               self.diagdir = "."
               return 
         self.ip = minppar()
@@ -163,6 +167,23 @@ class imolecule:
                 if ip.rotor_azimuth not in ("legacy", "vonmises"):
                     raise ValueError("rotor-azimuth must be legacy or vonmises")
                 self.log.append("   Rotor azimuth sampling: " + ip.rotor_azimuth + "\n")
+            if ky == "rotor-state":
+                if len(val) != 2:
+                    raise ValueError('rotor-state requires J and |K|')
+                ip.rotor_state = tuple(int(v) for v in val)
+                j, k = ip.rotor_state
+                if not 0 <= k <= j:
+                    raise ValueError('rotor-state requires J >= |K| >= 0')
+            if ky == "rotor-k-rule":
+                ip.rotor_k_rule = val[0].lower()
+                if ip.rotor_k_rule not in ('all','nh3-para','nh3-ortho'):
+                    raise ValueError('rotor-k-rule must be all, nh3-para or nh3-ortho')
+            if ky == "rotor-allowed-k":
+                ip.rotor_allowed_k = tuple(sorted(set(int(v) for v in val)))
+                if not ip.rotor_allowed_k or min(ip.rotor_allowed_k) < 0:
+                    raise ValueError('rotor-allowed-k requires nonnegative |K| integers')
+            if ky == "masses":
+                ip.atomic_masses = np.asarray([float(v) for v in val])
             if ky == "rotor-polar":
                 ip.rotor_polar = val[0].lower()
                 if ip.rotor_polar not in ("broadened", "legacy"):
@@ -241,7 +262,16 @@ class imolecule:
             if ky == "rot-param":
                 self.log += ["Rotation angle Parametrization : " + val[0] + "\n"]
                 ip.rotpar = "euler" if val[0] == "eul" else val[0]
+        if hasattr(ip, 'atomic_masses'):
+            if (ip.atomic_masses.shape != (sp.na,) or not np.isfinite(ip.atomic_masses).all()
+                    or np.any(ip.atomic_masses <= 0)):
+                raise ValueError('masses requires one finite positive mass (amu) per atom')
+            sp.mass = ip.atomic_masses * amu2au
+            sp.mass2 = np.repeat(sp.mass, 3)
+            self.log += ['   Explicit atomic masses (amu): ' + str(ip.atomic_masses) + '\n']
         if sp.na == 1:
+            if state_selected(ip):
+                raise ValueError('Rotational state restrictions cannot be applied to an atom')
             ip.Trot = 0.0
             ip.Tvib = 0.0
             self.log += ["   Atom detected: forced molecular Trot/Tvib to 0.0\n"]
@@ -1325,6 +1355,8 @@ class imolecule:
 
     def ThermalRotorProbabilities(self, T):
         """Marginal J probabilities from the same energies used to sample sublevels."""
+        if state_selected(self.ip):
+            return state_tables(self, T)[0]
         sp = self.sp
         energies = []
         for J in range(self.ip.MaxR+1):
@@ -1769,7 +1801,18 @@ class imolecule:
                 getattr(ip, 'rotor_polar', 'broadened'), width,
                 getattr(ip, 'rotor_azimuth', 'vonmises'))]
             log += ["Generated rotational state distro temperature " + str(T) + "\n"]
-            if T > 0:
+            if state_selected(ip):
+                prob, projections = state_tables(self, T)
+                sa.dist['rotJ'] = {'MaxR':len(prob)-1, 'probabilities':prob,
+                    'cont':InitICDF(1, RotorTotBoltzICDF, [prob], seed=seed*17)}
+                sa.dist['srotJz'] = {'cont':InitICDF(1, projection_icdf, [projections],
+                                                   par0=[int(np.argmax(prob))], seed=seed*73)}
+                sa.dist['srotGam'] = {'cont':InitICDF(1, uniform, [-pi,pi], seed=seed*433)}
+                log += [f'Rotational preparation: state={ip.rotor_state}, K rule={ip.rotor_k_rule}, '
+                        f'allowed |K|={ip.rotor_allowed_k}\n']
+                if ip.rotor_k_rule != 'all':
+                    log += ['NH3 ground-state rotational restrictions; inversion splitting is omitted.\n']
+            elif T > 0:
                 sa.dist['rotJ'] = {} 
                 #ip.MaxR = self.EstimateMaxR(ip.Trot)
                 MaxR = ip.MaxR

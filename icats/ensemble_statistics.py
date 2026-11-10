@@ -96,6 +96,11 @@ def orbital_channel_probabilities(cap):
 
 
 def rotor_energy_mean(mol, probabilities, temperature):
+    from .rotor_states import configured, state_tables
+    if configured(mol.ip):
+        pj, pk = state_tables(mol, mol.ip.Trot)
+        return float(sum(p*(mol.sp.J2c*j*(j+1)+mol.sp.Jzc*np.dot(q,np.arange(-j,j+1)**2))
+                         for j,(p,q) in enumerate(zip(pj,pk))))
     if mol.sp.na == 1 or temperature <= 0:
         return 0.
     result = 0.

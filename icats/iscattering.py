@@ -136,9 +136,12 @@ class icats:
             def __init__(self):
               self.nwork = 1
               self.MaxB = 0
+              self.MinB = 0
               self.MaxJ = 0
               self.MaxL = 0
               self.FixedB = None
+              self.OrbitalChannel = None
+              self.OrbitalChannelRule = 'sqrt'
               self.ImpactPhi = None
               self.orbital_sampling = "geometric"
               self.velfwhm = 0.0
@@ -345,9 +348,20 @@ class icats:
             if ky == "maxb":
                 self.log += ["Maximum impact parameter: " + val[0] + "\n"]
                 ip.MaxB = float(val[0])*ang2au
+            if ky == "minb":
+                ip.MinB = float(val[0])*ang2au
             if ky == "fixed-b":
                 ip.FixedB = float(val[0])*ang2au
                 self.log += ["Fixed impact parameter: " + val[0] + " Ang\n"]
+            if ky == "orbital-channel":
+                value = float(val[0])
+                if not np.isfinite(value) or value < 0 or value != int(value):
+                    raise ValueError("orbital-channel must be a nonnegative integer")
+                ip.OrbitalChannel = int(value)
+            if ky == "orbital-channel-rule":
+                ip.OrbitalChannelRule = val[0].lower()
+                if ip.OrbitalChannelRule not in ('sqrt', 'langer', 'uniform-b'):
+                    raise ValueError("orbital-channel-rule must be sqrt, langer or uniform-b")
             if ky == "impact-phi":
                 ip.ImpactPhi = float(val[0])
                 self.log += ["Fixed impact-parameter azimuth phi: " + val[0] + " rad\n"]
@@ -358,8 +372,8 @@ class icats:
                 self.log += ["Output/reporting frame convention: " + ip.output_frame + "\n"]
             if ky == "orbital-sampling":
                 ip.orbital_sampling = val[0].lower()
-                if ip.orbital_sampling not in ("geometric", "flat-l"):
-                    raise ValueError("orbital-sampling must be geometric or flat-l")
+                if ip.orbital_sampling not in ("geometric", "flat-l", "flat-b"):
+                    raise ValueError("orbital-sampling must be geometric, flat-l or flat-b")
                 self.log += ["Orbital L sampling mode: " + ip.orbital_sampling + "\n"]
             if ky == "vib-mode":
                 ip.vib_mode = val[0].lower()
@@ -557,12 +571,23 @@ class icats:
 
         if ip.FixedB is not None and ip.usewang:
           raise ValueError("fixed-b is currently supported only with wang = False")
+        if ip.orbital_sampling == 'flat-b':
+          if (ip.usewang or ip.FixedB is not None or ip.OrbitalChannel is not None or ip.MaxL != 0
+              or not np.isfinite([ip.MinB,ip.MaxB]).all() or not 0 <= ip.MinB < ip.MaxB):
+            raise ValueError('flat-b requires 0 <= minb < maxb, maxl=0, wang=False, no fixed-b/orbital-channel')
+        elif ip.MinB != 0:
+          raise ValueError('minb is supported only with orbital-sampling=flat-b')
+        if ip.OrbitalChannel is not None:
+          if ip.FixedB is not None or ip.usewang:
+            raise ValueError("orbital-channel requires wang = False and no fixed-b")
+          self.log += [f"Orbital channel {ip.OrbitalChannel}, rule {ip.OrbitalChannelRule}\n"]
 
         if ip.wl_target_user is not None and not ip.usewang:
           raise ValueError("wl-target is only meaningful with wang = True")
 
         if not any(str(k).lower() == "orbital-sampling" for k, _ in ip.inpd):
-          mode_label = "fixed-b" if ip.FixedB is not None else "geometric"
+          mode_label = ("orbital-channel" if ip.OrbitalChannel is not None else
+                        "fixed-b" if ip.FixedB is not None else "geometric")
           self.log += ["Orbital L sampling mode: " + mode_label + "\n"]
 
         # Wang-Landau profile defaults (KIS):
@@ -754,6 +779,12 @@ class icats:
         for i in range(2):
             if mol[i].sp.na > 1:
                 mol[i].ip.MaxR = mol[i].EstimateMaxR(mol[i].ip.Trot)
+                fixed = getattr(mol[i].ip, 'rotor_state', None)
+                allowed = getattr(mol[i].ip, 'rotor_allowed_k', None)
+                if fixed is not None:
+                    mol[i].ip.MaxR = max(1, fixed[0])
+                elif allowed is not None:
+                    mol[i].ip.MaxR = max(mol[i].ip.MaxR, max(allowed)+1)
                 mol[i].AsymRigidRotorProjEnergies(mol[i].ip.MaxR)
 
     def saveworkers(self,wks):
@@ -941,9 +972,16 @@ class icats:
             self._logged_maxb_equiv = True
         sa.dist = {}
         # impact parameter / orbital angular-momentum sampling:
-        if ip.FixedB is not None:
-          sa.slog += ["Using fixed impact parameter b= "
-                      + str(ip.FixedB * au2ang) + " Ang\n"]
+        if ip.FixedB is not None or ip.OrbitalChannel is not None or ip.orbital_sampling == 'flat-b':
+          if ip.orbital_sampling == 'flat-b':
+            sa.dist['flat_b'] = InitICDF(1,uniform,[ip.MinB,ip.MaxB],seed=seed*887)
+            sa.slog += [f'Uniform b in [{ip.MinB*au2ang}, {ip.MaxB*au2ang}] Ang; use area weights\n']
+          elif ip.OrbitalChannel is not None:
+            sa.dist['orbital_channel'] = InitICDF(1,uniform,[0,1],seed=seed*907)
+            sa.slog += [f"Using orbital channel {ip.OrbitalChannel}, rule {ip.OrbitalChannelRule}\n"]
+          else:
+            sa.slog += ["Using fixed impact parameter b= "
+                        + str(ip.FixedB * au2ang) + " Ang\n"]
           sa.dist['phi'] = {}
           sa.dist['phi']['cont'] = InitICDF(1,uniform,[0,tpi])
         elif ip.MaxL == 0:
@@ -1354,7 +1392,7 @@ class icats:
             ntrial += 1
             self.InitializeSample(sa,ii)
             log = []
-            if ip.FixedB is not None:
+            if ip.FixedB is not None or ip.OrbitalChannel is not None or ip.orbital_sampling == 'flat-b':
               log += self.SampleRigidRotorState0(sa)
               log += self.SampleOrientat0(sa)
               self.SampleInterMolZVeloc(sa)
@@ -1401,7 +1439,7 @@ class icats:
           # sample intermolecular DOF
           debug and print('Sample InterMolZ...')
           self.SetInterZDist(sa,sp.Rz) # set z distance ...
-          if ip.FixedB is None:
+          if ip.FixedB is None and ip.OrbitalChannel is None and ip.orbital_sampling != 'flat-b':
             self.SampleInterMolZVeloc(sa, add_section=False) # need to get the magnitude of intermol v before getting impact parameter
           debug and print('Sample Impact Param...')  
           if not hasattr(sa, "sb"):
@@ -2252,7 +2290,9 @@ class icats:
         sa.slog += [info_scalar(mol[1].ip.name + " z velocity", vv[1, 2] * au2mps, "m/s")]
         sa.slog += [info_scalar(mol[0].ip.name + " kinetic", sa.smkin[0] * au2ev, "eV")]
         sa.slog += [info_scalar(mol[1].ip.name + " kinetic", sa.smkin[1] * au2ev, "eV")]
-        sa.slog += [f"{'orbital sampling':<{INFO_LABEL_WIDTH}} = {getattr(self.ip, 'orbital_sampling', 'geometric')}\n"]
+        mode = ('orbital-channel-'+ip.OrbitalChannelRule if ip.OrbitalChannel is not None
+                else getattr(ip, 'orbital_sampling', 'geometric'))
+        sa.slog += [f"{'orbital sampling':<{INFO_LABEL_WIDTH}} = {mode}\n"]
         return
 
 
@@ -2296,11 +2336,25 @@ class icats:
     def SampleFixedImpactOrbital(self, sa):
         ip = self.ip
         sp = self.sp
-        if ip.FixedB is None:
+        channel = getattr(ip, 'OrbitalChannel', None)
+        flat_b = ip.orbital_sampling == 'flat-b'
+        if ip.FixedB is None and channel is None and not flat_b:
             raise ValueError("SampleFixedImpactOrbital called without fixed-b")
         if not hasattr(sa, "sV"):
             raise ValueError("fixed-b orbital setup requires relative velocity first")
-        b = float(ip.FixedB)
+        if flat_b:
+            b = ICDFscalar(sa.dist['flat_b'])
+            area_weight = 2*pi*b*(ip.MaxB-ip.MinB)
+            mode = 'flat-b'
+        elif channel is None:
+            b = float(ip.FixedB)
+            mode = 'fixed-b'
+        else:
+            from icats.orbital_channel import channel_impact
+            draw = ICDFscalar(sa.dist['orbital_channel'])
+            b, area_weight = channel_impact(channel, sp.rmass*sa.sV,
+                                           ip.OrbitalChannelRule, draw)
+            mode = 'orbital-channel-'+ip.OrbitalChannelRule
         phi = self.SampleImpactPhi(sa)
         nL = sp.rmass * sa.sV * b
         L = 0.5 * (-1.0 + sqrt(1.0 + 4.0 * nL ** 2))
@@ -2317,12 +2371,19 @@ class icats:
         sa.SampInfo['orb']['inL'] = sa.snL
         sa.SampInfo['orb']['icL'] = sa.scL
         sa.SampInfo['orb']['sampled_impact_phi'] = phi
-        sa.SampInfo['orb']['sampling'] = "fixed-b"
-        sa.SampInfo['orb']['fixed_b'] = b
+        sa.SampInfo['orb']['sampling'] = mode
+        sa.SampInfo['orb']['fixed_b' if channel is None else 'channel_b'] = b
+        if channel is not None or flat_b:
+            if channel is not None:
+                sa.SampInfo['orb']['channel_L'] = channel
+            sa.SampInfo['orb']['area_weight_bohr2'] = area_weight
+            if channel is not None:
+                sa.slog += [info_scalar('orbital channel label',channel)]
+            sa.slog += [info_scalar('orbital area weight',area_weight,'bohr^2')]
         return [
             *info_section("intermolecular"),
-            f"{'orbital sampling':<{INFO_LABEL_WIDTH}} = fixed-b\n",
-            info_scalar("fixed b", b * au2ang, "Ang", "{:14.5f}"),
+            f"{'orbital sampling':<{INFO_LABEL_WIDTH}} = {mode}\n",
+            info_scalar("fixed b" if channel is None else "channel b", b * au2ang, "Ang", "{:14.5f}"),
             info_scalar("implied L", L, "", "{:14.2f}"),
         ]
 

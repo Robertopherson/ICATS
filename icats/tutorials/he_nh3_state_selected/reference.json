@@ -1,0 +1,23 @@
+{
+  "note": "MOLSCAT model; equal incoming inversion average, final K and inversion summed; collision energy 93.8265 cm^-1.",
+  "sources": {
+    "/home/chris/codex/codex2/dmogisctter/analysis/he_nh3_pilot/highj_screen_v1/quantum/j3_k2/quantum_L_opacities.csv": "8c1268d0084de65c000a99d2a633864b84c89d3a05489b1b1bff1ebda7d609b1",
+    "/home/chris/codex/codex2/dmogisctter/analysis/he_nh3_pilot/highj_screen_v1/quantum/j3_k2/quantum_integrals.csv": "32191d9869d68b6decf7c8909afd1f2df5e201171ff43d25d8b86cef5e948a6a",
+    "/home/chris/codex/codex2/dmogisctter/analysis/he_nh3_pilot/highj_screen_v1/quantum/j3_k2/aggregate_audit.json": "98f3e39f9c81aa336386613d369e357f3b98cae39a6302cffd76535e3ca976b9",
+    "/home/chris/codex/codex2/dmogisctter/analysis/he_nh3_pilot/highj_screen_v1/quantum/j5_k4/quantum_L_opacities.csv": "f18687adcef26a70d6e0f2383aaa7037f15e690fc6235d794bd77ca8a23eb85e",
+    "/home/chris/codex/codex2/dmogisctter/analysis/he_nh3_pilot/highj_screen_v1/quantum/j5_k4/quantum_integrals.csv": "5ef8bd450ed352b329851741dcbda21f6983bd63ad0bbf07c0ce2394d4b68139",
+    "/home/chris/codex/codex2/dmogisctter/analysis/he_nh3_pilot/highj_screen_v1/quantum/j5_k4/aggregate_audit.json": "40c76b85e5c2e6378496ef3501aa274a4166745f9ef10a6c55ead261a1863bce"
+  },
+  "audits": {
+    "(3, 2)": {
+      "full_jchanging_A2": 6.363156188636834,
+      "tabulated_jchanging_A2": 6.363156181298467,
+      "tabulated_tail_b16_A2": 4.154145636947127e-07
+    },
+    "(5, 4)": {
+      "full_jchanging_A2": 4.98688429085386,
+      "tabulated_jchanging_A2": 4.986884286802895,
+      "tabulated_tail_b16_A2": 3.2123489110602618e-09
+    }
+  }
+}

@@ -1,0 +1,25 @@
+Experimental orbital-channel preparation
+=======================================
+orbital-channel = 4
+orbital-channel-rule = sqrt
+wang = False
+
+The nonnegative integer identifies an incoming orbital channel. With incoming
+momentum k (atomic units), rules are:
+  sqrt:      b=sqrt[L(L+1)]/k; weight pi(2L+1)/k^2
+  langer:    b=(L+1/2)/k; same weight
+  uniform-b: uniform b in [L/k,(L+1)/k]; weight 2*pi*b/k
+The continuous rule uses L as an ANNULUS LABEL, not a quantized angular
+momentum. Only sqrt enforces classical |L|^2=L(L+1). Both channel label and
+actual classical angular momentum are reported. This is not quantum dynamics.
+
+Fixed-b and Wang-Landau cannot be combined with orbital-channel. Existing
+maxl/maxj/maxb do not bound this fixed-channel path. Rz still specifies the
+longitudinal separation, not the full distance. Incoming speed is sampled
+first, so b and the area weight follow the actual momentum for each sample.
+Area weights are reported in bohr^2. For each separately sampled channel,
+average weight*outcome, then SUM over channels. An unweighted event fraction
+at discrete b estimates its opacity. Additional channel-selection probability
+weights are needed if channel labels themselves are sampled randomly.
+No automatic cross-section estimator or quantum outgoing-state binning added.
+Default sampling is unchanged. This is an isolated experimental branch.

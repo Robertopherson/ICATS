@@ -1866,6 +1866,7 @@ def main() -> int:
         print("Available tutorials:")
         for i, name in enumerate(TUTORIAL_ORDER):
             print(f"{i}: {name} - {TUTORIALS[name]['desc']}")
+        print('he_nh3_state_selected - Fixed-state NH3 + He, flat-b sampling and model dynamics')
         return 0
 
     if not args.tutorial:
@@ -1888,6 +1889,16 @@ def main() -> int:
             raise SystemExit(f"Unknown tutorial index '{tut}'. Use --list-tutorials")
         tut = TUTORIAL_ORDER[idx]
 
+    if tut == 'he_nh3_state_selected':
+        out_dir=Path(args.tutorial_dir or 'tutorial_he_nh3_state_selected').resolve()
+        shutil.copytree(Path(__file__).parent/'tutorials'/tut,out_dir,
+                        ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
+        print(f'Tutorial created in {out_dir}; see README.txt')
+        if not args.setup_only:
+            command=[sys.executable,'run.py','--samples',str(args.nsamp or 128)]
+            if not args.run_dynamics:command.append('--prepare-only')
+            subprocess.run(command,cwd=out_dir,check=True)
+        return 0
     if tut not in TUTORIALS:
         raise SystemExit(f"Unknown tutorial '{args.tutorial}'. Use --list-tutorials")
 
