@@ -118,7 +118,7 @@ directory. Choose a new `run-tag` when comparing different setups.
 | `Rz` | Initial separation along the collision axis | Should place molecules far apart |
 | `maxl` | Maximum orbital angular momentum | Often more important than `maxb` |
 | `maxb` | Maximum impact parameter estimate | Useful for physical intuition |
-| `wang` | Enable Wang-Landau weighting | Use for difficult `J` distributions |
+| `wang` | Legacy Wang-Landau weighting | Keep `False` in revised workflows |
 | `plothist` | Generate histogram scripts | Use for diagnostics |
 
 ## Choosing A Setup
@@ -156,28 +156,15 @@ orbital-sampling = flat-l
 wang = False
 ```
 
-This is not geometrically weighted by itself. Reweight later by the desired
-measure, normally proportional to `L` or `b` at fixed incoming momentum.
+This is uniform in the continuous label L with magnitude `sqrt(L(L+1))`.
+It is not geometrically weighted by itself: use a weight proportional to
+`2L+1` at fixed incoming momentum. The distinct `flat-b` option samples b
+uniformly and uses an area weight proportional to b; see [Theory](theory.md).
 
-For a molecular system where the sampled `J` distribution is poor because
-`Jab` mixes strongly with `L`, use:
-
-```text
-wang = True
-wl-target = linear-j
-```
-
-For a flat-`L` Wang-Landau diagnostic, use the paired option:
-
-```text
-orbital-sampling = flat-l
-wang = True
-wl-target = flat-j
-```
-
-Do not mix geometric `L` with `wl-target = flat-j`, or flat `L` with
-`wl-target = linear-j`; ICATS rejects those combinations because the resulting
-ensemble is easy to misinterpret.
+The total `J` follows from coupling the independently sampled orbital and
+molecular angular momenta. Compare its histogram with the channel-count
+reference for that preparation and orbital cutoff, not with `2J+1` alone.
+The old Wang-Landau workflow is retired; keep `wang = False`.
 
 ## Option Reference
 
@@ -207,8 +194,10 @@ These options appear inside each molecule file referenced by `mol`.
 | `w` | `w = freq.txt` | Optional frequency-file reference used by templates/validation; current normal-mode sampling is driven by `hess`. |
 | `trot` | `trot = 50.0` | Molecule-level rotational temperature override. |
 | `rotor-azimuth` | `vonmises` or `legacy` | Asymmetric-rotor azimuthal law. Default: `vonmises`. |
-| `rotor-polar` | `broadened` or `legacy` | Projection sampler. Default: `broadened`. |
-| `rotor-k-width` | e.g. `0.8` | Gaussian width in projection units. Default: `0.8`; `0` selects discrete K. |
+| `rotor-polar` | `interval`, `broadened` or `legacy` | Projection sampler. Default: `interval` (uniform prior within each K interval, with moment correction). |
+| `rotor-k-width` | e.g. `0` | `0` selects sharp K. Positive values set a Gaussian width only with `rotor-polar = broadened`; otherwise no width is used. Historical Gaussian default: `0.8`. |
+| `rotor-axis` | `auto`, `a`, `b`, `c` | Principal quantization axis; `auto` keeps the closest-transverse-constants rule. Explicit choice requires a nonlinear nonspherical rotor; symmetric tops retain their unique axis. |
+| `rotor-k-weights` | e.g. `1 3` | Relative weights for signed-K residues, starting at zero; the list length defines the modulus. Zero excludes a class. See `docs/state_selected_rotors.txt` for symmetry scope and mixture conventions. |
 | `tvib` | `tvib = 50.0` | Molecule-level vibrational temperature override. |
 | `vel` | `vel = 1000 100 3` | Molecule beam-speed distribution: centre speed in m/s, FWHM in m/s, and velocity-power weight. |
 | `nfreeze` | `nfreeze = 1 2 3` | Normal-mode indices to leave at zero during vibrational sampling. |
@@ -222,16 +211,21 @@ These options appear inside each molecule file referenced by `mol`.
 For atoms, ICATS forces molecular `Trot` and `Tvib` to zero because there are no
 internal rotor or vibrational degrees of freedom.
 
-`rotor-polar = broadened` convolves the eigenstate's discrete K probabilities
-with a bounded Gaussian of width `rotor-k-width`, then exponentially reweights
-the mixture to preserve its second moment. `rotor-azimuth = vonmises` preserves
+`rotor-polar = interval` first selects an integer K with its quantum probability.
+It samples a uniform prior within K +/- 1/2, clipped to the vector-length bound,
+with an exponential correction preserving that component's second moment K^2.
+Thus no population moves between integer projection intervals. There is no
+adjustable width; K=0 stays sharp. `rotor-azimuth = vonmises` preserves
 the transverse second-moment ratio. Both defaults apply to all asymmetric-top
 irreps, using the axis whose transverse rotational constants are closest.
-Symmetric tops use broadened K and a uniform transverse angle; linear rotors
+Symmetric tops use the same interval smoothing and a uniform transverse angle; linear rotors
 retain K=0, and spherical tops use an isotropic direction. A zero target second
 moment cannot be broadened. Vector length is fixed on every draw; eigenenergy
 is preserved in the ensemble mean, not necessarily on each trajectory.
-The legacy options are for comparisons, not the revised-paper calculation.
+For historical Gaussian comparisons, explicitly set `rotor-polar = broadened`.
+That law spreads across intervals and corrects the whole eigenstate mixture;
+`rotor-k-width` then specifies its Gaussian width. The `legacy` options retain
+the older angular samplers. These comparison options are not the new default.
 Start a fresh run after changing sampling options; do not reuse old checkpoints.
 
 #### Hessian Convention
@@ -281,14 +275,9 @@ To write starter files from the command line, use `icats.init
 --write-templates`. Add `--overwrite-templates` only when replacing existing
 template files intentionally.
 
-When `wang = True`, the first run may spend most of its time building
-`rd_<run-tag>/wang.pkl`. This Wang-Landau umbrella build can take many minutes,
-and for larger polyatomic/high-`maxj` cases it can take an hour or more.
-Increasing `workers` can help, but use `workers = 1` while debugging input
-files and increase to a few cores only after the setup is known to be correct.
-During production sampling, Wang-Landau acceptance/rejection counters are
-appended to `<input-file>.logfile` so that long runs can be monitored with
-`tail -f`.
+Use `workers = 1` while debugging inputs and increase it for production runs.
+Keep the seed, worker count and input files when recording a reproducible run.
+The revised workflows use `wang = False` and do not build an umbrella.
 
 ### Temperatures and Velocity
 
@@ -374,7 +363,7 @@ over the intermolecular relative speed.
 | `output-frame` | `internal` or `incoming-k-plus-z` | Reporting/export frame convention. `internal` is the historical ICATS default. `incoming-k-plus-z` applies an `Rx(pi)` transform before reporting, analysis, audit, and Cartesian export so the incoming relative wave vector is parallel to space-fixed `+Z`. |
 | `maxl` | `maxl = 80` | Maximum orbital angular momentum quantum number. |
 | `maxj` | `maxj = 80` | Maximum total angular momentum for Wang-Landau/J setup. If `maxl` is omitted, ICATS can use `maxj` as the orbital cap. |
-| `orbital-sampling` | `geometric` or `flat-l` | Proposal distribution for non-fixed orbital angular momentum. `geometric` is the default/current behavior and samples the classical impact-parameter measure, approximately `P(L) ~ L`. `flat-l` samples `L` uniformly over the requested cap and lets `J = L + Jab` emerge. |
+| `orbital-sampling` | `geometric`, `flat-l`, `flat-b` | Geometric sampling uses the impact-parameter area measure. `flat-l` is uniform in the label L with magnitude `sqrt(L(L+1))`; `flat-b` is uniform in impact parameter. Flat proposals need their respective area weights. |
 | `chi` | `chi = 0.0` | Legacy azimuthal scattering-angle/control variable. Do not use this to fix the lab impact plane; use `impact-phi` for that. |
 | `phisample` | `True` or `False` | Legacy standard-azimuth switch. In isotropic runs, `True` rotates the sampled system to a standard azimuth unless `impact-phi` is explicitly set. |
 
@@ -546,7 +535,10 @@ can be used for finer control when only selected normal modes should be kept at
 zero. `maxv = 0` is different: it still samples the ground-state
 oscillator width (`vstat = 0`), so it is not a rigid-bond setting.
 
-### Wang-Landau
+### Legacy Wang-Landau Options
+
+These keys remain documented for reading historical inputs. They are not part
+of the revised sampling method or current tutorials; use `wang = False`.
 
 | Key | Form | Meaning |
 | --- | --- | --- |
@@ -650,9 +642,10 @@ sum:
 J = L + J_A + J_B
 ```
 
-This means a sensible `maxb` or `maxl` does not by itself guarantee a sensible
-total-`J` distribution. When `wang = True`, always inspect the sampled `J` and
-`L` histograms after the run.
+Compare the sampled total-`J` histogram with the reference for the same
+molecular preparation and orbital cutoff. A scattering calculation also
+requires a separate cutoff-convergence check: initial-condition histograms
+alone do not establish that the cross section is converged.
 
 ## Output Controls
 

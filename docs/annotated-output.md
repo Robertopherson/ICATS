@@ -5,6 +5,27 @@ title: Annotated First Output
 
 # Annotated First Output
 
+The [current four-sample record](assets/examples/nh3_h2o_revised.info) uses
+the revised NH3 + H2O sampler (500 K, seed 400, one worker). It is also supplied
+with its inputs in the revised supporting data. For example, its first ammonia
+draw reports:
+
+```text
+quantum J              =            4.0
+quantum J_z            =          1.000  au
+rotor eigenenergy      =        0.02679  eV
+classical J_z          =          0.738  au
+classical energy       =        0.02708  eV
+```
+
+The continuous projection stays in the selected integer's interval. Its
+second moment, and therefore the rotor energy, is preserved in the ensemble,
+not in each draw. The immediate reference-rotation analysis then checks the
+Cartesian reconstruction; `closure J` tests the angular decomposition.
+
+The longer transcripts below remain historical illustrations of the output
+format, not numerical references for the revised thermal sampler.
+
 This page explains how to read `out_full.info` or a per-sample `.info` file.
 The `.info` file is deliberately split into two matched halves:
 

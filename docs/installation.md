@@ -87,7 +87,7 @@ icats.audit-tutorials --nsamp 3 --keep-going
 This generates each bundled tutorial and verifies that the generated sample
 energies and comparable state variables are recovered by the immediate
 Cartesian-coordinate analysis. It does not run the cheap dynamics backend, and
-it keeps Wang-Landau disabled unless `--include-wl` is requested.
+the current tutorials keep Wang-Landau disabled.
 
 To check the complete generation, dynamics, and reanalysis pipeline:
 

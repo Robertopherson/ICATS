@@ -2,22 +2,11 @@ ICATS Tutorials
 
 This directory is reserved for named tutorial definitions.
 
-Current tutorial index:
-0 -> quickstart
-1 -> diatomic_n2_n2_fast
-2 -> mixed_h2o_n2
-3 -> methane_methane
-4 -> single_atom_he_he
-5 -> single_atom_diatom_he_n2
-6 -> polarized_orientation_he_no
-7 -> fixed_plane_atom_diatom_ar_no
-8 -> flat_l_atom_diatom_ar_no
-9 -> single_atom_diatom_he_n2_wl
-10 -> flat_l_atom_diatom_he_n2_wl
-11 -> flat_l_diatom_diatom_n2_n2_wl
-12 -> wang_landau_nh3_h2o
-13 -> paper_nh3_h2o_100k
-14 -> npz_output_co2_co2
+Use `icats --list-tutorials` for the current tutorial names and indices.
+The revised NH3+H2O example is revision_nh3_h2o. Wang-Landau tutorials and
+their precomputed profiles are retired and are not installed.
+The separate he_nh3_state_selected tutorial supplies analytic rigid-top
+dynamics and saved quantum reference tables.
 
 Generate with:
   icats --tutorial quickstart --setup-only

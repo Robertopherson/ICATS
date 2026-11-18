@@ -20,13 +20,14 @@ TUTORIAL_ORDER = [
     "polarized_orientation_he_no",
     "fixed_plane_atom_diatom_ar_no",
     "flat_l_atom_diatom_ar_no",
-    "single_atom_diatom_he_n2_wl",
-    "flat_l_atom_diatom_he_n2_wl",
-    "flat_l_diatom_diatom_n2_n2_wl",
-    "wang_landau_nh3_h2o",
-    "paper_nh3_h2o_100k",
     "npz_output_co2_co2",
 ]
+
+RETIRED_TUTORIALS = {
+    "single_atom_diatom_he_n2_wl", "flat_l_atom_diatom_he_n2_wl",
+    "flat_l_diatom_diatom_n2_n2_wl", "wang_landau_nh3_h2o",
+    "paper_nh3_h2o_100k",
+}
 
 TUTORIALS = {
     "thermal_atom_diatom_ar_no": {
@@ -56,10 +57,11 @@ TUTORIALS = {
                   "phisample = True", "beam-angle = 90.0",
                   "audit-initial-sample = True"],
         "notes": [
-            "Uses canonical rotor populations, K width 0.8 and von Mises azimuths.",
+            "Uses canonical rotor populations and within-K-interval moment-preserving smoothing.",
+            "Symmetric tops have uniform azimuths; asymmetric tops use moment-matched von Mises azimuths.",
             "Limits L, retaining the physical total-J tail.",
             "Read convergence/ensemble_statistics.txt and ensemble_J.csv in the run directory.",
-            "The older paper_nh3_h2o_100k tutorial reproduces an obsolete WL workflow, not this revision.",
+            "This is a short preparation example; use the separate revised-paper workflow for figure reproduction.",
         ],
     },
     "quickstart": {
@@ -1460,6 +1462,11 @@ def _generate_tutorial(
     ntraj_override: int | None = None,
     hist_samples: int | None = None,
 ) -> None:
+    if name in RETIRED_TUTORIALS:
+        raise SystemExit(
+            f"Tutorial '{name}' used the retired Wang-Landau workflow. "
+            "Use revision_nh3_h2o in a fresh directory; old checkpoints are not compatible."
+        )
     cfg = TUTORIALS[name]
     nsamp = int(nsamp_override) if nsamp_override is not None else int(cfg["nsamp"])
     ntraj = int(ntraj_override) if ntraj_override is not None else int(cfg["ntraj"])
@@ -1609,6 +1616,8 @@ def _generate_tutorial(
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n\n"
         "ENV_NAME=\"${1:-icats_clean}\"\n\n"
+        "ICATS_SOURCE=\"${2:?Usage: $0 ENV_NAME /absolute/path/to/ICATS-source}\"\n"
+        "test -f \"$ICATS_SOURCE/pyproject.toml\" || { echo 'ICATS source directory not found' >&2; exit 1; }\n\n"
         "echo \"Creating conda env: $ENV_NAME\"\n"
         "conda create -y -n \"$ENV_NAME\" -c conda-forge \\\n"
         "  python=3.11 numpy=1.26 scipy=1.11 h5py=3.10 pyscf=2.4 \\\n"
@@ -1618,7 +1627,7 @@ def _generate_tutorial(
         "conda activate \"$ENV_NAME\"\n"
         "pip install --upgrade pip\n"
         "pip install pyscf-semiempirical spherical quaternionic\n"
-        "pip install git+https://github.com/Robertopherson/ICATS.git@revision/no-ar-handoff-20261107\n\n"
+        "pip install \"$ICATS_SOURCE\"\n\n"
         "echo \"Verifying core imports...\"\n"
         "python - <<'PYCHECK'\n"
         "import icats, numpy, h5py, pyscf\n"
@@ -1785,7 +1794,7 @@ def _generate_tutorial(
             "General Advice\n"
             "==============\n\n"
             "Environment setup:\n"
-            "1) ./setup_conda_env.sh icats_clean\n"
+            "1) ./setup_conda_env.sh icats_clean /absolute/path/to/ICATS-source\n"
             "2) conda activate icats_clean\n\n"
             "The helper installs the tagged ICATS release and its tested PySCF/MINDO dependencies.\n\n"
             "Cluster/sandbox note:\n"

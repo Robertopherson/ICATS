@@ -1,6 +1,26 @@
 ICATS revised-paper development handoff (2026-11-07)
 ==================================================
 
+UPDATE 2026-11-18: current working branch is
+revision/state-selected-tutorial-20261110. Manual theory and public tutorials
+now describe interval smoothing, corrected thermal weights and geometric
+sampling. Retired WL tutorials are unavailable from the menu and their stored
+profiles are excluded from installations. Nuclear-spin restrictions use
+user-specified weights, not automatic symmetry enumeration. The revised
+supporting-data bundle contains fresh-generation drivers for the common thermal
+ensemble, fixed-state comparisons and optional He+NH3 trajectories, together
+with saved quantum references and rebinning scripts. Release and manuscript
+availability statements remain pending author review. No new commit or tag
+was made during this documentation refresh. The dated material below is a
+historical record, not the current installation recipe.
+
+UPDATE 2026-11-16: the current revision defaults to rotor-polar=interval,
+a width-free corrected uniform prior within each selected K interval.
+Use rotor-k-width=0 for sharp K. The Gaussian runs described below are
+historical and require explicit rotor-polar=broadened. Do not relabel their
+stored trajectories as interval results. See docs/input-files.md for the
+current options. The remainder of this file records the earlier handoff.
+
 Branch: revision/no-ar-handoff-20261107
 Repository: https://github.com/Robertopherson/ICATS
 This is a development snapshot, not a tagged release. Start fresh runs.

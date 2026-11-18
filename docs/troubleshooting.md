@@ -66,17 +66,11 @@ export MPLCONFIGDIR=/tmp/mpl_cache_$USER
 This is most useful on clusters or filesystems where home-directory cache writes
 are slow or restricted.
 
-## Wang-Landau umbrella is incompatible
+## Old Wang-Landau Inputs
 
-If ICATS refuses to use `wang.pkl`, the stored umbrella does not match the
-requested calculation. This is intentional. Move the old file aside and rerun:
-
-```bash
-mv rd_tutorial_input/wang.pkl rd_tutorial_input/wang_old.pkl
-icats.init tutorial_input.txt
-```
-
-Do not overwrite a useful `wang.pkl` unless you are sure you no longer need it.
+The Wang-Landau tutorials are retired. Preserve the old directory for historical
+reference, then generate `revision_nh3_h2o` in a fresh directory. Do not reuse
+old worker checkpoints or umbrellas with the revised sampler.
 
 ## No histogram plots appear
 

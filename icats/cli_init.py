@@ -30,10 +30,9 @@ REQUIRED_INPUT_KEYS = [
 
 OPTIONAL_INPUT_KEYS = [
     ("Nsamp", "Number of generated samples."),
-    ("maxj", "Use for Wang-Landau runs: total angular-momentum cap used in WL/J setup."),
-    ("maxl", "Use for non-WL runs: orbital angular-momentum cap L."),
+    ("maxj", "Legacy WL/J cap; use maxl and wang=False for revised workflows."),
+    ("maxl", "Orbital label cap; continuous magnitude cap is sqrt[maxl*(maxl+1)]."),
     ("maxb", "Maximum impact parameter (Angstrom in input, converted internally)."),
-    ("orbital-sampling", "Orbital L proposal: geometric (default) or flat-l."),
     ("fixed-b", "Use one fixed impact parameter in Angstrom; currently for non-Wang-Landau runs."),
     ("minb", "Lower b bound (Angstrom), only for orbital-sampling=flat-b; default 0."),
     ("orbital-sampling", "geometric (default), flat-l, or flat-b; flat-b requires minb/maxb and area weights."),
@@ -53,7 +52,7 @@ OPTIONAL_INPUT_KEYS = [
     ("seed", "Random seed."),
     ("seed-mode", "Seed strategy: fixed, time, per-worker."),
     ("run-mode", "Run behavior: fresh, continue, or rebuild-wang. Existing wang.pkl is reused only if compatible."),
-    ("wang", "Enable Wang-Landau weighting (True/False)."),
+    ("wang", "Legacy Wang-Landau weighting; keep False for revised workflows."),
     ("wlmode", "Wang-Landau profile: fast, default, accurate."),
     ("wl-target", "Wang-Landau J target: linear-j for geometric L, flat-j for flat-L."),
     ("wl-ff", "Override Wang-Landau initial f (>1)."),

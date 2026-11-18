@@ -12,7 +12,7 @@ title: ICATS Manual
 ICATS generates molecular-scattering initial conditions and analysis diagnostics
 for quasi-classical trajectory workflows. This manual is a working guide to the
 whole pipeline: install the code, generate initial conditions, run the provided
-tutorials, inspect Wang-Landau sampling, run cheap MINDO dynamics, and interpret
+tutorials, inspect ensemble statistics, run cheap MINDO dynamics, and interpret
 the analysis output.
 
 The emphasis is practical: run a small example, understand the files it creates,
@@ -33,7 +33,6 @@ the user can check what the Cartesian sample actually contains.
 - [Quick Start](quick-start.md)
 - [Tutorials](tutorials.md)
 - [Input Files](input-files.md)
-- [Wang-Landau Sampling](wang-landau.md)
 - [Initial-Condition Theory](theory.md)
 - [Visual Guide](visual-guide.md)
 - [Annotated First Output](annotated-output.md)
@@ -74,7 +73,8 @@ For a new system, the useful first checks are:
 - enable `audit-initial-sample = True` while testing,
 - inspect `out_full.info` or per-sample `.info` files,
 - plot sampled `L`, `J`, and `Jab` histograms,
-- inspect Wang-Landau plots before trusting a `wang.pkl` umbrella.
+- compare thermal populations and coupled angular-momentum counts with the
+  reference distributions in the ensemble statistics.
 
 The cheap dynamics scripts are examples of the file pipeline. They are useful
 for learning how generated samples can be propagated and analysed, but the

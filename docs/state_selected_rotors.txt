@@ -4,11 +4,11 @@ Molecule input, for a linear or symmetric top:
   rotor-state = 3 2
 selects J=3, |K|=2 instead of thermal rotational-level sampling. Signed K
 has equal +/- populations. The orientation distribution is unchanged.
-Linear rotors require K=0. Asymmetric and spherical tops are rejected:
-their eigenstate labels/symmetry axes require a different interface.
-  rotor-k-width = 0.8
-keeps the existing bounded, second-moment-preserving projection broadening;
-0 gives sharp K. The restrictions apply BEFORE this continuous broadening.
+Linear rotors require K=0. Fixed J,|K| selection is not supported for
+asymmetric or spherical tops. Thermal asymmetric-top restrictions are below.
+  rotor-polar = interval
+selects bounded, second-moment-preserving interval smoothing;
+rotor-k-width = 0 gives sharp K. The restrictions apply BEFORE smoothing.
 
 Optional molecule input:
   rotor-k-rule = all         (default)
@@ -38,6 +38,41 @@ Trot=0 selects the lowest permitted level, not necessarily J=0.
 User-supplied K lists are restrictions, not inferred nuclear-spin weights.
 Initial restrictions do not force final classical trajectories into allowed
 quantum bins. Any final-state rejection/assignment is a separate analysis.
+
+USER-SUPPLIED AXIS AND RESIDUE WEIGHTS
+  rotor-axis = auto         (default; closest transverse rotational constants)
+  rotor-axis = b            (or a, c; mapped to internal body z)
+Axes a,b,c have increasing principal inertia, hence decreasing rotational
+constants. Explicit axes require a nonlinear nonspherical rotor. For a
+symmetric top only its unique symmetry axis is supported, because the other
+two principal axes are not uniquely defined. Axis choice changes neither
+the quantum spectrum nor the laboratory orientation distribution, but can
+change the approximate classical direction distribution.
+
+  rotor-k-weights = 1 3
+The number of entries defines the modulus. Entry r is the relative weight
+for signed K modulo that number, starting with residue zero. Zero excludes
+a class; all weights must be finite and nonnegative, and +K/-K weights must
+agree. This option cannot be combined with the NH3 presets or allowed-K list.
+For ground-state ordinary water, with rotor-axis=b:
+  rotor-k-weights = 1 0     para only
+  rotor-k-weights = 0 1     ortho only
+  rotor-k-weights = 1 3     thermal equilibrium spin weights
+Use separate runs with specified mixture fractions for a nonequilibrium
+ortho/para mixture; the last line does not impose a fixed 1:3 abundance.
+
+Weights multiply each quantum level's (2J+1)*exp(-E/kBT), before broadening.
+For asymmetric tops, each eigenvector must have support only on equally
+weighted K classes. Otherwise the program rejects the rule; it does not
+truncate the eigenvector. The same weights enter the marginal J distribution
+and conditional eigenstate distribution. This is not automatic identification
+of nuclear spins or molecular permutation symmetry: the caller supplies the
+physically appropriate axis/rule for the isotopologue and vibronic state.
+
+The existing NH3 presets remain preferable for their documented unresolved
+inversion convention. The generic weights 0 1 1 and 1 0 0 reproduce their
+within-species distributions, but must not be interpreted as complete NH3
+ortho/para mixture weights without accounting for inversion and spin counts.
 
 Run input for uniform impact parameter:
   orbital-sampling = flat-b

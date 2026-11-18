@@ -80,10 +80,9 @@ smoke_results/initial_audit_<timestamp>/
 ```
 
 and writes a `summary.tsv` table with the pass/fail status, largest energy
-difference, and largest audited state residual for each tutorial. Wang-Landau is
-disabled in this sweep by default so the command checks the initial-condition
-round trip quickly. Add `--include-wl` only when you deliberately want the
-tutorials that request Wang-Landau to build or use their umbrella.
+difference, and largest audited state residual for each tutorial. The current
+tutorial list excludes the retired Wang-Landau examples. This sweep checks
+the initial-condition round trip, not statistical convergence or dynamics.
 
 ## Analysis Output
 
@@ -270,7 +269,7 @@ rd_<run-tag>/histograms/
 ```
 
 Use these to inspect sampled `J`, `L`, vibrational coordinates, rotor
-projections, and Wang-Landau distributions.
+projections, and their reference distributions.
 
 Useful first plots are:
 
@@ -279,7 +278,6 @@ J distribution
 L distribution
 Jab distribution
 intermolecular velocity distribution
-Wang-Landau weights, if wang = True
 ```
 
 Generated tutorial directories include a focused helper for the common system
@@ -293,21 +291,10 @@ angular-momentum check:
 This renders the sampled `L`, `J`, and `Jab` histograms without plotting every
 molecular internal-coordinate histogram.
 
-If a histogram shows almost all samples at a boundary, the requested range is
-probably too narrow or the stored Wang-Landau umbrella is not appropriate for
-the calculation.
-
-During long Wang-Landau production sampling, the run logfile also receives live
-acceptance diagnostics such as:
-
-```text
-Sampling worker 0: accepted=500 trials=8231 trial_acceptance=0.06074 J_cap_rejects=120 WL_rejects=7611 WL_range_rejects=0
-```
-
-Large `WL_rejects` indicate a low umbrella acceptance probability, large
-`J_cap_rejects` indicate hard total-`J` cutoff pressure, and nonzero
-`WL_range_rejects` indicate that generated `J` values are falling outside the
-stored WL table.
+If a histogram shows almost all samples at a boundary, inspect the input
+cutoffs and the corresponding reference distribution. Increase sample counts
+to assess statistical convergence; increasing the orbital cutoff is a separate
+test of the scattering calculation.
 
 ## Finite-ensemble statistics
 

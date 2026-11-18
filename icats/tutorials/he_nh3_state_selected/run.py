@@ -27,7 +27,7 @@ SEED=2026111017
 CASES=((3,2,0.),(3,2,.8),(5,4,0.),(5,4,.8))
 
 
-def inputs(folder,j,k,width,lo,hi,n,seed):
+def inputs(folder,j,k,width,lo,hi,n,seed,polar='interval'):
     # Masses and geometry reproduce exactly the benchmark's rigid Hamiltonian.
     m=np.array([14.003074,1.007825,1.007825,1.007825])*1822.888486209
     mhe=MU*m.sum()/(m.sum()-MU)
@@ -41,7 +41,7 @@ def inputs(folder,j,k,width,lo,hi,n,seed):
     (folder/'nh3.xyz').write_text(xyz)
     (folder/'he.xyz').write_text('1\nHe\nHe 0 0 0\n')
     (folder/'nh3.txt').write_text('xyz = nh3.xyz\nmasses = '+' '.join(f'{x/amu2au:.16g}' for x in m)+
-        f'\nrotor-state = {j} {k}\nrotor-k-rule = nh3-para\nrotor-k-width = {width}\n')
+        f'\nrotor-state = {j} {k}\nrotor-k-rule = nh3-para\nrotor-polar = {polar}\nrotor-k-width = {width}\n')
     (folder/'he.txt').write_text(f'xyz = he.xyz\nmasses = {mhe/amu2au:.16g}\n')
     (folder/'input.txt').write_text(f'''mol = 0 he.txt
 mol = 1 nh3.txt
@@ -81,10 +81,10 @@ progress = quiet
     return ref,m,mhe
 
 
-def prepare(folder,j,k,width,lo,hi,n,seed):
+def prepare(folder,j,k,width,lo,hi,n,seed,polar='interval'):
     folder.mkdir(parents=True,exist_ok=True)
     sources=[Path(__file__),HERE/'model.py']+sorted(Path(icats.__file__).parent.glob('*.py'))
-    settings=dict(j=j,k=k,width=width,bmin=lo,bmax=hi,samples=n,seed=seed,
+    settings=dict(j=j,k=k,width=width,polar=polar,bmin=lo,bmax=hi,samples=n,seed=seed,
                   source_sha256={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sources})
     manifest=folder/'manifest.json'
     if manifest.exists() and json.loads(manifest.read_text())!=settings:
@@ -95,7 +95,7 @@ def prepare(folder,j,k,width,lo,hi,n,seed):
         with np.load(target) as z:
             assert z['states'].shape==(n,18)
             return z['states'],z['b']
-    ref,m,mhe=inputs(folder,j,k,width,lo,hi,n,seed)
+    ref,m,mhe=inputs(folder,j,k,width,lo,hi,n,seed,polar)
     env=os.environ.copy()
     env['PYTHONPATH']=str(Path(icats.__file__).resolve().parent.parent)+os.pathsep+env.get('PYTHONPATH','')
     with (folder/'generation.log').open('w') as log:
@@ -121,6 +121,7 @@ def prepare(folder,j,k,width,lo,hi,n,seed):
         assert abs(ell@ell-j*(j+1))<1e-7
         assert abs(p@p/(2*MU)*CM-ENERGY)<1e-6
         if width==0:assert abs(abs(ell[2])-k)<1e-7
+        elif polar=='interval':assert abs(abs(ell[2])-k)<.5+1e-7
         states.append(np.r_[r,p,ell,q.ravel()]);bs.append(b)
     assert geometry_error<1e-8
     states=np.asarray(states);bs=np.asarray(bs)
@@ -173,7 +174,9 @@ def main():
     ap.add_argument('--workers',type=int,default=1)
     ap.add_argument('--seed',type=int,default=SEED)
     ap.add_argument('--j',type=int,default=3);ap.add_argument('--k',type=int,default=2)
-    ap.add_argument('--width',type=float,default=.8)
+    ap.add_argument('--polar',choices=('interval','broadened'),default='interval')
+    ap.add_argument('--width',type=float,default=.8,
+                    help='0 for sharp K; positive width only applies with --polar broadened')
     ap.add_argument('--bmin',type=float,default=0.);ap.add_argument('--bmax',type=float,default=16.)
     ap.add_argument('--paper-task',type=int,choices=range(256))
     ap.add_argument('--prepare-only',action='store_true')
@@ -185,9 +188,9 @@ def main():
         args.bmin,args.bmax=shell,shell+1
         args.samples=4096
         args.seed=args.seed+(case//2)*10000+shell*100+batch
-        folder=args.output/f'j{args.j}_k{args.k}_s{args.width:g}'/f'b{shell:02d}_part{batch:02d}'
+        folder=args.output/f'{args.polar}_j{args.j}_k{args.k}_s{args.width:g}'/f'b{shell:02d}_part{batch:02d}'
     else:folder=args.output
-    states,b=prepare(folder,args.j,args.k,args.width,args.bmin,args.bmax,args.samples,args.seed)
+    states,b=prepare(folder,args.j,args.k,args.width,args.bmin,args.bmax,args.samples,args.seed,args.polar)
     if args.prepare_only:return
     target=folder/'final.csv.gz'
     if target.exists():

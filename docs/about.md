@@ -8,7 +8,7 @@ title: Project Background
 ICATS was developed as an educational and research tool for postgraduate
 students learning the theoretical ingredients behind quasi-classical
 bimolecular scattering: rigid rotors, normal modes, Eckart-frame analysis,
-Jacobi coordinates, angular-momentum coupling, and Wang-Landau sampling. The
+Jacobi coordinates, angular-momentum coupling, and Monte Carlo sampling. The
 same ideas are used to prepare initial conditions for quasi-classical
 trajectory calculations and to analyse the Cartesian coordinates and velocities
 that those calculations produce.

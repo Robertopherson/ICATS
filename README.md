@@ -66,18 +66,17 @@ icats.audit-tutorials --nsamp 3 --keep-going
 ## Manual
 
 The user manual is being developed in [`docs/`](docs/index.md). It covers
-installation, the tutorial workflow, input files, Wang-Landau umbrellas,
+installation, the tutorial workflow, input files, ensemble statistics,
 diagnostics, and the theory behind the initial-condition sampling.
 
 The project background and licence note are described in
 [`docs/about.md`](docs/about.md).
 
-## Wang-Landau Umbrellas
+## Revised Sampling
 
-For Wang-Landau runs, `wang.pkl` stores the generated Wang-Landau umbrella and
-metadata describing the input settings used to create it. If the input settings
-change, move or rename the existing `wang.pkl` before rerunning. ICATS refuses
-incompatible stored umbrellas rather than silently reusing them.
+Use `wang = False` for the revised workflows. The old Wang-Landau tutorials
+are retired. Start fresh runs with the corrected rotational populations and
+moment-preserving interval sampler; do not reuse historical checkpoints.
 
 ## Notes
 

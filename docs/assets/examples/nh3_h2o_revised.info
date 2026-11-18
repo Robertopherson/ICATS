@@ -1,0 +1,940 @@
+===================================================================
+Sample 0 | generation
+===================================================================
+output frame           = internal
+orbital quantum L      =          43.71
+
+[rotation]
+paper_ammonia_dat      = angular velocity from sampled rotor
+quantum J              =            4.0
+quantum J_z            =          1.000  au
+rotor eigenenergy      =        0.02679  eV
+classical J            = [    3.4179350,   -2.7879344,    0.7383375 ]  au, |J|     =      4.47214  (QM:   4.00)
+classical J_z          =          0.738  au
+classical energy       =        0.02708  eV
+polar |J|              =       4.472136  au
+polar beta             =       0.447206  pi rad
+polar gamma            =      -0.782204  pi rad
+instantaneous J        = [    3.4179350,   -2.7879344,    0.7383375 ]  au, |J|     =      4.47214  (QM:   4.00)
+instant. energy        =        0.02708  eV
+instant. I^-1          = [    1.008e-04,    4.526e-21,    2.758e-20,    1.008e-04,    2.468e-21,    5.384e-05 ]  au
+paper_h2o_dat          = angular velocity from sampled rotor
+quantum J              =            6.0
+quantum rms J_z        =          1.109  au
+rotor eigenenergy      =        0.05706  eV
+classical J            = [   -3.2343600,   -5.4388976,   -1.3990383 ]  au, |J|     =      6.48074  (QM:   6.00)
+classical J_z          =         -1.399  au
+classical energy       =        0.06087  eV
+polar |J|              =       6.480741  au
+polar beta             =       0.569261  pi rad
+polar gamma            =      -0.329229  pi rad
+instantaneous J        = [   -3.2343600,   -5.4388976,   -1.3990383 ]  au, |J|     =      6.48074  (QM:   6.00)
+instant. energy        =        0.06087  eV
+instant. I^-1          = [    1.236e-04,    2.205e-21,   -1.674e-53,    8.761e-05,   -6.652e-37,    3.008e-04 ]  au
+
+[orientation]
+paper_ammonia_dat      = sampled orientation
+alpha,beta,gamma       = [  0.9139957,  0.2741366, -0.8182633 ]  pi rad   # molecular Euler
+wx,wy,wz               = [ -0.0959199, -0.2610012,  0.0537874 ]  pi rad   # XYZ rotation angles
+paper_h2o_dat          = sampled orientation
+alpha,beta,gamma       = [  0.7417465,  0.4511819, -0.1202604 ]  pi rad   # molecular Euler
+wx,wy,wz               = [ -0.4331511, -0.2382177,  0.4255883 ]  pi rad   # XYZ rotation angles
+total J                =          44.66
+
+[orientation convention]
+standard azimuth       = chi fixed to zero
+delta chi              =       -0.01670  pi rad
+
+[vibration]
+paper_ammonia_dat      = sampled vibrational state
+ mode   freq  vstat    Q         P         QE        PE        EE (eV)
+   0     652.3  1     0.370365 -1.985751  0.005547  0.159446  0.164992
+   1    1816.3  0     0.223090 -1.196123  0.005604  0.161088  0.166692
+   2    1819.8  0     0.274320 -0.115964  0.008490  0.001517  0.010007
+   3    3778.9  0    -0.391274  0.030614  0.035865  0.000220  0.036084
+   4    3999.3  0    -0.830501  1.353086  0.171003  0.453913  0.624916
+   5    4005.3  0     0.001050  0.548757  0.000000  0.074771  0.074771
+paper_h2o_dat          = sampled vibrational state
+ mode   freq  vstat    Q         P         QE        PE        EE (eV)
+   0    1756.9  0     0.125334 -0.137059  0.001711  0.002046  0.003757
+   1    4009.6  0     0.786437 -0.246733  0.153731  0.015132  0.168863
+   2    4168.4  0     0.893825 -0.106440  0.206449  0.002928  0.209377
+
+[intermolecular]
+Rz                     =       15.00000  Ang
+paper_ammonia_dat COM speed =    609.2095154  m/s
+paper_ammonia_dat beam KE =      0.0327544  eV
+paper_h2o_dat COM speed =    848.9114515  m/s
+paper_h2o_dat beam KE  =      0.0672759  eV
+relative velocity      =   1044.8860638  m/s
+collision energy       =      0.0495304  eV
+paper_ammonia_dat z velocity =    537.1145856  m/s
+paper_h2o_dat z velocity =   -507.7714782  m/s
+paper_ammonia_dat kinetic =      0.0254607  eV
+paper_h2o_dat kinetic  =      0.0240697  eV
+orbital sampling       = geometric
+Ja, full               = [      2.01855,     -1.20065,      3.80577 ]  au, |Ja|    =      4.47214  (QM:   4.00)
+Jb, full               = [      4.33199,      0.87525,      4.74002 ]  au, |Jb|    =      6.48074  (QM:   6.00)
+Jab, full              = [      6.35053,     -0.32540,      8.54580 ]  au, |Jab|   =     10.65203  (QM:  10.16)
+Ja, vector model       = [      2.01855,     -1.20065,      3.80577 ]  au, |Ja|    =      4.47214  (QM:   4.00)
+Jb, vector model       = [      4.33199,      0.87525,      4.74002 ]  au, |Jb|    =      6.48074  (QM:   6.00)
+Jab, vector model      = [      6.35053,     -0.32540,      8.54580 ]  au, |Jab|   =     10.65203  (QM:  10.16)
+L                      = [     -0.00000,     44.20761,      0.00000 ]  au, |L|     =     44.20761  (QM:  43.71)
+J = L + Jab            = [      6.35053,     43.88222,      8.54580 ]  au, |J|     =     45.15539  (QM:  44.66)
+b                      =        3.06922  Ang
+impact phi             =        0.00000  pi rad
+
+[system angles]
+frame note             = SFF is the lab Cartesian frame; Jacobi BF is the collision frame
+system Euler           = [     0.0000,     0.0642,     0.9108 ]  pi rad   # SFF -> Jacobi BF; phi, beta, chi
+mol 1 BF Euler         = [     0.0000,     0.3355,    -0.8416 ]  pi rad   # molecule 1 in Jacobi BF; alpha, beta, gamma
+mol 2 BF Euler         = [    -0.1815,     0.4933,    -0.1690 ]  pi rad   # molecule 2 in Jacobi BF; alpha, beta, gamma
+v1-v2 dihedral         =         0.8087  pi rad
+Jacobi R               =       15.31078  Ang
+SFF->Jacobi BF         = [   -0.9415,   -0.2711,    0.2005 ]; [    0.2767,   -0.9610,    0.0000 ]; [    0.1926,    0.0555,    0.9797 ]
+Jacobi BF->mol1 BF     = [   -0.4341,    0.2359,    0.8694 ]; [   -0.4775,   -0.8787,    0.0000 ]; [    0.7639,   -0.4151,    0.4941 ]
+Jacobi BF->mol2 BF     = [   -0.2580,    0.4744,    0.8417 ]; [   -0.4360,    0.7203,   -0.5396 ]; [   -0.8622,   -0.5062,    0.0210 ]
+
+[energy summary]
+component              = paper_ammonia_dat/eV paper_h2o_dat/eV       total/eV
+vibrational            =           1.0775         0.3820         1.4595
+rotational             =           0.0271         0.0609         0.0880
+velocity               =           0.0255         0.0241         0.0495
+total                  =           1.1300         0.4669         1.5969
+===================================================================
+Sample 0 | analysis
+===================================================================
+output frame           = internal
+
+[orientation]
+paper_ammonia_dat      = reconstructed orientation
+alpha,beta,gamma       = [  0.8972891,  0.2741359, -0.8182618 ]  pi rad   # molecular Euler
+wx,wy,wz               = [ -0.1125921, -0.2556230,  0.0308084 ]  pi rad   # XYZ rotation angles
+paper_h2o_dat          = reconstructed orientation
+alpha,beta,gamma       = [  0.7250436,  0.4511786, -0.1202606 ]  pi rad   # molecular Euler
+wx,wy,wz               = [ -0.4361501, -0.2218648,  0.4210515 ]  pi rad   # XYZ rotation angles
+
+[rotation]
+paper_ammonia_dat      = oblate, symmetry constant =   1.00
+full J, space          = [      2.43253,     -0.69799,      3.54237 ]  au, |J|     =      4.35348  (QM:   3.88)
+full J, Eckart         = [      3.70622,     -2.25051,      0.38980 ]  au, |J|     =      4.35348  (QM:   3.88)
+rigid J0, space        = [      2.01925,     -1.19994,      3.80631 ]  au, |J|     =      4.47272  (QM:   4.00)
+rigid J0, Eckart       = [      3.41900,     -2.78756,      0.73835 ]  au, |J|     =      4.47272  (QM:   4.00)
+geometry J(1), Eckart  = [      0.05730,      0.19674,     -0.00157 ]  au, |J|     =      0.20492
+geometry J(2), Eckart  = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000
+intrinsic pi, Eckart   = [      0.22992,      0.34031,     -0.34699 ]  au, |J|     =      0.53766
+closure J, Eckart      = [      0.00000,     -0.00000,     -0.00000 ]  au, |J|     =      0.00000
+rigid rot. energy      = [      0.01603,      0.01066,      0.00040 ]  eV, |E|     =      0.02709
+rigid |J0|             =        4.47272  au
+rigid beta             =        0.44721  pi rad
+rigid gamma            =       -0.78227  pi rad
+rigid axis Jz          =        0.73835  au
+paper_h2o_dat          = asym-prolate, symmetry constant =  -0.66
+full J, space          = [      4.64534,      0.83098,      5.15519 ]  au, |J|     =      6.98897  (QM:   6.51)
+full J, Eckart         = [     -3.57213,     -5.79833,     -1.56998 ]  au, |J|     =      6.98897  (QM:   6.51)
+rigid J0, space        = [      4.33182,      0.87508,      4.73991 ]  au, |J|     =      6.48052  (QM:   6.00)
+rigid J0, Eckart       = [     -3.23436,     -5.43863,     -1.39904 ]  au, |J|     =      6.48052  (QM:   6.00)
+geometry J(1), Eckart  = [     -0.33777,     -0.29875,     -0.17094 ]  au, |J|     =      0.48225
+geometry J(2), Eckart  = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000
+intrinsic pi, Eckart   = [      0.00000,     -0.06095,      0.00000 ]  au, |J|     =      0.06095
+closure J, Eckart      = [      0.00000,     -0.00000,      0.00000 ]  au, |J|     =      0.00000
+rigid rot. energy      = [      0.01760,      0.03526,      0.00801 ]  eV, |E|     =      0.06086
+rigid |J0|             =        6.48052  au
+rigid beta             =        0.56926  pi rad
+rigid gamma            =       -0.32922  pi rad
+rigid axis Jz          =       -1.39904  au
+
+[vibration]
+paper_ammonia_dat      = vibrational analysis
+ mode    freq     ~vstat       Q         P         QE        PE       EE (eV) 
+   0    652.3     1.5402  0.370365 -1.985748  0.005547  0.159445  0.164992
+   1   1816.3     0.2402  0.223093 -1.196128  0.005604  0.161089  0.166693
+   2   1819.8    -0.4557  0.274319 -0.115966  0.008489  0.001517  0.010007
+   3   3778.9    -0.4230 -0.391274  0.030612  0.035865  0.000220  0.036084
+   4   3999.3     0.7603 -0.830497  1.353082  0.171001  0.453911  0.624912
+   5   4005.3    -0.3494  0.001047  0.548759  0.000000  0.074772  0.074772
+paper_h2o_dat          = vibrational analysis
+ mode    freq     ~vstat       Q         P         QE        PE       EE (eV) 
+   0   1756.9    -0.4828  0.125341 -0.137062  0.001711  0.002046  0.003757
+   1   4009.6    -0.1603  0.786437 -0.246729  0.153731  0.015131  0.168862
+   2   4168.4    -0.0949  0.893822 -0.106439  0.206447  0.002928  0.209375
+
+[intermolecular]
+molecules              = paper_ammonia_dat x paper_h2o_dat
+angular energy         =    1.99037e-03  eV
+radial energy          =    4.75400e-02  eV
+total energy           =        0.04953  eV
+Ja, full               = [      2.43253,     -0.69799,      3.54237 ]  au, |Ja|    =      4.35348  (QM:   3.88)
+Jb, full               = [      4.64534,      0.83098,      5.15519 ]  au, |Jb|    =      6.98897  (QM:   6.51)
+Jab, full              = [      7.07787,      0.13299,      8.69756 ]  au, |Jab|   =     11.21434  (QM:  10.73)
+Ja, rigid J0           = [      2.01925,     -1.19994,      3.80631 ]  au, |Ja|    =      4.47272  (QM:   4.00)
+Jb, rigid J0           = [      4.33182,      0.87508,      4.73991 ]  au, |Jb|    =      6.48052  (QM:   6.00)
+Jab, rigid J0          = [      6.35107,     -0.32486,      8.54622 ]  au, |Jab|   =     10.65267  (QM:  10.16)
+L                      = [      0.00000,     44.20761,     -0.00000 ]  au, |L|     =     44.20761  (QM:  43.71)
+P_R                    = [      1.49690,      0.00000,      7.31572 ]  au, |P_R|   =      7.46729  (QM:   6.98)
+J = L + Jab            = [      6.35107,     43.88275,      8.54622 ]  au, |J|     =     45.15606  (QM:  44.66)
+moment of inertia      =      1.336e+07  au
+b                      =        3.06922  Ang
+phi                    =       -0.00000  pi rad
+COM 1                  = [      1.57771,     -0.00000,      7.71062 ]  Ang
+COM 2                  = [     -1.49151,     -0.00000,     -7.28938 ]  Ang
+
+[system angles]
+frame note             = SFF is the lab Cartesian frame; Jacobi BF is the collision frame
+system Euler           = [     0.0000,     0.0642,     0.9108 ]  pi rad   # SFF -> Jacobi BF; phi, beta, chi
+mol 1 BF Euler         = [     0.0000,     0.3355,    -0.8416 ]  pi rad   # molecule 1 in Jacobi BF; alpha, beta, gamma
+mol 2 BF Euler         = [    -0.1815,     0.4933,    -0.1690 ]  pi rad   # molecule 2 in Jacobi BF; alpha, beta, gamma
+v1-v2 dihedral         =         0.8087  pi rad
+Jacobi R               =       15.31078  Ang
+SFF->Jacobi BF         = [   -0.9415,   -0.2711,    0.2005 ]; [    0.2767,   -0.9610,    0.0000 ]; [    0.1926,    0.0555,    0.9797 ]
+Jacobi BF->mol1 BF     = [   -0.4341,    0.2359,    0.8694 ]; [   -0.4775,   -0.8787,    0.0000 ]; [    0.7639,   -0.4151,    0.4941 ]
+Jacobi BF->mol2 BF     = [   -0.2580,    0.4744,    0.8417 ]; [   -0.4360,    0.7203,   -0.5396 ]; [   -0.8622,   -0.5062,    0.0210 ]
+
+[energy summary]
+component              = paper_ammonia_dat/eV paper_h2o_dat/eV       total/eV
+vibrational            =           1.0775         0.3820         1.4595
+rotational             =           0.0271         0.0609         0.0880
+velocity               =           0.0255         0.0241         0.0495
+total                  =           1.1300         0.4669         1.5969
+
+[coordinates and velocities]
+########## Initial Sample Audit ############################### 
+Audit energy   vib: generation     1.459458 eV, analysis     1.459454 eV, diff  4.638e-06 eV [OK]
+Audit energy   rot: generation     0.087951 eV, analysis     0.087954 eV, diff  3.740e-06 eV [OK]
+Audit energy   vel: generation     0.049530 eV, analysis     0.049530 eV, diff  1.388e-17 eV [OK]
+Audit energy total: generation     1.596939 eV, analysis     1.596939 eV, diff  8.985e-07 eV [OK]
+Audit angular                     L: generation       44.2076, analysis       44.2076, diff  0.000e+00 au [OK]
+Audit vector                      L: vector-norm diff  1.945e-14 au [OK]
+Audit angular                   Jab: generation        10.652, analysis       10.6527, diff  6.408e-04 au [OK]
+Audit vector                    Jab: vector-norm diff  8.686e-04 au [OK]
+Audit angular                     J: generation       45.1554, analysis       45.1561, diff  6.776e-04 au [OK]
+Audit vector                      J: vector-norm diff  8.686e-04 au [OK]
+Audit mol scalar               m0_J: generation       4.47214, analysis       4.47272, diff  5.857e-04 au [OK]
+Audit mol scalar               m1_J: generation       6.48074, analysis       6.48052, diff  2.221e-04 au [OK]
+Audit mol vector        m0_J_vector: vector-norm diff  1.136e-03 au [OK]
+Audit mol vector        m1_J_vector: vector-norm diff  2.677e-04 au [OK]
+Audit scalar               Jacobi_R: generation       28.9332, analysis       28.9332, diff  0.000e+00 Ang [OK]
+Audit scalar                      b: generation           5.8, analysis           5.8, diff  0.000e+00 Ang [OK]
+Audit scalar     relative_velocity_mps: generation       1044.89, analysis       1044.89, diff  2.274e-13 m/s [OK]
+Audit vib                      m0_P: component-rms diff  2.075e-06, max  5.034e-06, ndof 12 [OK]
+Audit vib                      m0_Q: component-rms diff  1.541e-06, max  3.989e-06, ndof 12 [OK]
+Audit vib                      m1_P: component-rms diff  1.635e-06, max  4.292e-06, ndof 9 [OK]
+Audit vib                      m1_Q: component-rms diff  2.514e-06, max  6.754e-06, ndof 9 [OK]
+Audit angle             Jacobi_beta: circular diff  0.000e+00 rad [OK]
+Audit angle              Jacobi_chi: circular diff  0.000e+00 rad [OK]
+Audit angle             Jacobi_dphi: circular diff  0.000e+00 rad [OK]
+Audit angle              Jacobi_phi: circular diff  0.000e+00 rad [OK]
+Audit angle            Jacobi_theta: circular diff  0.000e+00 rad [OK]
+Audit angle              impact_phi: circular diff  4.311e-16 rad [OK]
+Audit decomp     m0_seckart_leakage: norm  1.860e-15 au [OK]
+Audit decomp        m0_svecJclosure: norm  1.276e-15 au [OK]
+Audit decomp     m1_seckart_leakage: norm  1.514e-15 au [OK]
+Audit decomp        m1_svecJclosure: norm  1.897e-15 au [OK]
+Initial sample audit: OK
+===================================================================
+Sample 1 | generation
+===================================================================
+output frame           = internal
+orbital quantum L      =          60.70
+
+[rotation]
+paper_ammonia_dat      = angular velocity from sampled rotor
+quantum J              =            5.0
+quantum J_z            =          4.000  au
+rotor eigenenergy      =        0.03092  eV
+classical J            = [   -2.0213866,   -3.5470478,    3.6513625 ]  au, |J|     =      5.47723  (QM:   5.00)
+classical J_z          =          3.651  au
+classical energy       =        0.03263  eV
+polar |J|              =       5.477226  au
+polar beta             =       0.267730  pi rad
+polar gamma            =      -0.335123  pi rad
+instantaneous J        = [   -2.0213866,   -3.5470478,    3.6513625 ]  au, |J|     =      5.47723  (QM:   5.00)
+instant. energy        =        0.03263  eV
+instant. I^-1          = [    1.008e-04,    4.526e-21,    2.758e-20,    1.008e-04,    2.468e-21,    5.384e-05 ]  au
+paper_h2o_dat          = angular velocity from sampled rotor
+quantum J              =            3.0
+quantum rms J_z        =          2.000  au
+rotor eigenenergy      =        0.02786  eV
+classical J            = [    2.4077382,   -0.8905829,    2.3258673 ]  au, |J|     =      3.46410  (QM:   3.00)
+classical J_z          =          2.326  au
+classical energy       =        0.03283  eV
+polar |J|              =       3.464102  au
+polar beta             =       0.265685  pi rad
+polar gamma            =      -0.887230  pi rad
+instantaneous J        = [    2.4077382,   -0.8905829,    2.3258673 ]  au, |J|     =      3.46410  (QM:   3.00)
+instant. energy        =        0.03283  eV
+instant. I^-1          = [    1.236e-04,    2.205e-21,   -1.674e-53,    8.761e-05,   -6.652e-37,    3.008e-04 ]  au
+
+[orientation]
+paper_ammonia_dat      = sampled orientation
+alpha,beta,gamma       = [ -0.2217525,  0.8647052,  0.0918909 ]  pi rad   # molecular Euler
+wx,wy,wz               = [  0.9100270,  0.1024324, -0.6716583 ]  pi rad   # XYZ rotation angles
+paper_h2o_dat          = sampled orientation
+alpha,beta,gamma       = [  0.9432376,  0.2104919, -0.7280902 ]  pi rad   # molecular Euler
+wx,wy,wz               = [ -0.0436605, -0.2065826,  0.2004400 ]  pi rad   # XYZ rotation angles
+total J                =          63.59
+
+[orientation convention]
+standard azimuth       = chi fixed to zero
+delta chi              =        0.83394  pi rad
+
+[vibration]
+paper_ammonia_dat      = sampled vibrational state
+ mode   freq  vstat    Q         P         QE        PE        EE (eV)
+   0     652.3  0     0.021932  0.585988  0.000019  0.013885  0.013904
+   1    1816.3  0     0.389671 -1.516222  0.017096  0.258843  0.275940
+   2    1819.8  0    -1.564973 -0.212413  0.276301  0.005090  0.281391
+   3    3778.9  0     0.583411  0.128847  0.079736  0.003889  0.083625
+   4    3999.3  0    -0.803556  0.208186  0.160087  0.010745  0.170832
+   5    4005.3  0    -1.083971  0.734881  0.291748  0.134093  0.425842
+paper_h2o_dat          = sampled vibrational state
+ mode   freq  vstat    Q         P         QE        PE        EE (eV)
+   0    1756.9  0    -0.733129  0.177271  0.058538  0.003423  0.061961
+   1    4009.6  0    -0.077167 -0.640620  0.001480  0.102008  0.103488
+   2    4168.4  0    -0.421667  0.205351  0.045946  0.010897  0.056843
+
+[intermolecular]
+Rz                     =       15.00000  Ang
+paper_ammonia_dat COM speed =    595.2059271  m/s
+paper_ammonia_dat beam KE =      0.0312659  eV
+paper_h2o_dat COM speed =    833.6555903  m/s
+paper_h2o_dat beam KE  =      0.0648796  eV
+relative velocity      =   1024.3298975  m/s
+collision energy       =      0.0476007  eV
+paper_ammonia_dat z velocity =    526.5478673  m/s
+paper_h2o_dat z velocity =   -497.7820302  m/s
+paper_ammonia_dat kinetic =      0.0244687  eV
+paper_h2o_dat kinetic  =      0.0231320  eV
+orbital sampling       = geometric
+Ja, full               = [      2.91983,      3.57889,     -2.94383 ]  au, |Ja|    =      5.47723  (QM:   5.00)
+Jb, full               = [     -1.06028,     -0.71596,      3.21919 ]  au, |Jb|    =      3.46410  (QM:   3.00)
+Jab, full              = [      1.85956,      2.86292,      0.27536 ]  au, |Jab|   =      3.42493  (QM:   2.96)
+Ja, vector model       = [      2.91983,      3.57889,     -2.94383 ]  au, |Ja|    =      5.47723  (QM:   5.00)
+Jb, vector model       = [     -1.06028,     -0.71596,      3.21919 ]  au, |Jb|    =      3.46410  (QM:   3.00)
+Jab, vector model      = [      1.85956,      2.86292,      0.27536 ]  au, |Jab|   =      3.42493  (QM:   2.96)
+L                      = [     -0.00000,     61.19918,      0.00000 ]  au, |L|     =     61.19918  (QM:  60.70)
+J = L + Jab            = [      1.85956,     64.06210,      0.27536 ]  au, |J|     =     64.08968  (QM:  63.59)
+b                      =        4.33417  Ang
+impact phi             =        0.00000  pi rad
+
+[system angles]
+frame note             = SFF is the lab Cartesian frame; Jacobi BF is the collision frame
+system Euler           = [     0.0000,     0.0895,     0.4072 ]  pi rad   # SFF -> Jacobi BF; phi, beta, chi
+mol 1 BF Euler         = [     0.0000,     0.8676,    -0.1311 ]  pi rad   # molecule 1 in Jacobi BF; alpha, beta, gamma
+mol 2 BF Euler         = [    -0.7383,     0.1517,    -0.6006 ]  pi rad   # molecule 2 in Jacobi BF; alpha, beta, gamma
+v1-v2 dihedral         =         0.2219  pi rad
+Jacobi R               =       15.61362  Ang
+SFF->Jacobi BF         = [    0.2761,   -0.9202,    0.2776 ]; [    0.9578,    0.2874,    0.0000 ]; [   -0.0798,    0.2659,    0.9607 ]
+Jacobi BF->mol1 BF     = [   -0.8382,   -0.3663,    0.4041 ]; [   -0.4004,    0.9163,    0.0000 ]; [   -0.3703,   -0.1618,   -0.9147 ]
+Jacobi BF->mol2 BF     = [   -0.5083,   -0.8026,   -0.3122 ]; [    0.8493,   -0.4071,   -0.3361 ]; [    0.1426,   -0.4360,    0.8886 ]
+
+[energy summary]
+component              = paper_ammonia_dat/eV paper_h2o_dat/eV       total/eV
+vibrational            =           1.2515         0.2223         1.4738
+rotational             =           0.0326         0.0328         0.0655
+velocity               =           0.0245         0.0231         0.0476
+total                  =           1.3086         0.2783         1.5869
+===================================================================
+Sample 1 | analysis
+===================================================================
+output frame           = internal
+
+[orientation]
+paper_ammonia_dat      = reconstructed orientation
+alpha,beta,gamma       = [  0.6121831,  0.8646966,  0.0918909 ]  pi rad   # molecular Euler
+wx,wy,wz               = [ -0.8721231, -0.0454651,  0.4889802 ]  pi rad   # XYZ rotation angles
+paper_h2o_dat          = reconstructed orientation
+alpha,beta,gamma       = [ -0.2228290,  0.2104907, -0.7280884 ]  pi rad   # molecular Euler
+wx,wy,wz               = [  0.1479199,  0.1556354, -0.9884529 ]  pi rad   # XYZ rotation angles
+
+[rotation]
+paper_ammonia_dat      = oblate, symmetry constant =   1.00
+full J, space          = [      2.08876,      3.82682,     -3.08245 ]  au, |J|     =      5.33938  (QM:   4.86)
+full J, Eckart         = [     -2.22255,     -2.76292,      3.99193 ]  au, |J|     =      5.33938  (QM:   4.86)
+rigid J0, space        = [      2.91830,      3.57958,     -2.94335 ]  au, |J|     =      5.47660  (QM:   5.00)
+rigid J0, Eckart       = [     -2.02217,     -3.54556,      3.65143 ]  au, |J|     =      5.47660  (QM:   5.00)
+geometry J(1), Eckart  = [     -0.42939,     -0.08316,      0.14806 ]  au, |J|     =      0.46175
+geometry J(2), Eckart  = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000
+intrinsic pi, Eckart   = [      0.22901,      0.86581,      0.19244 ]  au, |J|     =      0.91602
+closure J, Eckart      = [      0.00000,     -0.00000,      0.00000 ]  au, |J|     =      0.00000
+rigid rot. energy      = [      0.00561,      0.01724,      0.00977 ]  eV, |E|     =      0.03262
+rigid |J0|             =        5.47660  au
+rigid beta             =        0.26769  pi rad
+rigid gamma            =       -0.33501  pi rad
+rigid axis Jz          =        3.65143  au
+paper_h2o_dat          = asym-prolate, symmetry constant =  -0.66
+full J, space          = [     -0.74311,     -0.92507,      3.20943 ]  au, |J|     =      3.42175  (QM:   2.96)
+full J, Eckart         = [      2.17473,     -0.69069,      2.54987 ]  au, |J|     =      3.42175  (QM:   2.96)
+rigid J0, space        = [     -1.06031,     -0.71545,      3.21945 ]  au, |J|     =      3.46425  (QM:   3.00)
+rigid J0, Eckart       = [      2.40774,     -0.89116,      2.32587 ]  au, |J|     =      3.46425  (QM:   3.00)
+geometry J(1), Eckart  = [     -0.23300,      0.00388,      0.22401 ]  au, |J|     =      0.32324
+geometry J(2), Eckart  = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000
+intrinsic pi, Eckart   = [     -0.00000,      0.19659,      0.00000 ]  au, |J|     =      0.19659
+closure J, Eckart      = [      0.00000,     -0.00000,      0.00000 ]  au, |J|     =      0.00000
+rigid rot. energy      = [      0.00975,      0.00095,      0.02214 ]  eV, |E|     =      0.03283
+rigid |J0|             =        3.46425  au
+rigid beta             =        0.26570  pi rad
+rigid gamma            =       -0.88716  pi rad
+rigid axis Jz          =        2.32587  au
+
+[vibration]
+paper_ammonia_dat      = vibrational analysis
+ mode    freq     ~vstat       Q         P         QE        PE       EE (eV) 
+   0    652.3    -0.3281  0.021957  0.585956  0.000019  0.013883  0.013903
+   1   1816.3     0.7254  0.389670 -1.516220  0.017096  0.258843  0.275939
+   2   1819.8     0.7471 -1.564975 -0.212408  0.276301  0.005090  0.281391
+   3   3778.9    -0.3215  0.583412  0.128853  0.079736  0.003889  0.083625
+   4   3999.3    -0.1555 -0.803546  0.208186  0.160083  0.010745  0.170828
+   5   4005.3     0.3575 -1.083960  0.734892  0.291743  0.134097  0.425840
+paper_h2o_dat          = vibrational analysis
+ mode    freq     ~vstat       Q         P         QE        PE       EE (eV) 
+   0   1756.9    -0.2156 -0.733127  0.177268  0.058538  0.003422  0.061960
+   1   4009.6    -0.2918 -0.077168 -0.640620  0.001480  0.102008  0.103488
+   2   4168.4    -0.3900 -0.421673  0.205352  0.045947  0.010897  0.056844
+
+[intermolecular]
+molecules              = paper_ammonia_dat x paper_h2o_dat
+angular energy         =    3.66790e-03  eV
+radial energy          =    4.39328e-02  eV
+total energy           =        0.04760  eV
+Ja, full               = [      2.08876,      3.82682,     -3.08245 ]  au, |Ja|    =      5.33938  (QM:   4.86)
+Jb, full               = [     -0.74311,     -0.92507,      3.20943 ]  au, |Jb|    =      3.42175  (QM:   2.96)
+Jab, full              = [      1.34564,      2.90175,      0.12698 ]  au, |Jab|   =      3.20110  (QM:   2.74)
+Ja, rigid J0           = [      2.91830,      3.57958,     -2.94335 ]  au, |Ja|    =      5.47660  (QM:   5.00)
+Jb, rigid J0           = [     -1.06031,     -0.71545,      3.21945 ]  au, |Jb|    =      3.46425  (QM:   3.00)
+Jab, rigid J0          = [      1.85799,      2.86413,      0.27611 ]  au, |Jab|   =      3.42514  (QM:   2.96)
+L                      = [     -0.00000,     61.19918,      0.00000 ]  au, |L|     =     61.19918  (QM:  60.70)
+P_R                    = [      1.99265,      0.00000,      6.89629 ]  au, |P_R|   =      7.17840  (QM:   6.70)
+J = L + Jab            = [      1.85799,     64.06331,      0.27611 ]  au, |J|     =     64.09084  (QM:  63.59)
+moment of inertia      =      1.389e+07  au
+b                      =        4.33417  Ang
+phi                    =        0.00000  pi rad
+COM 1                  = [      2.22794,      0.00000,      7.71062 ]  Ang
+COM 2                  = [     -2.10623,     -0.00000,     -7.28938 ]  Ang
+
+[system angles]
+frame note             = SFF is the lab Cartesian frame; Jacobi BF is the collision frame
+system Euler           = [     0.0000,     0.0895,     0.4072 ]  pi rad   # SFF -> Jacobi BF; phi, beta, chi
+mol 1 BF Euler         = [     0.0000,     0.8676,    -0.1311 ]  pi rad   # molecule 1 in Jacobi BF; alpha, beta, gamma
+mol 2 BF Euler         = [    -0.7383,     0.1517,    -0.6006 ]  pi rad   # molecule 2 in Jacobi BF; alpha, beta, gamma
+v1-v2 dihedral         =         0.2219  pi rad
+Jacobi R               =       15.61362  Ang
+SFF->Jacobi BF         = [    0.2761,   -0.9202,    0.2776 ]; [    0.9578,    0.2874,    0.0000 ]; [   -0.0798,    0.2659,    0.9607 ]
+Jacobi BF->mol1 BF     = [   -0.8382,   -0.3663,    0.4041 ]; [   -0.4004,    0.9163,    0.0000 ]; [   -0.3703,   -0.1618,   -0.9147 ]
+Jacobi BF->mol2 BF     = [   -0.5083,   -0.8026,   -0.3122 ]; [    0.8493,   -0.4071,   -0.3361 ]; [    0.1426,   -0.4360,    0.8886 ]
+
+[energy summary]
+component              = paper_ammonia_dat/eV paper_h2o_dat/eV       total/eV
+vibrational            =           1.2515         0.2223         1.4738
+rotational             =           0.0326         0.0328         0.0655
+velocity               =           0.0245         0.0231         0.0476
+total                  =           1.3086         0.2783         1.5869
+
+[coordinates and velocities]
+########## Initial Sample Audit ############################### 
+Audit energy   vib: generation     1.473825 eV, analysis     1.473819 eV, diff  5.885e-06 eV [OK]
+Audit energy   rot: generation     0.065461 eV, analysis     0.065452 eV, diff  8.466e-06 eV [OK]
+Audit energy   vel: generation     0.047601 eV, analysis     0.047601 eV, diff  0.000e+00 eV [OK]
+Audit energy total: generation     1.586887 eV, analysis     1.586872 eV, diff  1.435e-05 eV [OK]
+Audit angular                     L: generation       61.1992, analysis       61.1992, diff  1.421e-14 au [OK]
+Audit vector                      L: vector-norm diff  2.568e-14 au [OK]
+Audit angular                   Jab: generation       3.42493, analysis       3.42514, diff  2.159e-04 au [OK]
+Audit vector                    Jab: vector-norm diff  2.113e-03 au [OK]
+Audit angular                     J: generation       64.0897, analysis       64.0908, diff  1.162e-03 au [OK]
+Audit vector                      J: vector-norm diff  2.113e-03 au [OK]
+Audit mol scalar               m0_J: generation       5.47723, analysis        5.4766, diff  6.222e-04 au [OK]
+Audit mol scalar               m1_J: generation        3.4641, analysis       3.46425, diff  1.473e-04 au [OK]
+Audit mol vector        m0_J_vector: vector-norm diff  1.751e-03 au [OK]
+Audit mol vector        m1_J_vector: vector-norm diff  5.731e-04 au [OK]
+Audit scalar               Jacobi_R: generation       29.5055, analysis       29.5055, diff  0.000e+00 Ang [OK]
+Audit scalar                      b: generation       8.19041, analysis       8.19041, diff  1.776e-15 Ang [OK]
+Audit scalar     relative_velocity_mps: generation       1024.33, analysis       1024.33, diff  0.000e+00 m/s [OK]
+Audit vib                      m0_P: component-rms diff  1.007e-05, max  3.208e-05, ndof 12 [OK]
+Audit vib                      m0_Q: component-rms diff  8.458e-06, max  2.533e-05, ndof 12 [OK]
+Audit vib                      m1_P: component-rms diff  9.193e-07, max  2.734e-06, ndof 9 [OK]
+Audit vib                      m1_Q: component-rms diff  2.170e-06, max  6.039e-06, ndof 9 [OK]
+Audit angle             Jacobi_beta: circular diff  0.000e+00 rad [OK]
+Audit angle              Jacobi_chi: circular diff  0.000e+00 rad [OK]
+Audit angle             Jacobi_dphi: circular diff  0.000e+00 rad [OK]
+Audit angle              Jacobi_phi: circular diff  0.000e+00 rad [OK]
+Audit angle            Jacobi_theta: circular diff  0.000e+00 rad [OK]
+Audit angle              impact_phi: circular diff  3.357e-16 rad [OK]
+Audit decomp     m0_seckart_leakage: norm  3.557e-15 au [OK]
+Audit decomp        m0_svecJclosure: norm  3.202e-15 au [OK]
+Audit decomp     m1_seckart_leakage: norm  1.654e-15 au [OK]
+Audit decomp        m1_svecJclosure: norm  1.088e-15 au [OK]
+Initial sample audit: OK
+===================================================================
+Sample 2 | generation
+===================================================================
+output frame           = internal
+orbital quantum L      =          62.02
+
+[rotation]
+paper_ammonia_dat      = angular velocity from sampled rotor
+quantum J              =            3.0
+quantum J_z            =          0.000  au
+rotor eigenenergy      =        0.01646  eV
+classical J            = [   -1.8877179,   -2.9045690,    0.0000000 ]  au, |J|     =      3.46410  (QM:   3.00)
+classical J_z          =          0.000  au
+classical energy       =        0.01646  eV
+polar |J|              =       3.464102  au
+polar beta             =       0.500000  pi rad
+polar gamma            =      -0.316553  pi rad
+instantaneous J        = [   -1.8877179,   -2.9045690,    0.0000000 ]  au, |J|     =      3.46410  (QM:   3.00)
+instant. energy        =        0.01646  eV
+instant. I^-1          = [    1.008e-04,    4.526e-21,    2.758e-20,    1.008e-04,    2.468e-21,    5.384e-05 ]  au
+paper_h2o_dat          = angular velocity from sampled rotor
+quantum J              =            7.0
+quantum rms J_z        =          1.170  au
+rotor eigenenergy      =        0.07488  eV
+classical J            = [   -0.4334074,    7.4482735,    0.5791195 ]  au, |J|     =      7.48331  (QM:   7.00)
+classical J_z          =          0.579  au
+classical energy       =        0.06782  eV
+polar |J|              =       7.483315  au
+polar beta             =       0.475342  pi rad
+polar gamma            =       0.481499  pi rad
+instantaneous J        = [   -0.4334074,    7.4482735,    0.5791195 ]  au, |J|     =      7.48331  (QM:   7.00)
+instant. energy        =        0.06782  eV
+instant. I^-1          = [    1.236e-04,    2.205e-21,   -1.674e-53,    8.761e-05,   -6.652e-37,    3.008e-04 ]  au
+
+[orientation]
+paper_ammonia_dat      = sampled orientation
+alpha,beta,gamma       = [  0.9035675,  0.3748021,  0.9562026 ]  pi rad   # molecular Euler
+wx,wy,wz               = [ -0.1984205, -0.3435189, -0.2615731 ]  pi rad   # XYZ rotation angles
+paper_h2o_dat          = sampled orientation
+alpha,beta,gamma       = [ -0.8315055,  0.3619915,  0.6599747 ]  pi rad   # molecular Euler
+wx,wy,wz               = [  0.2638102, -0.2864531, -0.0382588 ]  pi rad   # XYZ rotation angles
+total J                =          64.57
+
+[orientation convention]
+standard azimuth       = chi fixed to zero
+delta chi              =       -0.02874  pi rad
+
+[vibration]
+paper_ammonia_dat      = sampled vibrational state
+ mode   freq  vstat    Q         P         QE        PE        EE (eV)
+   0     652.3  2     0.466427 -2.500798  0.008797  0.252884  0.261681
+   1    1816.3  0     0.215128  0.753577  0.005211  0.063939  0.069150
+   2    1819.8  0    -0.520664  1.312305  0.030583  0.194284  0.224868
+   3    3778.9  0     0.308750  0.602342  0.022332  0.084994  0.107326
+   4    3999.3  0     0.248319  0.095453  0.015288  0.002259  0.017547
+   5    4005.3  0    -0.797892  1.094253  0.158074  0.297309  0.455383
+paper_h2o_dat          = sampled vibrational state
+ mode   freq  vstat    Q         P         QE        PE        EE (eV)
+   0    1756.9  0     0.935888 -0.733782  0.095395  0.058643  0.154038
+   1    4009.6  0     0.210915 -0.991068  0.011057  0.244141  0.255198
+   2    4168.4  0    -0.382154  1.083435  0.037738  0.303328  0.341067
+
+[intermolecular]
+Rz                     =       15.00000  Ang
+paper_ammonia_dat COM speed =    622.6145319  m/s
+paper_ammonia_dat beam KE =      0.0342117  eV
+paper_h2o_dat COM speed =    834.2159221  m/s
+paper_h2o_dat beam KE  =      0.0649668  eV
+relative velocity      =   1040.9443117  m/s
+collision energy       =      0.0491574  eV
+paper_ammonia_dat z velocity =    535.0883623  m/s
+paper_h2o_dat z velocity =   -505.8559494  m/s
+paper_ammonia_dat kinetic =      0.0252689  eV
+paper_h2o_dat kinetic  =      0.0238885  eV
+orbital sampling       = geometric
+Ja, full               = [     -1.80620,     -2.08527,     -2.09507 ]  au, |Ja|    =      3.46410  (QM:   3.00)
+Jb, full               = [      0.24042,      4.49620,      5.97716 ]  au, |Jb|    =      7.48331  (QM:   7.00)
+Jab, full              = [     -1.56578,      2.41093,      3.88209 ]  au, |Jab|   =      4.83062  (QM:   4.36)
+Ja, vector model       = [     -1.80620,     -2.08527,     -2.09507 ]  au, |Ja|    =      3.46410  (QM:   3.00)
+Jb, vector model       = [      0.24042,      4.49620,      5.97716 ]  au, |Jb|    =      7.48331  (QM:   7.00)
+Jab, vector model      = [     -1.56578,      2.41093,      3.88209 ]  au, |Jab|   =      4.83062  (QM:   4.36)
+L                      = [     -0.00000,     62.51810,      0.00000 ]  au, |L|     =     62.51810  (QM:  62.02)
+J = L + Jab            = [     -1.56578,     64.92903,      3.88209 ]  au, |J|     =     65.06382  (QM:  64.57)
+b                      =        4.35691  Ang
+impact phi             =        0.00000  pi rad
+
+[system angles]
+frame note             = SFF is the lab Cartesian frame; Jacobi BF is the collision frame
+system Euler           = [    -0.0000,     0.0900,     0.8838 ]  pi rad   # SFF -> Jacobi BF; phi, beta, chi
+mol 1 BF Euler         = [     0.0000,     0.4585,     0.9218 ]  pi rad   # molecule 1 in Jacobi BF; alpha, beta, gamma
+mol 2 BF Euler         = [     0.2443,     0.4442,     0.6984 ]  pi rad   # molecule 2 in Jacobi BF; alpha, beta, gamma
+v1-v2 dihedral         =        -0.7572  pi rad
+Jacobi R               =       15.61994  Ang
+SFF->Jacobi BF         = [   -0.8970,   -0.3428,    0.2789 ]; [    0.3569,   -0.9341,   -0.0000 ]; [    0.2606,    0.0996,    0.9603 ]
+Jacobi BF->mol1 BF     = [   -0.1262,   -0.0316,    0.9915 ]; [    0.2431,   -0.9700,    0.0000 ]; [    0.9618,    0.2411,    0.1301 ]
+Jacobi BF->mol2 BF     = [   -0.6370,    0.3034,    0.7086 ]; [    0.5136,   -0.5183,    0.6837 ]; [    0.5748,    0.7995,    0.1743 ]
+
+[energy summary]
+component              = paper_ammonia_dat/eV paper_h2o_dat/eV       total/eV
+vibrational            =           1.1360         0.7503         1.8863
+rotational             =           0.0165         0.0678         0.0843
+velocity               =           0.0253         0.0239         0.0492
+total                  =           1.1777         0.8420         2.0197
+===================================================================
+Sample 2 | analysis
+===================================================================
+output frame           = internal
+
+[orientation]
+paper_ammonia_dat      = reconstructed orientation
+alpha,beta,gamma       = [  0.8748317,  0.3748065,  0.9562027 ]  pi rad   # molecular Euler
+wx,wy,wz               = [ -0.2373420, -0.3253116, -0.3063895 ]  pi rad   # XYZ rotation angles
+paper_h2o_dat          = reconstructed orientation
+alpha,beta,gamma       = [ -0.8602395,  0.3619908,  0.6599740 ]  pi rad   # molecular Euler
+wx,wy,wz               = [  0.2364416, -0.3068043, -0.0723237 ]  pi rad   # XYZ rotation angles
+
+[rotation]
+paper_ammonia_dat      = oblate, symmetry constant =   1.00
+full J, space          = [     -2.28425,     -1.83963,     -0.77306 ]  au, |J|     =      3.03309  (QM:   2.57)
+full J, Eckart         = [     -0.88755,     -2.72194,      1.00147 ]  au, |J|     =      3.03309  (QM:   2.57)
+rigid J0, space        = [     -1.80451,     -2.08331,     -2.09322 ]  au, |J|     =      3.46092  (QM:   3.00)
+rigid J0, Eckart       = [     -1.88606,     -2.90186,     -0.00001 ]  au, |J|     =      3.46092  (QM:   3.00)
+geometry J(1), Eckart  = [     -0.02239,     -0.01048,      0.04495 ]  au, |J|     =      0.05130
+geometry J(2), Eckart  = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000
+intrinsic pi, Eckart   = [      1.02090,      0.19039,      0.95653 ]  au, |J|     =      1.41189
+closure J, Eckart      = [      0.00000,     -0.00000,     -0.00000 ]  au, |J|     =      0.00000
+rigid rot. energy      = [      0.00488,      0.01155,      0.00000 ]  eV, |E|     =      0.01643
+rigid |J0|             =        3.46092  au
+rigid beta             =        0.50000  pi rad
+rigid gamma            =       -0.31655  pi rad
+rigid axis Jz          =       -0.00001  au
+paper_h2o_dat          = asym-prolate, symmetry constant =  -0.66
+full J, space          = [      0.10288,      3.79338,      4.88634 ]  au, |J|     =      6.18681  (QM:   5.71)
+full J, Eckart         = [     -0.48962,      6.14670,      0.50495 ]  au, |J|     =      6.18681  (QM:   5.71)
+rigid J0, space        = [      0.24002,      4.49433,      5.97466 ]  au, |J|     =      7.48018  (QM:   7.00)
+rigid J0, Eckart       = [     -0.43341,      7.44513,      0.57912 ]  au, |J|     =      7.48018  (QM:   7.00)
+geometry J(1), Eckart  = [     -0.05621,      0.09384,     -0.07417 ]  au, |J|     =      0.13216
+geometry J(2), Eckart  = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000
+intrinsic pi, Eckart   = [      0.00000,     -1.39228,     -0.00000 ]  au, |J|     =      1.39228
+closure J, Eckart      = [      0.00000,      0.00000,     -0.00000 ]  au, |J|     =      0.00000
+rigid rot. energy      = [      0.00032,      0.06607,      0.00137 ]  eV, |E|     =      0.06776
+rigid |J0|             =        7.48018  au
+rigid beta             =        0.47533  pi rad
+rigid gamma            =        0.48149  pi rad
+rigid axis Jz          =        0.57912  au
+
+[vibration]
+paper_ammonia_dat      = vibrational analysis
+ mode    freq     ~vstat       Q         P         QE        PE       EE (eV) 
+   0    652.3     2.7359  0.466433 -2.500834  0.008797  0.252891  0.261688
+   1   1816.3    -0.1929  0.215124  0.753582  0.005211  0.063940  0.069151
+   2   1819.8     0.4966 -0.520657  1.312290  0.030582  0.194280  0.224862
+   3   3778.9    -0.2709  0.308751  0.602344  0.022332  0.084995  0.107326
+   4   3999.3    -0.4646  0.248316  0.095456  0.015287  0.002259  0.017546
+   5   4005.3     0.4170 -0.797879  1.094240  0.158069  0.297302  0.455371
+paper_h2o_dat          = vibrational analysis
+ mode    freq     ~vstat       Q         P         QE        PE       EE (eV) 
+   0   1756.9     0.2072  0.935889 -0.733791  0.095395  0.058644  0.154040
+   1   4009.6     0.0133  0.210916 -0.991065  0.011057  0.244140  0.255197
+   2   4168.4     0.1599 -0.382146  1.083431  0.037737  0.303326  0.341063
+
+[intermolecular]
+molecules              = paper_ammonia_dat x paper_h2o_dat
+angular energy         =    3.82460e-03  eV
+radial energy          =    4.53328e-02  eV
+total energy           =        0.04916  eV
+Ja, full               = [     -2.28425,     -1.83963,     -0.77306 ]  au, |Ja|    =      3.03309  (QM:   2.57)
+Jb, full               = [      0.10288,      3.79338,      4.88634 ]  au, |Jb|    =      6.18681  (QM:   5.71)
+Jab, full              = [     -2.18137,      1.95375,      4.11328 ]  au, |Jab|   =      5.04921  (QM:   4.57)
+Ja, rigid J0           = [     -1.80451,     -2.08331,     -2.09322 ]  au, |Ja|    =      3.46092  (QM:   3.00)
+Jb, rigid J0           = [      0.24002,      4.49433,      5.97466 ]  au, |Jb|    =      7.48018  (QM:   7.00)
+Jab, rigid J0          = [     -1.56449,      2.41102,      3.88144 ]  au, |Jab|   =      4.82972  (QM:   4.36)
+L                      = [      0.00000,     62.51810,     -0.00000 ]  au, |L|     =     62.51810  (QM:  62.02)
+P_R                    = [      2.03394,     -0.00000,      7.00247 ]  au, |P_R|   =      7.29188  (QM:   6.81)
+J = L + Jab            = [     -1.56449,     64.92912,      3.88144 ]  au, |J|     =     65.06384  (QM:  64.57)
+moment of inertia      =      1.390e+07  au
+b                      =        4.35691  Ang
+phi                    =       -0.00000  pi rad
+COM 1                  = [      2.23963,      0.00000,      7.71062 ]  Ang
+COM 2                  = [     -2.11728,      0.00000,     -7.28938 ]  Ang
+
+[system angles]
+frame note             = SFF is the lab Cartesian frame; Jacobi BF is the collision frame
+system Euler           = [    -0.0000,     0.0900,     0.8838 ]  pi rad   # SFF -> Jacobi BF; phi, beta, chi
+mol 1 BF Euler         = [     0.0000,     0.4585,     0.9218 ]  pi rad   # molecule 1 in Jacobi BF; alpha, beta, gamma
+mol 2 BF Euler         = [     0.2443,     0.4442,     0.6984 ]  pi rad   # molecule 2 in Jacobi BF; alpha, beta, gamma
+v1-v2 dihedral         =        -0.7572  pi rad
+Jacobi R               =       15.61994  Ang
+SFF->Jacobi BF         = [   -0.8970,   -0.3428,    0.2789 ]; [    0.3569,   -0.9341,   -0.0000 ]; [    0.2606,    0.0996,    0.9603 ]
+Jacobi BF->mol1 BF     = [   -0.1262,   -0.0316,    0.9915 ]; [    0.2431,   -0.9700,    0.0000 ]; [    0.9618,    0.2411,    0.1301 ]
+Jacobi BF->mol2 BF     = [   -0.6370,    0.3034,    0.7086 ]; [    0.5136,   -0.5183,    0.6837 ]; [    0.5748,    0.7995,    0.1743 ]
+
+[energy summary]
+component              = paper_ammonia_dat/eV paper_h2o_dat/eV       total/eV
+vibrational            =           1.1359         0.7503         1.8862
+rotational             =           0.0164         0.0678         0.0842
+velocity               =           0.0253         0.0239         0.0492
+total                  =           1.1776         0.8419         2.0196
+
+[coordinates and velocities]
+########## Initial Sample Audit ############################### 
+Audit energy   vib: generation     1.886257 eV, analysis     1.886245 eV, diff  1.199e-05 eV [OK]
+Audit energy   rot: generation     0.084277 eV, analysis     0.084191 eV, diff  8.606e-05 eV [OK]
+Audit energy   vel: generation     0.049157 eV, analysis     0.049157 eV, diff  1.388e-17 eV [OK]
+Audit energy total: generation     2.019691 eV, analysis     2.019593 eV, diff  9.806e-05 eV [OK]
+Audit angular                     L: generation       62.5181, analysis       62.5181, diff  2.842e-14 au [OK]
+Audit vector                      L: vector-norm diff  2.241e-14 au [OK]
+Audit angular                   Jab: generation       4.83062, analysis       4.82972, diff  8.940e-04 au [OK]
+Audit vector                    Jab: vector-norm diff  1.446e-03 au [OK]
+Audit angular                     J: generation       65.0638, analysis       65.0638, diff  2.359e-05 au [OK]
+Audit vector                      J: vector-norm diff  1.446e-03 au [OK]
+Audit mol scalar               m0_J: generation        3.4641, analysis       3.46092, diff  3.180e-03 au [OK]
+Audit mol scalar               m1_J: generation       7.48331, analysis       7.48018, diff  3.131e-03 au [OK]
+Audit mol vector        m0_J_vector: vector-norm diff  3.182e-03 au [OK]
+Audit mol vector        m1_J_vector: vector-norm diff  3.146e-03 au [OK]
+Audit scalar               Jacobi_R: generation       29.5175, analysis       29.5175, diff  0.000e+00 Ang [OK]
+Audit scalar                      b: generation       8.23338, analysis       8.23338, diff  3.553e-15 Ang [OK]
+Audit scalar     relative_velocity_mps: generation       1040.94, analysis       1040.94, diff  0.000e+00 m/s [OK]
+Audit vib                      m0_P: component-rms diff  1.185e-05, max  3.556e-05, ndof 12 [OK]
+Audit vib                      m0_Q: component-rms diff  4.748e-06, max  1.260e-05, ndof 12 [OK]
+Audit vib                      m1_P: component-rms diff  3.340e-06, max  8.910e-06, ndof 9 [OK]
+Audit vib                      m1_Q: component-rms diff  2.634e-06, max  7.852e-06, ndof 9 [OK]
+Audit angle             Jacobi_beta: circular diff  0.000e+00 rad [OK]
+Audit angle              Jacobi_chi: circular diff  0.000e+00 rad [OK]
+Audit angle             Jacobi_dphi: circular diff  0.000e+00 rad [OK]
+Audit angle              Jacobi_phi: circular diff  0.000e+00 rad [OK]
+Audit angle            Jacobi_theta: circular diff  0.000e+00 rad [OK]
+Audit angle              impact_phi: circular diff  1.063e-16 rad [OK]
+Audit decomp     m0_seckart_leakage: norm  1.831e-15 au [OK]
+Audit decomp        m0_svecJclosure: norm  1.256e-15 au [OK]
+Audit decomp     m1_seckart_leakage: norm  3.630e-15 au [OK]
+Audit decomp        m1_svecJclosure: norm  3.617e-15 au [OK]
+Initial sample audit: OK
+===================================================================
+Sample 3 | generation
+===================================================================
+output frame           = internal
+orbital quantum L      =          36.06
+
+[rotation]
+paper_ammonia_dat      = angular velocity from sampled rotor
+quantum J              =            8.0
+quantum J_z            =          0.000  au
+rotor eigenenergy      =        0.09876  eV
+classical J            = [    8.4205749,   -1.0459053,    0.0000000 ]  au, |J|     =      8.48528  (QM:   8.00)
+classical J_z          =          0.000  au
+classical energy       =        0.09876  eV
+polar |J|              =       8.485281  au
+polar beta             =       0.500000  pi rad
+polar gamma            =      -0.960665  pi rad
+instantaneous J        = [    8.4205749,   -1.0459053,    0.0000000 ]  au, |J|     =      8.48528  (QM:   8.00)
+instant. energy        =        0.09876  eV
+instant. I^-1          = [    1.008e-04,    4.526e-21,    2.758e-20,    1.008e-04,    2.468e-21,    5.384e-05 ]  au
+paper_h2o_dat          = angular velocity from sampled rotor
+quantum J              =            4.0
+quantum rms J_z        =          2.991  au
+rotor eigenenergy      =        0.05279  eV
+classical J            = [   -1.1181834,   -3.1790448,    2.9399558 ]  au, |J|     =      4.47214  (QM:   4.00)
+classical J_z          =          2.940  au
+classical energy       =        0.04952  eV
+polar |J|              =       4.472136  au
+polar beta             =       0.271659  pi rad
+polar gamma            =      -0.392341  pi rad
+instantaneous J        = [   -1.1181834,   -3.1790448,    2.9399558 ]  au, |J|     =      4.47214  (QM:   4.00)
+instant. energy        =        0.04952  eV
+instant. I^-1          = [    1.236e-04,    2.205e-21,   -1.674e-53,    8.761e-05,   -6.652e-37,    3.008e-04 ]  au
+
+[orientation]
+paper_ammonia_dat      = sampled orientation
+alpha,beta,gamma       = [ -0.2266227,  0.4144974,  0.3815461 ]  pi rad   # molecular Euler
+wx,wy,wz               = [  0.3730692,  0.2604501, -0.0234802 ]  pi rad   # XYZ rotation angles
+paper_h2o_dat          = sampled orientation
+alpha,beta,gamma       = [ -0.8545259,  0.4648038,  0.9390437 ]  pi rad   # molecular Euler
+wx,wy,wz               = [  0.4215417, -0.3506215,  0.3687790 ]  pi rad   # XYZ rotation angles
+total J                =          33.12
+
+[orientation convention]
+standard azimuth       = chi fixed to zero
+delta chi              =       -0.36990  pi rad
+
+[vibration]
+paper_ammonia_dat      = sampled vibrational state
+ mode   freq  vstat    Q         P         QE        PE        EE (eV)
+   0     652.3  0    -0.217141  0.557355  0.001907  0.012561  0.014468
+   1    1816.3  0    -0.115419 -0.645534  0.001500  0.046919  0.048419
+   2    1819.8  0     0.217794  0.986257  0.005351  0.109736  0.115087
+   3    3778.9  0    -0.716372  0.257385  0.120221  0.015519  0.135740
+   4    3999.3  0    -0.640044 -0.793133  0.101565  0.155961  0.257525
+   5    4005.3  0    -0.268838  1.793421  0.017945  0.798615  0.816561
+paper_h2o_dat          = sampled vibrational state
+ mode   freq  vstat    Q         P         QE        PE        EE (eV)
+   0    1756.9  0    -0.147412  0.742391  0.002367  0.060027  0.062394
+   1    4009.6  0    -0.968582  0.332985  0.233188  0.027560  0.260749
+   2    4168.4  0     0.037006 -0.930104  0.000354  0.223548  0.223902
+
+[intermolecular]
+Rz                     =       15.00000  Ang
+paper_ammonia_dat COM speed =    577.0402010  m/s
+paper_ammonia_dat beam KE =      0.0293865  eV
+paper_h2o_dat COM speed =    842.1123257  m/s
+paper_h2o_dat beam KE  =      0.0662025  eV
+relative velocity      =   1020.8469830  m/s
+collision energy       =      0.0472776  eV
+paper_ammonia_dat z velocity =    524.7575054  m/s
+paper_h2o_dat z velocity =   -496.0894776  m/s
+paper_ammonia_dat kinetic =      0.0243026  eV
+paper_h2o_dat kinetic  =      0.0229750  eV
+orbital sampling       = geometric
+Ja, full               = [      6.80354,     -3.25105,     -3.89134 ]  au, |Ja|    =      8.48528  (QM:   8.00)
+Jb, full               = [     -4.25310,     -0.19931,     -1.36800 ]  au, |Jb|    =      4.47214  (QM:   4.00)
+Jab, full              = [      2.55044,     -3.45036,     -5.25934 ]  au, |Jab|   =      6.78752  (QM:   6.31)
+Ja, vector model       = [      6.80354,     -3.25105,     -3.89134 ]  au, |Ja|    =      8.48528  (QM:   8.00)
+Jb, vector model       = [     -4.25310,     -0.19931,     -1.36800 ]  au, |Jb|    =      4.47214  (QM:   4.00)
+Jab, vector model      = [      2.55044,     -3.45036,     -5.25934 ]  au, |Jab|   =      6.78752  (QM:   6.31)
+L                      = [     -0.00000,     36.55958,      0.00000 ]  au, |L|     =     36.55958  (QM:  36.06)
+J = L + Jab            = [      2.55044,     33.10922,     -5.25934 ]  au, |J|     =     33.62121  (QM:  33.12)
+b                      =        2.59801  Ang
+impact phi             =        0.00000  pi rad
+
+[system angles]
+frame note             = SFF is the lab Cartesian frame; Jacobi BF is the collision frame
+system Euler           = [     0.0000,     0.0546,    -0.6093 ]  pi rad   # SFF -> Jacobi BF; phi, beta, chi
+mol 1 BF Euler         = [    -0.0000,     0.4319,     0.4348 ]  pi rad   # molecule 1 in Jacobi BF; alpha, beta, gamma
+mol 2 BF Euler         = [    -0.6135,     0.5065,     0.9038 ]  pi rad   # molecule 2 in Jacobi BF; alpha, beta, gamma
+v1-v2 dihedral         =         0.3929  pi rad
+Jacobi R               =       15.22333  Ang
+SFF->Jacobi BF         = [   -0.3317,    0.9278,    0.1707 ]; [   -0.9416,   -0.3366,    0.0000 ]; [    0.0575,   -0.1607,    0.9853 ]
+Jacobi BF->mol1 BF     = [    0.0432,   -0.2079,    0.9772 ]; [    0.9791,    0.2033,   -0.0000 ]; [   -0.1986,    0.9568,    0.2124 ]
+Jacobi BF->mol2 BF     = [    0.2722,   -0.8967,   -0.3491 ]; [   -0.1223,    0.3276,   -0.9369 ]; [    0.9544,    0.2977,   -0.0204 ]
+
+[energy summary]
+component              = paper_ammonia_dat/eV paper_h2o_dat/eV       total/eV
+vibrational            =           1.3878         0.5470         1.9348
+rotational             =           0.0988         0.0495         0.1483
+velocity               =           0.0243         0.0230         0.0473
+total                  =           1.5109         0.6195         2.1304
+===================================================================
+Sample 3 | analysis
+===================================================================
+output frame           = internal
+
+[orientation]
+paper_ammonia_dat      = reconstructed orientation
+alpha,beta,gamma       = [ -0.5965199,  0.4144957,  0.3815457 ]  pi rad   # molecular Euler
+wx,wy,wz               = [  0.4106154, -0.0929545, -0.1448254 ]  pi rad   # XYZ rotation angles
+paper_h2o_dat          = reconstructed orientation
+alpha,beta,gamma       = [  0.7755755,  0.4648040,  0.9390437 ]  pi rad   # molecular Euler
+wx,wy,wz               = [ -0.4459931, -0.2733007, -0.5199091 ]  pi rad   # XYZ rotation angles
+
+[rotation]
+paper_ammonia_dat      = oblate, symmetry constant =   1.00
+full J, space          = [      6.53728,     -2.85163,     -5.16718 ]  au, |J|     =      8.80725  (QM:   8.32)
+full J, Eckart         = [      8.49091,     -2.25297,     -0.62947 ]  au, |J|     =      8.80725  (QM:   8.32)
+rigid J0, space        = [      6.80461,     -3.25027,     -3.88730 ]  au, |J|     =      8.48399  (QM:   8.00)
+rigid J0, Eckart       = [      8.41979,     -1.04173,      0.00005 ]  au, |J|     =      8.48399  (QM:   8.00)
+geometry J(1), Eckart  = [     -0.09415,     -0.07860,      0.01688 ]  au, |J|     =      0.12380
+geometry J(2), Eckart  = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000
+intrinsic pi, Eckart   = [      0.16526,     -1.13264,     -0.64640 ]  au, |J|     =      1.31454
+closure J, Eckart      = [      0.00000,      0.00000,     -0.00000 ]  au, |J|     =      0.00000
+rigid rot. energy      = [      0.09724,      0.00149,      0.00000 ]  eV, |E|     =      0.09873
+rigid |J0|             =        8.48399  au
+rigid beta             =        0.50000  pi rad
+rigid gamma            =       -0.96082  pi rad
+rigid axis Jz          =        0.00005  au
+paper_h2o_dat          = asym-prolate, symmetry constant =  -0.66
+full J, space          = [     -4.15762,     -0.29241,     -1.28046 ]  au, |J|     =      4.36014  (QM:   3.89)
+full J, Eckart         = [     -1.01663,     -3.16855,      2.81738 ]  au, |J|     =      4.36014  (QM:   3.89)
+rigid J0, space        = [     -4.25131,     -0.19729,     -1.36748 ]  au, |J|     =      4.47018  (QM:   4.00)
+rigid J0, Eckart       = [     -1.11818,     -3.17630,      2.93996 ]  au, |J|     =      4.47018  (QM:   4.00)
+geometry J(1), Eckart  = [      0.10155,      0.21206,     -0.12258 ]  au, |J|     =      0.26516
+geometry J(2), Eckart  = [      0.00000,      0.00000,      0.00000 ]  au, |J|     =      0.00000
+intrinsic pi, Eckart   = [     -0.00000,     -0.20431,      0.00000 ]  au, |J|     =      0.20431
+closure J, Eckart      = [      0.00000,     -0.00000,     -0.00000 ]  au, |J|     =      0.00000
+rigid rot. energy      = [      0.00210,      0.01203,      0.03537 ]  eV, |E|     =      0.04950
+rigid |J0|             =        4.47018  au
+rigid beta             =        0.27154  pi rad
+rigid gamma            =       -0.39225  pi rad
+rigid axis Jz          =        2.93996  au
+
+[vibration]
+paper_ammonia_dat      = vibrational analysis
+ mode    freq     ~vstat       Q         P         QE        PE       EE (eV) 
+   0    652.3    -0.3211 -0.217139  0.557372  0.001907  0.012562  0.014468
+   1   1816.3    -0.2850 -0.115420 -0.645535  0.001500  0.046919  0.048419
+   2   1819.8     0.0101  0.217794  0.986255  0.005351  0.109735  0.115087
+   3   3778.9    -0.2103 -0.716372  0.257382  0.120221  0.015519  0.135740
+   4   3999.3     0.0194 -0.640046 -0.793129  0.101565  0.155959  0.257524
+   5   4005.3     1.1443 -0.268839  1.793419  0.017946  0.798614  0.816559
+paper_h2o_dat          = vibrational analysis
+ mode    freq     ~vstat       Q         P         QE        PE       EE (eV) 
+   0   1756.9    -0.2136 -0.147412  0.742390  0.002367  0.060027  0.062393
+   1   4009.6     0.0245 -0.968582  0.332986  0.233188  0.027560  0.260749
+   2   4168.4    -0.0668  0.037006 -0.930103  0.000354  0.223547  0.223901
+
+[intermolecular]
+molecules              = paper_ammonia_dat x paper_h2o_dat
+angular energy         =    1.37695e-03  eV
+radial energy          =    4.59006e-02  eV
+total energy           =        0.04728  eV
+Ja, full               = [      6.53728,     -2.85163,     -5.16718 ]  au, |Ja|    =      8.80725  (QM:   8.32)
+Jb, full               = [     -4.15762,     -0.29241,     -1.28046 ]  au, |Jb|    =      4.36014  (QM:   3.89)
+Jab, full              = [      2.37966,     -3.14404,     -6.44763 ]  au, |Jab|   =      7.55776  (QM:   7.07)
+Ja, rigid J0           = [      6.80461,     -3.25027,     -3.88730 ]  au, |Ja|    =      8.48399  (QM:   8.00)
+Jb, rigid J0           = [     -4.25131,     -0.19729,     -1.36748 ]  au, |Jb|    =      4.47018  (QM:   4.00)
+Jab, rigid J0          = [      2.55331,     -3.44756,     -5.25479 ]  au, |Jab|   =      6.78365  (QM:   6.30)
+L                      = [     -0.00000,     36.55958,      0.00000 ]  au, |L|     =     36.55958  (QM:  36.06)
+P_R                    = [      1.25220,      0.00000,      7.22977 ]  au, |P_R|   =      7.33741  (QM:   6.85)
+J = L + Jab            = [      2.55331,     33.11202,     -5.25479 ]  au, |J|     =     33.62348  (QM:  33.13)
+moment of inertia      =      1.321e+07  au
+b                      =        2.59801  Ang
+phi                    =        0.00000  pi rad
+COM 1                  = [      1.33548,      0.00000,      7.71062 ]  Ang
+COM 2                  = [     -1.26252,     -0.00000,     -7.28938 ]  Ang
+
+[system angles]
+frame note             = SFF is the lab Cartesian frame; Jacobi BF is the collision frame
+system Euler           = [     0.0000,     0.0546,    -0.6093 ]  pi rad   # SFF -> Jacobi BF; phi, beta, chi
+mol 1 BF Euler         = [    -0.0000,     0.4319,     0.4348 ]  pi rad   # molecule 1 in Jacobi BF; alpha, beta, gamma
+mol 2 BF Euler         = [    -0.6135,     0.5065,     0.9038 ]  pi rad   # molecule 2 in Jacobi BF; alpha, beta, gamma
+v1-v2 dihedral         =         0.3929  pi rad
+Jacobi R               =       15.22333  Ang
+SFF->Jacobi BF         = [   -0.3317,    0.9278,    0.1707 ]; [   -0.9416,   -0.3366,    0.0000 ]; [    0.0575,   -0.1607,    0.9853 ]
+Jacobi BF->mol1 BF     = [    0.0432,   -0.2079,    0.9772 ]; [    0.9791,    0.2033,   -0.0000 ]; [   -0.1986,    0.9568,    0.2124 ]
+Jacobi BF->mol2 BF     = [    0.2722,   -0.8967,   -0.3491 ]; [   -0.1223,    0.3276,   -0.9369 ]; [    0.9544,    0.2977,   -0.0204 ]
+
+[energy summary]
+component              = paper_ammonia_dat/eV paper_h2o_dat/eV       total/eV
+vibrational            =           1.3878         0.5470         1.9348
+rotational             =           0.0987         0.0495         0.1482
+velocity               =           0.0243         0.0230         0.0473
+total                  =           1.5108         0.6195         2.1303
+
+[coordinates and velocities]
+########## Initial Sample Audit ############################### 
+Audit energy   vib: generation     1.934844 eV, analysis     1.934840 eV, diff  3.467e-06 eV [OK]
+Audit energy   rot: generation     0.148278 eV, analysis     0.148227 eV, diff  5.081e-05 eV [OK]
+Audit energy   vel: generation     0.047278 eV, analysis     0.047278 eV, diff  1.388e-17 eV [OK]
+Audit energy total: generation     2.130400 eV, analysis     2.130345 eV, diff  5.428e-05 eV [OK]
+Audit angular                     L: generation       36.5596, analysis       36.5596, diff  6.395e-14 au [OK]
+Audit vector                      L: vector-norm diff  8.105e-14 au [OK]
+Audit angular                   Jab: generation       6.78752, analysis       6.78365, diff  3.872e-03 au [OK]
+Audit vector                    Jab: vector-norm diff  6.064e-03 au [OK]
+Audit angular                     J: generation       33.6212, analysis       33.6235, diff  2.265e-03 au [OK]
+Audit vector                      J: vector-norm diff  6.064e-03 au [OK]
+Audit mol scalar               m0_J: generation       8.48528, analysis       8.48399, diff  1.289e-03 au [OK]
+Audit mol scalar               m1_J: generation       4.47214, analysis       4.47018, diff  1.953e-03 au [OK]
+Audit mol vector        m0_J_vector: vector-norm diff  4.247e-03 au [OK]
+Audit mol vector        m1_J_vector: vector-norm diff  2.748e-03 au [OK]
+Audit scalar               Jacobi_R: generation        28.768, analysis        28.768, diff  0.000e+00 Ang [OK]
+Audit scalar                      b: generation       4.90953, analysis       4.90953, diff  8.882e-15 Ang [OK]
+Audit scalar     relative_velocity_mps: generation       1020.85, analysis       1020.85, diff  0.000e+00 m/s [OK]
+Audit vib                      m0_P: component-rms diff  5.096e-06, max  1.658e-05, ndof 12 [OK]
+Audit vib                      m0_Q: component-rms diff  8.064e-07, max  1.951e-06, ndof 12 [OK]
+Audit vib                      m1_P: component-rms diff  5.661e-07, max  1.504e-06, ndof 9 [OK]
+Audit vib                      m1_Q: component-rms diff  1.266e-07, max  2.561e-07, ndof 9 [OK]
+Audit angle             Jacobi_beta: circular diff  0.000e+00 rad [OK]
+Audit angle              Jacobi_chi: circular diff  0.000e+00 rad [OK]
+Audit angle             Jacobi_dphi: circular diff  0.000e+00 rad [OK]
+Audit angle              Jacobi_phi: circular diff  0.000e+00 rad [OK]
+Audit angle            Jacobi_theta: circular diff  0.000e+00 rad [OK]
+Audit angle              impact_phi: circular diff  1.051e-15 rad [OK]
+Audit decomp     m0_seckart_leakage: norm  9.222e-16 au [OK]
+Audit decomp        m0_svecJclosure: norm  1.110e-16 au [OK]
+Audit decomp     m1_seckart_leakage: norm  2.816e-15 au [OK]
+Audit decomp        m1_svecJclosure: norm  2.782e-15 au [OK]
+Initial sample audit: OK
+
+[sampling diagnostics]
+accepted samples       =              4
+total trials           =              4
+trial acceptance       =        1.00000
+J-cap rejects          =              0
+WL rejects             =              0
+WL range rejects       =              0

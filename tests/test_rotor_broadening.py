@@ -2,12 +2,53 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
-from scipy.integrate import cumulative_trapezoid
+from scipy.integrate import cumulative_trapezoid, trapezoid
 
 from icats.dist import RotorAzimuthVonMises, uniform
 from icats.mc import InitICDF
 from icats.molecules import imolecule
-from icats.rotor_sampling import RotorProjectionICDF, projection_cdf
+from icats.rotor_sampling import (RotorProjectionICDF, RotorGaussianProjectionICDF,
+                                 interval_cdf, projection_cdf)
+
+
+@pytest.mark.parametrize('j,k', [(1,1),(5,1),(5,5),(40,1),(40,40),(200,200)])
+def test_interval_cdf_independent_quadrature(j,k):
+    grid,cdf,lam = interval_cdf(j,k)
+    assert grid[0] == k-.5
+    assert grid[-1] == min(k+.5,np.sqrt(j*(j+1)))
+    assert cdf[0] == 0 and cdf[-1] == 1
+    assert np.all(np.diff(cdf) >= 0)
+    x = np.linspace(grid[0],grid[-1],65537)
+    statistic = (x-k)*(x+k)/k
+    d = np.exp(lam*statistic)
+    assert abs(trapezoid(d*statistic,x)/trapezoid(d,x)) < 1e-8
+    finer = cumulative_trapezoid(d,x,initial=0)
+    finer /= finer[-1]
+    np.testing.assert_allclose(cdf,np.interp(grid,x,finer),atol=1e-8)
+
+
+def test_interval_preserves_parent_probabilities_and_has_no_width():
+    p = np.array([.1,0,.2,.25,0,.3,.15])
+    rng = [np.random.default_rng(182)]
+    x = np.array([RotorProjectionICDF(rng,.8,3,p)[0] for _ in range(30000)])
+    labels = np.floor(x+.5).astype(int)
+    assert np.all(abs(x) <= np.sqrt(12))
+    observed = np.bincount(labels+3,minlength=7)/len(x)
+    assert np.all(abs(observed-p) < 6*np.sqrt(p*(1-p)/len(x))+1e-12)
+    assert np.all(x[labels==0] == 0)
+    assert abs(np.mean(x*x)-p@np.arange(-3,4)**2) < 6*np.std(x*x)/np.sqrt(len(x))
+    a,b = [np.random.default_rng(81)],[np.random.default_rng(81)]
+    assert [RotorProjectionICDF(a,.2,3,p)[0] for _ in range(100)] == [
+        RotorProjectionICDF(b,2.,3,p)[0] for _ in range(100)]
+
+
+def test_gaussian_comparison_retains_previous_cdf_law():
+    p = [0,1,0,0,0]
+    a,b = [np.random.default_rng(77)],[np.random.default_rng(77)]
+    grid,cdf,_ = projection_cdf(2,tuple(p),.8)
+    expected = np.interp(b[0].random(100),cdf,grid)
+    actual = [RotorGaussianProjectionICDF(a,.8,2,p)[0] for _ in range(100)]
+    np.testing.assert_array_equal(actual,expected)
 
 
 @pytest.mark.parametrize('j,k,width', [(1,1,.8), (5,2,.8), (5,5,.8),
@@ -23,7 +64,7 @@ def test_bounded_cdf_and_independent_moment(j,k,width):
     x = np.linspace(-r,r,131073)
     logd = np.logaddexp(-.5*((x-k)/width)**2,-.5*((x+k)/width)**2)+lam*(x/r)**2
     d = np.exp(logd-logd.max())
-    assert abs(np.trapz(d*x*x,x)/np.trapz(d,x)-k*k)/(j*(j+1)) < 1e-7
+    assert abs(trapezoid(d*x*x,x)/trapezoid(d,x)-k*k)/(j*(j+1)) < 1e-7
     finer = cumulative_trapezoid(d,x,initial=0)
     finer /= finer[-1]
     assert np.max(np.abs(np.interp(grid,x,finer)-cdf)) < 1e-5
@@ -112,6 +153,7 @@ def test_symmetric_top_uses_broadening_and_preserves_energy(k):
     assert abs(np.mean(errors)) < 6*np.std(errors)/np.sqrt(len(errors))+1e-12
     if k:
         assert np.std(projections) > .1
+        assert np.all(np.floor(np.array(projections)+.5) == k)
     else:
         assert np.max(np.abs(projections)) < 1e-14
 

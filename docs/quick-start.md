@@ -16,7 +16,7 @@ icats --list-tutorials
 ```
 
 Expected output is a numbered list of examples, including `quickstart`,
-`single_atom_he_he`, and Wang-Landau tutorials.
+`single_atom_he_he`, and `revision_nh3_h2o`.
 
 ## 2. Generate The Default Tutorial
 

@@ -129,34 +129,12 @@ The frame convention rotates all vectors together. Therefore `L_x`, `L_y`,
 `L_z`, `J_x`, `J_y`, and `J_z` may change when `output-frame` changes, while
 `|L|` and `|J|` should not.
 
-## Wang-Landau Diagnostics
+## Angular-Momentum Diagnostics
 
-![Intermolecular momentum distributions](assets/figures/intermom.png)
-
-Wang-Landau is used when the natural orbital proposal and the desired total
-`J` coverage are in tension. A geometric proposal samples roughly
-`P(L) ~ L`, because it follows the classical impact-parameter area element.
-For molecular collisions the sampled total `J` is then mixed with `Jab`.
-
-The practical diagnostic is not only whether a `wang.pkl` file exists. After a
-WL run, inspect:
-
-```text
-hist_sam_sys_orb_sl.png
-hist_sam_sys_orb_sj.png
-hist_sam_sys_orb_sjab.png
-```
-
-and the WL helper plots under:
-
-```text
-rd_tutorial_input/histograms/wl/
-```
-
-The WL profile should give sensible `L` and `J` coverage in the range you plan
-to analyse. Small deviations near the low-`J`/low-`L` edge can occur because
-`L`, `J`, and `Jab` are vector quantities; do not assume the requested target
-was achieved without looking at the histograms.
+Inspect the sampled `L`, `J` and `Jab` histograms and the ensemble-statistics
+report. The reference total-J distribution includes the molecular populations,
+allowed coupling channels and orbital cutoff. It is not a prescribed triangular
+histogram. Use `wang = False` for current tutorials.
 
 ## Molecular Body-Fixed Frames
 

@@ -45,5 +45,9 @@ include-package-data = true
 [tool.setuptools.package-data]
 icats = [
   "examples/*",
-  "tutorials/**/*",
+  "tutorials/README.txt",
+  "tutorials/he_nh3_state_selected/*",
 ]
+
+[tool.setuptools.exclude-package-data]
+icats = ["tutorials/precomputed/**/*"]

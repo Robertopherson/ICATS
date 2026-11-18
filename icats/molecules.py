@@ -2,8 +2,8 @@
 from .constants import *
 from .functions import *
 from .dist import *
-from .rotor_sampling import RotorProjectionICDF
-from .rotor_states import configured as state_selected, state_tables, projection_icdf
+from .rotor_sampling import RotorProjectionICDF, RotorGaussianProjectionICDF
+from .rotor_states import configured as state_selected, state_tables, projection_icdf, eigenstate_icdf, residue_weights
 from .angmom import Pz2, Py2, Px2, Pz, Px, Py, WangTran, Wz2, Wy2, Wx2
 from spherical import Wigner
 import quaternionic as quat
@@ -127,6 +127,8 @@ class imolecule:
               self.rotor_state = None
               self.rotor_k_rule = 'all'
               self.rotor_allowed_k = None
+              self.rotor_axis = 'auto'
+              self.rotor_k_weights = None
               self.diagdir = "."
               return 
         self.ip = minppar()
@@ -167,6 +169,13 @@ class imolecule:
                 if ip.rotor_azimuth not in ("legacy", "vonmises"):
                     raise ValueError("rotor-azimuth must be legacy or vonmises")
                 self.log.append("   Rotor azimuth sampling: " + ip.rotor_azimuth + "\n")
+            if ky == "rotor-axis":
+                if len(val) != 1 or val[0].lower() not in ('auto', 'a', 'b', 'c'):
+                    raise ValueError('rotor-axis must be auto, a, b or c')
+                ip.rotor_axis = val[0].lower()
+            if ky == "rotor-k-weights":
+                ip.rotor_k_weights = tuple(float(v) for v in val)
+                residue_weights(ip)
             if ky == "rotor-state":
                 if len(val) != 2:
                     raise ValueError('rotor-state requires J and |K|')
@@ -186,8 +195,8 @@ class imolecule:
                 ip.atomic_masses = np.asarray([float(v) for v in val])
             if ky == "rotor-polar":
                 ip.rotor_polar = val[0].lower()
-                if ip.rotor_polar not in ("broadened", "legacy"):
-                    raise ValueError("rotor-polar must be broadened or legacy")
+                if ip.rotor_polar not in ("interval", "broadened", "legacy"):
+                    raise ValueError("rotor-polar must be interval, broadened or legacy")
             if ky == "rotor-k-width":
                 ip.rotor_k_width = float(val[0])
                 if not np.isfinite(ip.rotor_k_width) or ip.rotor_k_width < 0:
@@ -582,7 +591,7 @@ class imolecule:
            sa.SampInfo['rot'] = {}
         #assumes we have sampled J
         J = abs(sa.sJ)
-        broadened = getattr(ip, 'rotor_polar', 'broadened') == 'broadened'
+        broadened = getattr(ip, 'rotor_polar', 'interval') != 'legacy'
         eej = sp.J2c*J*(J+1)
         if J == 0:
            ax = 'A'
@@ -678,8 +687,10 @@ class imolecule:
           sa.SampInfo['rot']['asymd'] = [bet0,bets,sig]
         if 'asym' in sp.rsym and J >0:
           sa.SampInfo['rot']['idjz'] = id
-        sa.SampInfo['rot']['polar_sampler'] = getattr(ip, 'rotor_polar', 'broadened')
-        sa.SampInfo['rot']['k_width'] = getattr(ip, 'rotor_k_width', 0.8)
+        polar_mode = getattr(ip, 'rotor_polar', 'interval')
+        width = getattr(ip, 'rotor_k_width', 0.8)
+        sa.SampInfo['rot']['polar_sampler'] = polar_mode
+        sa.SampInfo['rot']['k_width'] = (width if polar_mode == 'broadened' or width == 0 else None)
         sa.SampInfo['rot']['gamm']   = gamm
         sa.SampInfo['rot']['vecJ']   = vecJ
         if J == 0:
@@ -835,7 +846,7 @@ class imolecule:
         xx = reshape(x, (sp.na, 3))
         vv = (reshape(p, (sp.na, 3)).T /sp.mass).T
         xx -= COM(xx,sp.mass).T
-        #vv -= COM(vv,sp.mass).T
+        vv -= COM(vv,sp.mass).T
         U = EckartFrameTrans(sp.xxe, sa.sxx, sp.mass)
         # move vectors to current (non) eckart frame:
         xx = matmul(U.T, xx.T).T
@@ -1206,14 +1217,21 @@ class imolecule:
         sp = self.sp 
         ip = self.ip 
         self.log.append("   #### Standard Orientation: \n")
+        requested_axis = getattr(ip, 'rotor_axis', 'auto')
+        if requested_axis not in ('auto', 'a', 'b', 'c'):
+            raise ValueError('rotor-axis must be auto, a, b or c')
+        residue_weights(ip)
         sp.x0 += -COM(sp.x0, sp.mass).T
         if sp.na == 1:
+            if requested_axis != 'auto' or state_selected(ip):
+                raise ValueError('Rotor axis/state restrictions do not apply to atoms')
             self.log.append("   No standard orinetation: \n")
             sp.rsym = "atom"
             x0 = sp.x0
         else:
             S2B, Ibm, Is = iI(iX(sp.x0), iX(sp.x0), sp.mass)
             Ib = diag(Ibm).copy()
+            principal_inertia = Ib.copy()
             sp.rA, sp.rB, sp.rC = 0.5 / (Ib + 1.0e-20)
             # Shape descriptors are separate from the choice of quantization axis.
             linear = abs(Ib[0]) < 0.001
@@ -1249,6 +1267,16 @@ class imolecule:
                 if 'asym' not in sp.rsym:
                     sp.Jcc = 0.0
                 self.log.append("   Quantization axis: " + axis + "; closest transverse constants; mapped to body z\n")
+            if requested_axis != 'auto':
+                rep = {'a':1, 'b':2, 'c':3}[requested_axis]
+                if linear or spherical:
+                    raise ValueError('Explicit rotor-axis requires a nonlinear nonspherical rotor')
+                if 'asym' not in sp.rsym and rep != sp.Irep:
+                    raise ValueError('For symmetric tops rotor-axis must be the unique symmetry axis')
+                self.SetOrientatConvention(S2B, principal_inertia, rep)
+                if 'asym' not in sp.rsym:
+                    sp.Jcc = 0.0
+                self.log.append('   User quantization axis: '+requested_axis+'; mapped to body z\n')
             self.log.append("   Rotor type : " + sp.rsym + "\n")
             x0 = matmul(sp.S2B, sp.x0.T).T
         sp.xxe, sp.x0 = x0.copy(), x0.copy()
@@ -1795,21 +1823,33 @@ class imolecule:
                            else reject_phi)
         if sp.na > 1 and T >= 0:
             width = getattr(ip, 'rotor_k_width', 0.8)
-            sa.dist['rotK'] = {'cont': InitICDF(1, RotorProjectionICDF, [width],
+            polar_mode = getattr(ip, 'rotor_polar', 'interval')
+            polar_sampler = (RotorGaussianProjectionICDF if polar_mode == 'broadened'
+                             else RotorProjectionICDF)
+            sa.dist['rotK'] = {'cont': InitICDF(1, polar_sampler, [width],
                                              par0=[0, [1.]], seed=seed*821)}
             log += ['Rotor direction: polar={}, K width={}, azimuth={}\n'.format(
-                getattr(ip, 'rotor_polar', 'broadened'), width,
+                polar_mode, width if polar_mode == 'broadened' or width == 0 else 'not used',
                 getattr(ip, 'rotor_azimuth', 'vonmises'))]
             log += ["Generated rotational state distro temperature " + str(T) + "\n"]
             if state_selected(ip):
                 prob, projections = state_tables(self, T)
                 sa.dist['rotJ'] = {'MaxR':len(prob)-1, 'probabilities':prob,
                     'cont':InitICDF(1, RotorTotBoltzICDF, [prob], seed=seed*17)}
-                sa.dist['srotJz'] = {'cont':InitICDF(1, projection_icdf, [projections],
+                if 'asym' in sp.rsym:
+                    sa.dist['arotJz'] = {'cont':InitICDF(1, eigenstate_icdf, [projections, sp.RR],
+                                                       par0=[int(np.argmax(prob))], seed=seed*127)}
+                    sa.dist['arotGam'] = {'cont':InitICDF(1, azimuth_sampler, [], par0=[1.,1.], seed=seed*401)}
+                    sa.dist['arotBetB'] = {'cont':InitICDF(1, reject_GaussSin, [], par0=[0.,0.,0], seed=seed*409)}
+                    sa.dist['arotBing'] = {'cont':InitICDF(1, reject_bingham, [], par0=[np.ones(3)], seed=seed*311)}
+                else:
+                    sa.dist['srotJz'] = {'cont':InitICDF(1, projection_icdf, [projections],
                                                    par0=[int(np.argmax(prob))], seed=seed*73)}
                 sa.dist['srotGam'] = {'cont':InitICDF(1, uniform, [-pi,pi], seed=seed*433)}
                 log += [f'Rotational preparation: state={ip.rotor_state}, K rule={ip.rotor_k_rule}, '
                         f'allowed |K|={ip.rotor_allowed_k}\n']
+                if getattr(ip, 'rotor_k_weights', None) is not None:
+                    log += [f'User signed-K residue weights (modulo {len(ip.rotor_k_weights)}): {ip.rotor_k_weights}\n']
                 if ip.rotor_k_rule != 'all':
                     log += ['NH3 ground-state rotational restrictions; inversion splitting is omitted.\n']
             elif T > 0:
@@ -1924,10 +1964,10 @@ class imolecule:
                    #for A irrep Wang eigenstates
                    sa.dist['arotBing'] = {}
                    sa.dist['arotBing']['cont'] = InitICDF(1,reject_bingham, [],par0=[sig3],seed=seed*311)
-                   if nsamp != 0 and getattr(ip, 'rotor_polar', 'broadened') == 'broadened':
+                   if nsamp != 0 and polar_mode != 'legacy':
                      # Diagnostic streams must use the production law without
                      # advancing the production random-number streams.
-                     polar = InitICDF(1, RotorProjectionICDF, [width], par0=[0,[1.]], seed=seed*827)
+                     polar = InitICDF(1, polar_sampler, [width], par0=[0,[1.]], seed=seed*827)
                      azimuth = InitICDF(1, azimuth_sampler, [], par0=[1.,1.], seed=seed*829)
                      for iJ in range(1,MaxR+1):
                        for state in range(2*iJ+1):
@@ -1938,7 +1978,7 @@ class imolecule:
                          gamma = [ICDFsample(azimuth,*jxy)[0] for _ in range(nsamp)]
                          hist_emit(beta, f"rot_beta_J{iJ}_{state}", stage="initial", scope=f"molecule_m{ip.mi}")
                          hist_emit(gamma, f"rot_gamma_J{iJ}_{state}", stage="initial", scope=f"molecule_m{ip.mi}")
-                   if nsamp != 0 and getattr(ip, 'rotor_polar', 'broadened') == 'legacy':
+                   if nsamp != 0 and polar_mode == 'legacy':
 
                      #example for J=Ji, ei eigenstate
                      for iJ in range(MaxR):

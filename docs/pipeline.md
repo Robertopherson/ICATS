@@ -72,12 +72,8 @@ rd_tutorial_input/outputs/out_*.xyz or out_*.md.xyz
 rd_tutorial_input/outputs/out_*.vel or out_*.md.vel
 ```
 
-For Wang-Landau tutorials, the run directory can also contain:
-
-```text
-rd_tutorial_input/wang.pkl
-rd_tutorial_input/histograms/wl/
-```
+The revised tutorials also write an ensemble-statistics report under
+`rd_tutorial_input/convergence/`. They do not require a Wang-Landau profile.
 
 After `./run_analysis.sh`:
 

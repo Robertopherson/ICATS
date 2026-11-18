@@ -28,6 +28,9 @@ def main():
     cases={};coverage=[]
     paths=sorted({p.resolve() for root in args.inputs for p in root.rglob('final.csv.gz')})
     if not paths:raise ValueError('No completed final.csv.gz files found')
+    modes={json.loads((p.parent/'manifest.json').read_text()).get('polar','broadened') for p in paths}
+    if len(modes)!=1:raise ValueError('Plot interval and historical Gaussian batches separately; do not mix their ensembles')
+    polar=modes.pop()
     for path in paths:
         manifest=json.loads((path.parent/'manifest.json').read_text())
         key=manifest['j'],manifest['k'],manifest['width']
@@ -40,7 +43,7 @@ def main():
         assert data['max_orthogonality_error'].max()<1e-6
         lo,hi=manifest['bmin'],manifest['bmax']
         cases.setdefault(key,{}).setdefault((lo,hi),[]).append(data)
-        coverage.append(dict(path=str(path),initial_j=key[0],initial_K=key[1],width=key[2],
+        coverage.append(dict(path=str(path),initial_j=key[0],initial_K=key[1],width=key[2],polar=polar,
                              bmin=lo,bmax=hi,n=len(data),seed=manifest['seed']))
     seen=set()
     for c in coverage:
@@ -102,7 +105,8 @@ def main():
             for s in widths:
                 g=sorted([r for r in op if r['initial_j']==j and r['width']==s and r['final_j']==target],key=lambda r:r['b'])
                 xx,yy,ee=([r[key] for r in g] for key in ('b','opacity','se'))
-                ax.errorbar(xx,yy,yerr=ee,color=colors.get(s),marker='o',ms=2.5,capsize=2,lw=1,label=f'Classical s={s:g}')
+                label=('Classical sharp K' if s==0 else 'Classical interval' if polar=='interval' else f'Classical Gaussian s={s:g}')
+                ax.errorbar(xx,yy,yerr=ee,color=colors.get(s),marker='o',ms=2.5,capsize=2,lw=1,label=label)
                 ymax=max(ymax,float(np.nanmax(np.array(yy)+np.array(ee))))
             ax.text(.96,.94,f"j'={target}",transform=ax.transAxes,ha='right',va='top')
             ax.set_xlim(0,8);ax.set_xticks([0,2,4,6] if col<2 else [0,2,4,6,8]);ax.grid(alpha=.2)

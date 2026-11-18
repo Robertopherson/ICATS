@@ -73,7 +73,7 @@ shape `2v + 1`.
 For molecular rotations, the natural variables are angular momenta rather than
 Cartesian velocities. ICATS therefore uses a quasi-classical vector model:
 sample a rotational state, construct a classical angular momentum vector with
-length close to `sqrt(J(J+1))`, then convert that vector into an angular
+length `sqrt(J(J+1))`, then convert that vector into an angular
 velocity field on the reference geometry.
 
 ```text
@@ -90,7 +90,8 @@ samples the incoming geometric measure without Wang-Landau reweighting.
 
 ```text
 d sigma       proportional to b db
-P(L) dL       proportional to (2L + 1) dL
+P(ell) d ell  proportional to ell d ell, where ell = |L_vector|
+discrete L    has partial-wave weight 2L + 1
 J             = L + J_AB
 J_AB          = J_A + J_B
 ```
@@ -99,8 +100,11 @@ The molecular total-J marginal includes the allowed incoming angular channels;
 it is not generally proportional to 2J+1 alone. The ensemble statistics compare
 against those channel counts, including the orbital cutoff. Legacy WL options
 remain for reproducing older experiments, not as the revised physical measure.
-Uniform-L proposals require restoring the geometric L weight when estimating
-cross sections; no additional correction to force a triangular J marginal is needed.
+Flat proposals require restoring the geometric weight when estimating cross
+sections; no additional correction to force a triangular J marginal is needed.
+`flat-l` is uniform in the continuous quantum-like label L, with
+`ell=sqrt(L(L+1))`; its Jacobian is proportional to `2L+1`.
+`flat-b` is uniform in b, and its area weight is proportional to b.
 
 ## Distributions Used In ICATS
 
@@ -115,22 +119,21 @@ logs, histogram file names, or input options.
 | Rigid-rotor total angular momentum | molecular `J` | `(2J + 1)` times the sum of Boltzmann weights over all rotational sublevels at that `J` |
 | Symmetric-top projection | body-fixed `K` or projection-like coordinate | Boltzmann projection distribution at fixed `J` |
 | Asymmetric-top state | Wang-basis eigenstate at fixed `J` | Boltzmann distribution over asymmetric-rotor eigenenergies and symmetry labels |
-| Asymmetric vector model | projection spread and unresolved azimuth | rejection-sampled Gaussian-sine, azimuthal, or Bingham-like auxiliary distributions chosen from the Wang-state expectation values |
+| Asymmetric vector model | projection spread and unresolved azimuth | within-K-interval smoothing and von Mises azimuth, constrained to preserve the quantum second moments |
 | Molecular orientation | Euler angles | isotropic orientations by default, or fixed/user-supplied orientation PDFs through `orientation-mode` |
 | Impact parameter | `b` | geometric incoming-flux measure, `P(b) db proportional to b db` on the requested interval |
-| Orbital angular momentum | `L` | geometric/default proposal, `P(L) dL proportional to (2L + 1) dL`, or uniform proposal with `orbital-sampling = flat-l` |
-| Total angular momentum | `J` | default target partial-wave measure, `P(J) dJ proportional to (2J + 1) dJ`, or approximately flat target with `wl-target = flat-j` |
+| Orbital angular momentum | `L` | geometric magnitude density proportional to `ell`; `flat-l` is uniform in the continuous label with `ell=sqrt(L(L+1))`; discrete channels have weights `2L+1` |
+| Total angular momentum | `J` | vector sum of orbital and molecular angular momenta; compared with quantum channel counts for the same preparation and cutoff |
 | Orbital azimuth | `phi` | uniform angle when `phisample = True` |
 | Relative speed | intermolecular velocity | Crossed-beam molecular speed distributions, direct relative-speed/channel input, or Maxwell-Boltzmann relative-speed sampling, depending on input mode |
-| Wang-Landau correction | accepted total `J` | rejection weight proportional to `(2J + 1) / Omega_t(J)` for `linear-j`, or `1 / Omega_t(J)` for `flat-j` |
 
 The important practical point is that these distributions are not all sampled
 at the same level. Vibrational and rotor state distributions define internal
 molecular states. Orientational and phase-space distributions turn those states
 into Cartesian coordinates and velocities. Intermolecular distributions define
-the incoming collision geometry. Wang-Landau then acts on the combined trial
-sample, after `L`, `J_A`, and `J_B` have already produced a candidate total
-angular momentum.
+the incoming collision geometry. The revised workflow does not apply an
+additional total-J rejection weight. A flat orbital proposal instead requires
+the corresponding area weights when estimating cross sections.
 
 Thermal rotor sampling first draws `J` from
 `P(J) proportional to (2J+1) sum_tau exp[-E(J,tau)/(k_B Trot)]`, then draws
@@ -138,7 +141,8 @@ the sublevel conditionally at that `J`. Here `tau` is `K` for a symmetric top
 or an eigenlevel index for an asymmetric top. A spherical top therefore has
 the unrestricted weight `(2J+1)^2 exp[-B J(J+1)/(k_B Trot)]`; a linear rotor
 has only one body-fixed level and one `(2J+1)` factor. Nuclear-spin statistical
-restrictions are not included. The automatic rotational cutoff uses a
+restrictions are included only when supplied by the user through state/projection
+weights; they are not inferred automatically. The automatic rotational cutoff uses a
 conservative Boltzmann-tail bound rather than a single-state probability.
 
 Runs made before this correction must be regenerated in a fresh run directory.
@@ -146,6 +150,26 @@ Old worker checkpoints and Wang-Landau profiles cannot be reused with the new
 rotor and geometric-orbital sampling. Existing tutorial reference data and
 bundled profiles require regeneration before they can serve as references for
 the corrected sampler.
+
+### Nuclear-Spin Restrictions
+
+When supplied, nuclear-spin weights multiply the quantum level populations
+before either J or its sublevel is drawn. A zero weight excludes the level.
+They do not arise automatically from sampling molecular orientations.
+
+ICATS accepts the documented NH3 ortho/para presets, or a user-specified
+principal quantization axis and weights for K modulo an integer. For an
+asymmetric rotor, an eigenvector must have support only on equally weighted
+K values; otherwise the rule is rejected rather than truncating that state.
+The program does not infer these rules from the molecular point group.
+They depend on the isotopologue and electronic/vibrational symmetry.
+See [State-selected rotors](state_selected_rotors.txt) for inputs, water
+examples and the unresolved-inversion convention used by the NH3 presets.
+
+For a specified nonequilibrium ortho/para mixture, prepare the species
+separately and combine them with the requested fractions. Thermal statistical
+weights alone do not prescribe a fixed experimental mixture. Initial-state
+restrictions also do not enforce final-state rules during classical propagation.
 
 ## User Orientation PDFs
 
@@ -191,6 +215,11 @@ that axis should be rotated into the scattering frame inside the user PDF. This
 keeps the molecule-level polarization separate from the impact-parameter
 azimuth `impact-phi`, which controls the collision plane.
 
+This describes preparation before a field-free collision. It does not add an
+external-field Hamiltonian in the interaction region or quantum interference
+between scattering amplitudes. Classical polarization observables can still
+be estimated from the prepared trajectories, subject to those approximations.
+
 ## Intermolecular Velocity Ensembles
 
 The incoming translational motion can be interpreted in two different ways.
@@ -207,7 +236,8 @@ E_coll  = 0.5 * mu * v_rel^2
 ```
 
 This is the natural model for a crossed-beam experiment where the beam
-velocities and crossing angle are known.
+velocities and crossing angle are known. It specifies an incoming ensemble,
+not an additional factor to multiply into every fixed-energy cross section.
 
 In a direct-channel interpretation, the user specifies the relative incoming
 channel itself. The equivalent quantities are:
@@ -223,6 +253,13 @@ of `incoming-p0` and `incoming-k` are the same when both are expressed in
 atomic units. This direct-channel setup is closest to the usual partial-wave
 language, where an incoming channel is labelled by `k` and semiclassically
 `L approx k b`.
+
+For a cross section at a specified collision energy, use a fixed incoming
+momentum. An experimental comparison may instead require averaging these
+cross sections over the incoming momentum distribution. A rate coefficient
+also includes the relative speed: `<v_rel sigma>`. Its weighting must match
+the experimental beam or thermal ensemble; it is not just the cross section
+multiplied by an arbitrary incident intensity.
 
 ## Generation-To-Analysis Workflow
 
@@ -246,10 +283,9 @@ physical order is:
    constructs the impact displacement so that the requested `b` and
    `impact-phi` give the corresponding orbital angular momentum.
 
-4. Apply optional trial rejection.
-   Non-Wang-Landau runs accept the trial after the ordinary range checks.
-   Wang-Landau runs accept or reject the trial according to the stored or newly
-   constructed `wang.pkl` umbrella for the requested `wl-target`.
+4. Check the requested sampling domain.
+   The revised workflow accepts the trial after the ordinary range checks,
+   without additional rejection to impose a prescribed total-J histogram.
 
 5. Add intramolecular vibration.
    With `vib-mode = sample`, ICATS samples harmonic normal-mode states and
@@ -454,7 +490,7 @@ energy decomposition.
 
 Molecular rotations are sampled with the quasi-classical vector model. For a
 sampled rotor state, the code builds a classical angular momentum vector with
-length approximately
+length
 
 ```text
 |J| = sqrt(J(J+1))
@@ -484,15 +520,18 @@ The corresponding reference-geometry rotor energy is
 E_vector = 0.5 * sum_i J_vector_i^2 / I_ref_i
 ```
 
-This is the energy that should be compared to the sampled rigid-rotor energy
-when validating the initial condition.
+This is the phase-point rotor energy recovered in the initial-condition audit.
+Moment-preserving sampling makes its ensemble mean equal to the selected
+rigid-rotor level energy. Individual samples need not have that level energy.
 
 ## Rotor Types
 
 ICATS classifies each molecule from the principal moments of inertia of the
 reference geometry. The code records a rotor type such as `atom`, `linear`,
-`prolate`, `oblate`, `spherical`, `asym-prolate`, `asym-oblate`, or
-`asym-spherical`.
+`prolate`, `oblate`, `spherical`, `asym-prolate`, or `asym-oblate`.
+The spherical test uses the spread of the rotational constants. Ray's kappa
+distinguishes prolate-like from oblate-like asymmetry but does not measure
+proximity to a sphere.
 
 Atoms have no molecular rotational or vibrational space in this model, so their
 molecular `Trot` and `Tvib` are forced to zero.
@@ -501,10 +540,10 @@ Linear rotors have one vanishing principal moment. ICATS samples the total
 rotational angular momentum and treats the body-fixed projection consistently
 with the linear-rotor limit.
 
-Near-symmetric tops, labelled `prolate` or `oblate`, are handled with the
-standard vector-model picture: sample total `J`, sample the body-fixed
-projection, choose the unresolved azimuthal angle, and build the classical
-angular momentum vector on the corresponding cone.
+Symmetric tops, labelled `prolate` or `oblate` within the numerical tolerance,
+use a discrete `J,K` state. The default smooths the projection within its
+unit-width interval while preserving its second moment; the azimuth is
+uniform. Select sharp K to recover the ordinary vector-model cone.
 
 Spherical tops are close to isotropic in their rotational constants. Their
 rotational energy is essentially controlled by `J(J+1)`, while the direction of
@@ -513,13 +552,68 @@ the angular momentum is sampled isotropically.
 Asymmetric tops require the most machinery. ICATS diagonalises the asymmetric
 rotor Hamiltonian in a Wang-state basis for each `J`. It stores the eigenstate
 energies, symmetry labels, and expectation values such as `<J_x^2>`, `<J_y^2>`,
-and `<J_z^2>`. The extended vector model broadens the discrete projection
-probabilities and corrects their second moment by exponential reweighting.
+and `<J_z^2>`. The extended vector model selects K with its discrete quantum
+probability, then smooths within its unit-width interval, bounded by the vector
+length. Exponential reweighting preserves the selected projection's second
+moment. K=0 stays sharp; the default has no adjustable smoothing width.
 A von Mises azimuthal distribution preserves the transverse second moments.
 The quantization axis is chosen from the closest pair of transverse rotational
 constants, not from the state's Wang irrep. The vector length is exact per draw;
 the mean rotational energy is correct within numerical and sampling errors.
 The full quantum angular density is only approximated.
+
+### Projection Smoothing
+
+First choose an integer projection `K` with its quantum probability. For a
+symmetric-top state this is its specified projection; for an asymmetric
+eigenstate `sum_K a_K |J,K>`, the probability is `|a_K|^2`.
+Write `r = sqrt(J(J+1))`. The continuous projection `Kc` is restricted to
+the interval `[K-1/2, K+1/2]`, intersected with `[-r,r]`.
+
+Starting from a normalized uniform density `b_K` on that interval, ICATS uses
+
+```text
+rho_K(Kc) = b_K(Kc) exp(lambda_K Kc^2) / Z_K
+integral rho_K(Kc) dKc = 1
+integral Kc^2 rho_K(Kc) dKc = K^2
+```
+
+The numerical multiplier enforces the second moment. This exponential tilt
+minimizes the relative entropy `integral rho_K log(rho_K/b_K) dKc` subject to
+the two constraints: it changes the uniform prior only as needed to satisfy
+them. The implementation rescales the exponent for numerical stability, which
+does not change the distribution. Negative projections use the mirrored law.
+For `K=0`, the second-moment constraint requires `Kc=0`, so it stays sharp.
+Rounding `Kc` back to its parent integer preserves the discrete K probabilities.
+Use `rotor-k-width = 0` for sharp projections throughout; the default interval
+method has no adjustable width. Gaussian broadening is a historical option,
+not the current default.
+
+### Transverse Moments
+
+The remaining vector components satisfy
+
+```text
+Jx = sqrt(r^2-Kc^2) cos(gamma)
+Jy = sqrt(r^2-Kc^2) sin(gamma)
+```
+
+For target moments `A=<Jx^2>` and `B=<Jy^2>`, a uniform azimuth is sufficient
+only when `A=B`. Otherwise ICATS minimizes relative entropy from the uniform
+azimuth with the required moment difference. This gives the axial von Mises law
+
+```text
+rho(gamma) = exp(lambda_gamma cos(2 gamma)) / (2 pi I0(lambda_gamma))
+<cos(2 gamma)> = I1(lambda_gamma)/I0(lambda_gamma) = (A-B)/(A+B)
+```
+
+Here `I0` and `I1` are modified Bessel functions. The second equation is solved
+numerically for the multiplier. Independent projection and azimuth sampling
+then gives `<Jx^2>=A` and `<Jy^2>=B`, since `<r^2-Kc^2>=A+B`.
+Equal moments give the uniform law; a zero transverse moment gives a limiting
+pair of opposite directions. These constraints preserve the mean rotor energy,
+not every higher moment or the full quantum projection distributions along
+all axes. Molecular orientation in space is sampled separately.
 
 The point of this machinery is practical: the user can give a general
 polyatomic geometry and Hessian, and ICATS will choose the closest rotor model
@@ -559,13 +653,19 @@ but the components are expressed in the Eckart molecular frame.
 This is the reference-geometry rigid-rotor contribution
 
 ```text
-J0 = I0 Omega_Eck
+Jref = sum_i m_i (x_i^0 cross v_i^b)
+Omega_ref = inverse(I0) Jref                 [reference model]
+Omega_Eck = inverse(I0 + K1(u)) Jref         [general snapshot]
+J0 = I0 Omega
 ```
 
-where `I0` is the reference inertia tensor. For a generated initial condition,
-`J0` independently reconstructs the vector-model angular momentum imposed by
-the sampler. `rigid J0, space` is the same vector rotated back to the
-space-fixed frame.
+Here `I0` is the reference inertia tensor and `K1(u)` is the mixed reference-
+displacement inertia matrix. The inverse is taken on the rotational subspace
+for linear molecules. The immediate generated-sample analysis uses
+`Omega_ref`, which reconstructs the imposed vector-model rotation.
+General trajectory analysis uses `Omega_Eck`. The printed `J0` therefore
+depends on the analysis convention, not just the output frame.
+`rigid J0, space` is the same vector rotated back to the space-fixed frame.
 
 ### Geometry And Intrinsic Contributions
 
@@ -594,6 +694,12 @@ generated-sample analysis therefore uses the matching reference-rotation
 decomposition: the second-order geometry term is zero, while `J0` remains the
 direct round-trip test of the sampled vector model.
 
+The matching internal velocities are `v_i^b - Omega_ref cross x_i^0` for
+the reference construction and `v_i^b - Omega_Eck cross x_i` for a general
+snapshot. They need not coincide for a deformed molecule. Normal-mode analysis
+projects onto the reference vibrational subspace; it should not be identified
+with the general Eckart internal velocity without that distinction.
+
 ### Rotational Energies
 
 `rigid rot. energy` uses `J0` and the reference principal moments:
@@ -620,11 +726,19 @@ The intermolecular variables describe the motion of the two molecular centres
 of mass. ICATS samples an orbital angular momentum `L`, a relative speed, an
 initial separation `Rz`, and an impact parameter `b`.
 
-The sampled orbital vector has length
+In continuous modes, the sampled orbital magnitude `ell` determines
 
 ```text
-|L| = sqrt(L(L+1))
+ell = |L_vector| = k b
 ```
+
+The `maxl` label sets the magnitude cap `sqrt(maxl*(maxl+1))` in the
+continuous-L mode. It does not quantize every draw. The experimental discrete
+orbital-channel option instead fixes an integer L. Its `sqrt` rule uses
+`b=sqrt(L(L+1))/k`, while `langer` uses `b=(L+1/2)/k`; both assign area
+`pi(2L+1)/k^2`. The `uniform-b` rule samples within that channel's annulus.
+These quadratures still use classical trajectory probabilities; see
+[Orbital-channel inputs](orbital_channel_experiment.txt).
 
 The two molecular vector-model angular momenta are rotated into the space frame
 and added:
@@ -651,6 +765,42 @@ q = 0.5 * (-1 + sqrt(1 + 4 |A|^2))
 
 The printed `(QM: ...)` values are this inverse map from a classical vector
 length back to an effective quantum number.
+
+## Cross-Section Estimates
+
+At fixed incoming momentum, let `S_f` be 1 when a trajectory has the selected
+outcome and 0 otherwise. For geometrically sampled b on `[0,bmax]`,
+
+```text
+sigma_f = pi bmax^2 mean(S_f) = pi bmax^2 N_f/N
+```
+
+For uniform b on `[bminus,bplus]`, the area-weighted estimate is
+
+```text
+sigma_f = mean[2 pi (bplus-bminus) b S_f]
+```
+
+Add estimates from separately sampled intervals. Divide each interval's cross
+section by its annular area to obtain its area-averaged opacity. The unweighted
+outcome fraction instead averages uniformly in b.
+
+For `flat-l` on `[0,Lmax]`, with `ell=sqrt(L(L+1))`, use
+`mean[pi Lmax (2L+1) S_f/k^2]`. Do not substitute the flat-b weight: these
+proposals differ at small L. Area units follow the length units; recorded
+orbital weights are in bohr squared.
+
+Binning these already weighted trajectories by total J does not require
+another `2J+1` factor. The quantum total-J expression includes sums over the
+incoming orbital and molecular channels as well as this multiplicity.
+The diagnostic channel-count histogram checks their statistical representation,
+not the scattering dynamics or its convergence.
+
+Final-state binning is a separate approximation. Classical dynamics does not
+enforce quantum nuclear-spin selection rules or discrete energy thresholds.
+The supplied scattering examples state their rejection rules and denominators
+explicitly. Renormalizing the retained trajectories changes the estimator and
+must not be done silently.
 
 ## Intermolecular Analysis
 
@@ -791,6 +941,14 @@ molecule near one reference structure. They are most appropriate for small
 amplitude vibrations and well separated collision partners. Large-amplitude
 motion, floppy modes, strong Coriolis coupling, centrifugal distortion, or a
 poor potential-energy surface can all make the decomposition less clean.
+
+Independent rotor and oscillator sampling does not generate a coupled
+rovibrational Boltzmann ensemble. Coriolis and intrinsic angular-momentum
+contributions can nevertheless be present in the resulting Cartesian motion.
+Under independent symmetric vibrational sampling the mean intrinsic vector
+vanishes; its mean squared magnitude need not vanish. Degenerate modes can
+carry persistent vibrational angular momentum. These limitations are not
+removed by the reference-frame choice or by the angular closure check.
 
 ICATS tries to expose those limitations rather than hiding them. The separate
 rigid, geometry-dependent, intrinsic-vibrational, and intermolecular analysis
