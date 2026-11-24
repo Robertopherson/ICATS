@@ -71,7 +71,7 @@ CSV tables. Finite-sample residuals should be interpreted with their statistical
 uncertainties, not as exact identities for every trajectory.
 
 The paper figures use a separate, saved 100,000-sample NH3 + H2O ensemble.
-Figures 7, 9 and 10 share that ensemble; Figure 8 contains separate fixed-state
+Figures 8, 10 and 11 share that ensemble; Figure 9 contains separate fixed-state
 angular comparisons. The revised supporting-data workflow is being packaged;
 the short preparation above is not a claim to reproduce those exact figures.
 The old WL export scripts and profiles are not the revised paper workflow.

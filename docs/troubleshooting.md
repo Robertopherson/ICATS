@@ -70,7 +70,9 @@ are slow or restricted.
 
 The Wang-Landau tutorials are retired. Preserve the old directory for historical
 reference, then generate `revision_nh3_h2o` in a fresh directory. Do not reuse
-old worker checkpoints or umbrellas with the revised sampler.
+old worker checkpoints or umbrellas with the revised sampler. See
+[Historical Sampling Methods](wang-landau.md) for background on what was changed
+and why.
 
 ## No histogram plots appear
 

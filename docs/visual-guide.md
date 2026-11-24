@@ -294,7 +294,7 @@ Use this quick map when reading a tutorial `.info` file:
 | --- | --- | --- |
 | Lab/collision frame | `output-frame`, `beam-angle`, `relative-velocity`, `incoming-k` | `output frame`, `relative velocity`, `collision energy`, `P_R` |
 | Impact plane | `fixed-b`, `maxb`, `impact-phi`, `orbital-sampling` | `b`, `impact phi`, `L` |
-| Total angular momentum | `maxl`, `maxj`, `wang`, `wl-target` | `Ja`, `Jb`, `Jab`, `L`, `J = L + Jab` |
+| Total angular momentum | `maxl`, `maxj`, `orbital-sampling` | `Ja`, `Jb`, `Jab`, `L`, `J = L + Jab` |
 | Molecular orientation | `orientation-mode`, `orientation-frame`, `rot-param` | `alpha,beta,gamma`, `wx,wy,wz` |
 | Rotor model | `Trot`, molecule geometry/top type | `rigid J0`, `full J`, geometry terms, `intrinsic pi`, rotational energies |
 | Vibrations | `Tvib`, `vib-mode`, `nfreeze`, Hessian/frequencies | `Q`, `P`, `vstat`, `internal residual` |

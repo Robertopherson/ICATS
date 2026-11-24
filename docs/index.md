@@ -39,6 +39,7 @@ the user can check what the Cartesian sample actually contains.
 - [Dynamics and Analysis Pipeline](pipeline.md)
 - [Diagnostics and Audits](diagnostics.md)
 - [Troubleshooting](troubleshooting.md)
+- [Historical Sampling Methods](wang-landau.md)
 - [Outreach Collision Player](videos.md)
 
 ## What ICATS Does

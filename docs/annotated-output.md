@@ -689,9 +689,9 @@ inspect histograms as well:
 ./rd_tutorial_input/histograms/compare_initial_sampled.py --render-unmatched
 ```
 
-For Wang-Landau runs, inspect both the Wang-Landau umbrella and the sampled
-`L`/`J` distributions. A good-looking single sample does not prove that the
-ensemble populated the intended angular-momentum range.
+Inspect the sampled `L`, `J`, and `Jab` distributions and compare them with
+the reference counts in `ensemble_statistics.txt`. A good-looking single sample
+does not prove that the ensemble populated the intended angular-momentum range.
 
 For the focused system angular-momentum check, use:
 
