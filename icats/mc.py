@@ -18,25 +18,15 @@ def step(xx, oe, Fx, par, domain, dl):
     float: New energy of the system.
     list: Mole fractions of particles moved during the step.
     """
-    debug = True
-    debug = False
-    ne, k = 0.0, 0
-    while (k < 10000 and ne <= 1.0e-15):
-        mox = zeros(len(xx))
-        nx = copy(xx)
-        while sum(abs(mox)) <= 0.0:
-            for xi in range(len(xx)):
-                if random.random() > 0.60:
-                    mox[xi] += 1
-                    nx[xi] += (random.random() - 0.5) * dl[xi]
-        nx = putwithindomain(nx, xx, dl, domain)
-        ne = Fx(nx, *par)
-        if debug:
-            print('pnx = ', nx, (random.random() - 0.5) * 2 * dl[xi], 'PAR = ', par, 'NE = ', ne)
-        k += 1
-    if k >= 10000:
-        print(oe, xx, ne, nx)
-        quit('could not find positive values')
+    mox = zeros(len(xx))
+    nx = copy(xx)
+    while sum(abs(mox)) <= 0.0:
+        for xi in range(len(xx)):
+            if random.random() > 0.60:
+                mox[xi] += 1
+                nx[xi] += (random.random() - 0.5) * dl[xi]
+    nx = putwithindomain(nx, xx, dl, domain)
+    ne = Fx(nx, *par)
     if np.isnan(ne) or np.isinf(ne):
         print(nx, ne)
         quit('ERROR in MC: ')
@@ -55,19 +45,25 @@ def putwithindomain(nx, xx, dl, domain):
     Returns:
     list: New state after applying domain constraints.
     """
-    if not domain is None:
+    if domain is not None:
         for xi in range(len(nx)):
-            if nx[xi] < domain[xi][0]:
-                if domain[xi][2]:
-                    nx[xi] = domain[xi][1] + ( nx[xi] - domain[xi][0] )
-                    #nx[xi] = domain[xi][1] + nx[xi]
-                else:
-                    nx[xi] = random.random() * xx[xi]
-            elif nx[xi] > domain[xi][1]:
-                if domain[xi][2]:
-                    nx[xi] = domain[xi][0] + (nx[xi] - domain[xi][1])
-                else:
-                    nx[xi] = xx[xi] + random.random() * (domain[xi][1] - xx[xi])
+            lo, hi, periodic = domain[xi][0], domain[xi][1], domain[xi][2]
+            if periodic:
+                span = hi - lo
+                while nx[xi] < lo:
+                    nx[xi] += span
+                while nx[xi] > hi:
+                    nx[xi] -= span
+            else:
+                # Reflecting boundary: symmetric proposal, preserves detailed balance.
+                if nx[xi] < lo:
+                    nx[xi] = 2 * lo - nx[xi]
+                    if nx[xi] > hi:   # step larger than domain: clamp
+                        nx[xi] = lo
+                elif nx[xi] > hi:
+                    nx[xi] = 2 * hi - nx[xi]
+                    if nx[xi] < lo:   # step larger than domain: clamp
+                        nx[xi] = hi
     return nx
 
 def MCstep(xx, Fx, par, dl, *oes, **dic):
