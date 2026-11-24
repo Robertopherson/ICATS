@@ -42,7 +42,7 @@ If a binary compatibility error mentions NumPy, create a fresh environment and
 reinstall ICATS there. Do not reuse the incompatible environment:
 
 ```bash
-conda create -n icats-clean python=3.11
+conda create -n icats-clean python=3.12
 conda activate icats-clean
 python -m pip install -e ".[dynamics]"
 ```

@@ -31,6 +31,15 @@ default) and generate a fresh ensemble.
 Old Wang-Landau checkpoints, stored umbrellas, or reweighting profiles must not
 be reused with the revised sampler. Start in a new directory.
 
+The figures below illustrate the WL workflow that is no longer used. The left
+panel shows an NH3 + H2O orbital-angular-momentum histogram generated with WL
+active; the right panel shows the stored umbrella (density estimate) that
+controlled the reweighting.
+
+![WL NH3+H2O orbital distribution](assets/figures/wl-nh3-h2o-linear-lj.png)
+
+![WL NH3+H2O umbrella](assets/figures/wl-nh3-h2o-umbrella.png)
+
 ## Old Gaussian Rotor Broadening
 
 Earlier versions used a Gaussian broadening in the projection quantum number

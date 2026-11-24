@@ -154,7 +154,7 @@ To understand the first generated log, read
 [Annotated First Output](annotated-output.md) with `out_full.info` or
 `dynamics*.analinfo` open.
 
-## 5. Run The Cheap Dynamics Demonstration
+## 6. Run The Cheap Dynamics Demonstration
 
 The tutorial can now pass the generated samples to the simple demonstration
 dynamics script:
@@ -166,7 +166,7 @@ dynamics script:
 This step is optional. It exists to teach the file pipeline; serious production
 work may use a different dynamics code.
 
-## 6. Analyse Generated Trajectories
+## 7. Analyse Generated Trajectories
 
 ```bash
 ./run_analysis.sh

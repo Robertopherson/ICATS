@@ -206,6 +206,13 @@ a classical vector-model angular momentum consistent with the top type:
 - symmetric prolate or oblate top,
 - asymmetric top.
 
+For a thermal asymmetric-top ensemble, ICATS draws J from the corrected
+canonical rotor populations (proportional to `(2J+1) exp(-beta C J(J+1))`)
+and K from the thermal projection distribution for the chosen quantisation
+axis. The left column shows J histograms against the Boltzmann reference;
+the right column shows K histograms at a representative J for NH3 (c axis)
+and H2O (a axis).
+
 The corresponding `.info` lines include:
 
 ```text
@@ -222,13 +229,42 @@ reconstructed from all Cartesian coordinates and velocities. A propagated
 vibrating molecule can also contain geometry-dependent and intrinsic
 vibrational angular momentum.
 
+## Angular Momentum Distributions
+
+![System angular-momentum and speed distributions](assets/figures/intermom.png)
+
+For a thermal NH3 + H2O ensemble, the left column shows the orbital (`L`) and
+total (`J`) angular-momentum histograms against their geometric and coupled
+reference distributions. The right column shows the molecular `J_AB` and
+the relative speed `|V_AB|`. These are the primary ensemble diagnostics to
+inspect before running trajectories: check that the reference curves (red)
+agree with the histograms and that neither `L` nor `J` is truncated at the
+upper cutoff.
+
+The input keys that control these distributions are:
+
+```text
+maxl = ...      # orbital cutoff (in units of hbar)
+maxb = ...      # impact-parameter cutoff (bohr)
+Trot = ...      # rotational temperature (K)
+relative-velocity = ...
+collision-energy = ...
+```
+
 ## Vector Model And Asymmetric Tops
 
 ![Asymmetric-top state distribution](assets/figures/asymplot.png)
 
-The extended vector model lets ICATS keep a compact classical representation
-for different rotor types while still writing Cartesian coordinates and
-velocities. For asymmetric tops the code samples state information, constructs
+The figure compares quantum orientation densities (black) with discrete-K
+classical sampling (Sharp K, orange dashed) and interval-smoothed sampling
+(Interval smoothing, teal) for selected water states projected along the `a`
+body-fixed axis. The smoothing scheme draws the continuous projection `K_c`
+from a unit-width interval centred on the integer `K_0` and applies a
+relative-entropy correction to enforce `<K_c^2> = K_0^2`; the azimuthal
+angle follows a von Mises distribution that similarly preserves the transverse
+second moments.
+
+For asymmetric tops the code samples state information, constructs
 the vector-model rotor contribution, and then the analysis checks what the
 Cartesian sample actually contains.
 

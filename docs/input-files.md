@@ -102,9 +102,9 @@ creates:
 rd_tutorial_input/
 ```
 
-This directory contains restart files, Wang-Landau umbrellas, histograms, and
-outputs. If two calculations use the same `run-tag`, they use the same run
-directory. Choose a new `run-tag` when comparing different setups.
+This directory contains restart files, histograms, and outputs. If two
+calculations use the same `run-tag`, they use the same run directory. Choose a
+new `run-tag` when comparing different setups.
 
 ## Common Keys
 
@@ -358,18 +358,17 @@ over the intermolecular relative speed.
 | `Rz` | `Rz = 15.0` | Initial separation along the collision axis, in Angstrom. |
 | `beam-angle` | `beam-angle = 90.0` | Crossed-beam angle in degrees. |
 | `maxb` | `maxb = 10.0` | Maximum impact parameter estimate, in Angstrom. |
-| `fixed-b` | `fixed-b = 3.5` | Fixed impact parameter in Angstrom. This bypasses impact-parameter sampling and derives the corresponding orbital angular momentum from the sampled relative velocity. Currently use with `wang = False`. |
+| `fixed-b` | `fixed-b = 3.5` | Fixed impact parameter in Angstrom. This bypasses impact-parameter sampling and derives the corresponding orbital angular momentum from the sampled relative velocity. |
 | `impact-phi` | `impact-phi = 0.0` | Fixed impact-parameter azimuth in the lab frame, in radians. Omit this key to sample the azimuth. This controls the collision plane, not the full Jacobi/Euler `phi, beta, chi` transformation reconstructed later from the Cartesian geometry. |
 | `output-frame` | `internal` or `incoming-k-plus-z` | Reporting/export frame convention. `internal` is the historical ICATS default. `incoming-k-plus-z` applies an `Rx(pi)` transform before reporting, analysis, audit, and Cartesian export so the incoming relative wave vector is parallel to space-fixed `+Z`. |
 | `maxl` | `maxl = 80` | Maximum orbital angular momentum quantum number. |
-| `maxj` | `maxj = 80` | Maximum total angular momentum for Wang-Landau/J setup. If `maxl` is omitted, ICATS can use `maxj` as the orbital cap. |
+| `maxj` | `maxj = 80` | Legacy total-angular-momentum cap. If `maxl` is omitted, ICATS can use `maxj` as the orbital cap; prefer `maxl` for new runs. |
 | `orbital-sampling` | `geometric`, `flat-l`, `flat-b` | Geometric sampling uses the impact-parameter area measure. `flat-l` is uniform in the label L with magnitude `sqrt(L(L+1))`; `flat-b` is uniform in impact parameter. Flat proposals need their respective area weights. |
 | `chi` | `chi = 0.0` | Legacy azimuthal scattering-angle/control variable. Do not use this to fix the lab impact plane; use `impact-phi` for that. |
 | `phisample` | `True` or `False` | Legacy standard-azimuth switch. In isotropic runs, `True` rotates the sampled system to a standard azimuth unless `impact-phi` is explicitly set. |
 
-For non-Wang-Landau runs, `maxl` is usually the direct cap. For Wang-Landau
-runs, `maxj` is the important requested total-`J` range, but `L` still enters
-the actual Cartesian collision geometry.
+`maxl` is the orbital cap for geometric runs. `maxj` is a legacy alias that
+acts as the orbital cap when `maxl` is absent; prefer `maxl` for new runs.
 
 Choose `output-frame` before running `icats.init`. It changes the printed
 space-fixed vector components, SF/BF Euler angles, and exported xyz/vel files,

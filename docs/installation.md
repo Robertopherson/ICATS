@@ -14,7 +14,7 @@ installed for other projects.
 One suitable workflow is:
 
 ```bash
-conda create -n icats python=3.11
+conda create -n icats python=3.12
 conda activate icats
 ```
 
@@ -23,17 +23,27 @@ can install NumPy/SciPy-based packages.
 
 ## Install from GitHub
 
-Clone the repository and install ICATS in editable mode:
+Clone the repository and install ICATS:
 
 ```bash
 git clone https://github.com/Robertopherson/ICATS.git
 cd ICATS
-python -m pip install -e .
+python -m pip install .
 ```
 
-Editable mode is useful while the package is still under active development,
-because updates to the source tree are immediately visible to the command-line
-tools.
+To pin to a specific release (recommended for reproducibility):
+
+```bash
+git checkout v0.1.5
+python -m pip install .
+```
+
+For development, editable mode makes source-tree changes immediately visible
+to the command-line tools:
+
+```bash
+python -m pip install -e .
+```
 
 ## Optional Dynamics Dependencies
 
